@@ -20,11 +20,32 @@ export default function App() {
   const [specialities,setSpecialities] = useState([]);
   const {user}  = useContext(AppContext);
   var Superadmin = false; 
+  var CheckAdmin =false;
+  var RecipientAdmin =false;
+  var SpecialAdmin =false;
   // console.log(user.role_id);
   if(user){
     Superadmin = user.role_id == 1 ? true : false; 
   }else{
      Superadmin = false;
+  }
+
+  if(user){
+    CheckAdmin = (user.role_id == 1 || user.role_id == 4) ? true : false; 
+  }else{
+    CheckAdmin = false;
+  }
+
+  if(user){
+    RecipientAdmin = (user.role_id == 1 || user.role_id == 5) ? true : false; 
+  }else{
+    RecipientAdmin = false;
+  }
+
+  if(user){
+    SpecialAdmin = (user.role_id == 1 || user.role_id == 3) ? true : false; 
+  }else{
+    SpecialAdmin = false;
   }
   return <BrowserRouter> 
   <Routes>
@@ -35,10 +56,10 @@ export default function App() {
       <Route path="/users" element={Superadmin ?  <AllUsers /> : <Home/> }/>
       <Route path="/speciality" element={Superadmin ?  <ManageSpeciality /> : <Home/> }/>
       <Route path="/appointment" element={user ? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} /> : <Home/> }/>
-      <Route path="/AllAppointments" element={Superadmin ? <CheckPresence /> : <Home />} />
+      <Route path="/AllAppointments" element={RecipientAdmin ? <CheckPresence /> : <Home />} />
       <Route path="/settings" element={Superadmin ? <Settings /> : <Home />} />      
-      <Route path="/WaitingList/:specialityId" element={Superadmin ? <CheckPaitent /> : <Home />} />
-      <Route path="/SpecialCase" element={Superadmin ? <SpecialCase /> : <Home />} />
+      <Route path="/WaitingList/:specialityId" element={CheckAdmin ? <CheckPaitent /> : <Home />} />
+      <Route path="/SpecialCase" element={SpecialAdmin ? <SpecialCase /> : <Home />} />
       
       <Route path="/Statitistics" element={Superadmin ? <VisitsStatistics /> : <Home />} />
 
