@@ -39,7 +39,9 @@ const UserTable = ({ users, specialities, roles }) => {
         </tr>
       </thead>
       <tbody>
-        {users.map((user) => (
+        {users
+        .filter(user => user.role_id !== 1 )
+        .map((user) => (
           <tr key={user.id}>
             <td>{user.name}</td>
             <td>{user.email}</td>

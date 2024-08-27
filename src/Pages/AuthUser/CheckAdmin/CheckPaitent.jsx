@@ -8,7 +8,7 @@ const CheckPaitent = () => {
     const [expandedRows, setExpandedRows] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
 
-    const { token } = useContext(AppContext);
+    const { token,startDay,setStartDay,displayAuth,setDisplayAuth } = useContext(AppContext);
 
     async function GetWaitingListBySpeciality(specialityId) {
         const res = await fetch(`/api/waitinglist/GetWaitingListBySpeciality/${specialityId}`, {
@@ -22,6 +22,22 @@ const CheckPaitent = () => {
         setAppointmentIds(data['appointments']);
     }
 
+    useEffect(()=>{
+        if(startDay){
+        }
+    })
+    async function getstartDay(){
+        const res = await fetch('/api/getstartDay');
+        const data = await res.json();
+        setStartDay(data);
+    }
+
+    useEffect(()=>{
+        if(startDay){
+            getstartDay();
+            GetWaitingListBySpeciality(specialityId);
+        }
+    })
     useEffect(() => {
         GetWaitingListBySpeciality(specialityId);
     }, [specialityId]);
@@ -74,7 +90,7 @@ headers:{
     }
     
     return (
-        <div >
+        <div className='md:container md:mx-auto min-w-full min-h-screen'>
 
             <input
                 type="text"
@@ -86,10 +102,10 @@ headers:{
             <table className="table-auto my-7 text-center">
                 <thead>
                     <tr>
-                        <th>Patient ID</th>
-                        <th>Name</th>
-                        <th>Position</th>
-                        <th>Action</th>
+                        <th> ID</th>
+                        <th>الإسم</th>
+                        <th>الترتيب</th>
+                        <th>أمر</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -102,26 +118,26 @@ headers:{
                                     
                                 </td>
                                 <td>
-                                {appointment.position == 0 ? (<span className='text-red-500'>{appointment.name}</span>): appointment.name}
+                                {appointment.position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{appointment.name}</span>): appointment.name}
 
                                 </td>
                                 <td>
-                                    {appointment.position == 0 ? (<span className='text-red-500'>Special Case</span>): appointment.position}
+                                    {appointment.position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>حالة خاصة</span>): appointment.position}
                                 </td>
                                 <td>
                                     <button
                                         onClick={(e) => handleAbsent(e, appointment.id)}
                                         type="button"
-                                        className="text-red-700 mx-3 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        className="text-red-700 mx-3 hover:text-white border font-droid-arabic-kufi border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
                                     >
-                                        Absent
+                                        غائب
                                     </button>
                                     <button
                                         onClick={(e) => handleComplete(e, appointment.id)}
                                         type="button"
-                                        className="text-green-700 mx-3 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        className="text-green-700 mx-3 hover:text-white border font-droid-arabic-kufi border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
                                     >
-                                        Complete
+                                        إجتاز
                                     </button>
                                 </td>
                             </tr>

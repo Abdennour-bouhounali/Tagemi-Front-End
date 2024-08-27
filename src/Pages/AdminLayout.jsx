@@ -1,10 +1,10 @@
 import React, { useContext, useRef, useEffect, useState } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
-import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
+
 import SuperAdminNav from "./Headers/SuperAdminNav";
 import AuthNavBar from "./Headers/AuthNavBar";
+import GuestNavBar from "./Headers/GuestNavBar";
 
 export default function AdminLayout() {
   const { setUser, token, setToken } = useContext(AppContext);
@@ -13,13 +13,11 @@ export default function AdminLayout() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
 
-  const { t } = useTranslation();
   const dropdownRef = useRef(null);
 
-  const changeLanguage = (lng) => {
-    i18n.changeLanguage(lng);
-  };
+
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -47,10 +45,12 @@ export default function AdminLayout() {
   };
 
   async function getSpecialites() {
+
     const res = await fetch("/api/specialty", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+
     });
     const data = await res.json();
     setSpecialities(data["specialties"]);
@@ -87,10 +87,10 @@ export default function AdminLayout() {
 
   return (
 
-    <div className="flex  min-h-fit" >
+    <div className="flex  min-h-fit overflow-x-hidden" >
       {/* Sidebar */}
       {user && user.role_id == 1 && (
-        <div className={`fixed inset-y-0 left-0 bg-gradient-to-b mt-[110px] bg-[#EEEDEB] shadow-lg transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out z-30 w-64`}>
+        <div className={`fixed inset-y-0 right-0 bg-gradient-to-b mt-[90px] bg-[#EEEDEB] shadow-lg transform ${isSidebarOpen ? "translate-x-0" : "translate-x-full"} transition-transform duration-300 ease-in-out z-30 w-64`}>
           <SuperAdminNav user={user} specialities={specialities} dropdownRef={dropdownRef} toggleMobileMenu={toggleMobileMenu} toggleDropdown={toggleDropdown} isOpen={isOpen} />
         </div>
       )}
@@ -111,8 +111,8 @@ export default function AdminLayout() {
                     </svg>
                   </button>
                 )}
-                <Link to="/" className="text-[#2F3645] hover:text-[#131842] text-2xl font-bold">
-                  Home
+                <Link to="/" className="text-[#2F3645] hover:text-[#131842] font-droid-arabic-kufi text-lg mr-8 font-bold">
+                  الصفحة الرئيسية
                 </Link>
               </div>
 
@@ -120,32 +120,34 @@ export default function AdminLayout() {
 
             <div className="hidden md:flex space-x-6 items-center">
 
+           {user && user.role_id == 2 && <GuestNavBar />
+}
           <AuthNavBar user={user} specialities={specialities} dropdownRef={dropdownRef} toggleMobileMenu={toggleMobileMenu} toggleDropdown={toggleDropdown} isOpen={isOpen}/>
-
+          
 
               {/*Language Selector  */}
+{/* 
               <div className="relative px-4 py-3">
                 <select
                   onChange={(e) => changeLanguage(e.target.value)} defaultValue={i18n.language}
-                  className="block appearance-none w-full bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842] px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline"
+                  className="block appearance-none w-full bg-[#EEEDEB] border border-[#2F3645] font-droid-arabic-kufi hover:border-[#131842] px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline"
                 >
                   <option value="en" className="text-[#2F3645]">English</option>
                   <option value="fr" className="text-[#2F3645]">Français</option>
                   <option value="ar" className="text-[#2F3645]">العربية</option>
                 </select>
-              </div>
-
+              </div> */}
 
 
               {user ? (
                 <>
 
-                  <button className="text-[#2F3645] font-medium hover:bg-[#131842] px-4 py-2 hover:text-white  rounded-full" onClick={handlelogout}>Logout</button>
+                  <button className="text-[#2F3645] font-medium hover:bg-[#131842] px-4 py-2 font-droid-arabic-kufi hover:text-white  rounded-full" onClick={handlelogout}>خروج</button>
                 </>
               ) : (
                 <div className="space-x-4">
-                  <Link to="/login" className="text-[#2F3645] font-medium hover:bg-[#131842] px-6 py-2 hover:text-white  rounded-full">Login</Link>
-                  <Link to="/register" className="text-[#2F3645] font-medium hover:bg-[#131842] px-4 py-2 hover:text-white  rounded-full">Register</Link>
+                  <Link to="/login" className="text-[#2F3645] font-medium hover:bg-[#131842] font-droid-arabic-kufi px-8 py-2 hover:text-white  rounded-full">دخول</Link>
+                  <Link to="/register" className="text-[#2F3645] font-medium hover:bg-[#131842] font-droid-arabic-kufi px-4 py-2 hover:text-white  rounded-full">تسجيل</Link>
                 </div>
               )}
 
@@ -164,15 +166,16 @@ export default function AdminLayout() {
           {isMobileMenuOpen && (
             <div className="md:hidden mt-4">
               <div className="space-y-2 block">
-              
+              <GuestNavBar />
               <AuthNavBar user={user} specialities={specialities} />
 
               </div>
             </div>
           )}
         </header>
-
-        <main className="flex-grow container min-h-screen" >
+        
+        
+        <main className=" container p-0 mx-auto" >
           <Outlet />
         </main>
       </div>

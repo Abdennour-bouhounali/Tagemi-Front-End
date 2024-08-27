@@ -24,7 +24,7 @@ const VisitsStatistics = () => {
     }
 
     return (
-        <div id="RegisterVisit">
+        <div className='flex-grow container min-h-screen'>
             <table className="table-auto my-7 text-center">
                 <thead>
                     <tr>

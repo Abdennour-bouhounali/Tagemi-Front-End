@@ -28,8 +28,8 @@ export default function AllUsers() {
   useEffect(() => {
     getUsers();
   }, []);
-  return <>
-    <div className="p-4">
+  return(
+    <div className="flex-grow container min-h-screen">
       <h4 className="mb-6 text-xl font-bold text-black">
         All Admins
       </h4>
@@ -40,6 +40,6 @@ export default function AllUsers() {
         All Users
       </h4>
       <UserTable users={users} specialities={specialities} roles={roles} />
-    </div>
-  </>
+    </div>)
+  
 }

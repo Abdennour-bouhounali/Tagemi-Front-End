@@ -7,10 +7,13 @@ const CheckPresence = () => {
     const [appointments, setAppointments] = useState([]);
     const [expandedRows, setExpandedRows] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+
+    const {user} = useContext(AppContext);
     const [FormData, setFormData] = useState({
         'status': ''
     });
-    const { token } = useContext(AppContext);
+    const { token,startDay,setStartDay,displayAuth,setDisplayAuth } = useContext(AppContext);
     async function getAppoitments() {
         const res = await fetch('/api/appointment', {
             headers: {
@@ -24,6 +27,12 @@ const CheckPresence = () => {
         setAppointments(data['appoitments']);
 
     }
+    async function getstartDay(){
+        const res = await fetch('/api/getstartDay');
+        const data = await res.json();
+        setStartDay(data);
+    }
+
 
     useEffect(() => {
         getAppoitments();
@@ -75,16 +84,93 @@ const CheckPresence = () => {
         {}
     );
 
+        // Function to filter appointments based on search term
+        const filteredAppointmentsByStatus = Object.keys(appointments).reduce(
+            (filtered, patientId) => {
+                const filteredPatientAppointmentsByStatus = appointments[patientId].filter(
+                    (appointment) =>
+                        appointment.status.toLowerCase().includes(statusFilter.toLowerCase())
+                );
+    
+                if (filteredPatientAppointmentsByStatus.length > 0) {
+                    filtered[patientId] = filteredPatientAppointmentsByStatus;
+                }
+    
+                return filtered;
+            },
+            {}
+        );
+
     const handleChange = (e) => {
         setSearchTerm(e.target.value);
     };
 
-    // Determine the appointments to display based on search term
-    const displayAppointments = searchTerm === '' ? appointments : filteredAppointments;
+    const handleStatusChange = (e)=>{
+        setStatusFilter(e.target.value);
+    }
 
+    useEffect(()=>{
+        if(startDay){
+            getstartDay();
+            getAppoitments();
+        }
+    })
+    // Determine the appointments to display based on search term
+    // const displayAppointments = searchTerm === '' ? (statusFilter === "" ? appointments : filteredAppointmentsByStatus) : filteredAppointments;
+
+    const displayAppointments = searchTerm === '' 
+        ? (statusFilter === "" ? appointments : filteredAppointmentsByStatus) 
+        : (statusFilter === "" 
+            ? filteredAppointments 
+            : Object.keys(filteredAppointmentsByStatus).reduce(
+                (filtered, patientId) => {
+                    const filteredPatientAppointments = filteredAppointmentsByStatus[patientId].filter(
+                        (appointment) =>
+                            appointment.name.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+
+                    if (filteredPatientAppointments.length > 0) {
+                        filtered[patientId] = filteredPatientAppointments;
+                    }
+
+                    return filtered;
+                },
+                {}
+            )
+        );
+        
+    async function hanleSpecialCase(e, patientId) {
+        e.preventDefault();
+        const res = await fetch(`/api/appointment/SpecialCase/${patientId}`, {
+            method: 'post',
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
+        })
+        getAppoitments();
+        const data = await res.json();
+        console.log(data);
+        if (res.ok) {
+          setMessage(data['message']);
+        }
+        setTimeout(() => {
+          setMessage(null);
+        }, 2000);
+    }
 
     return (
-        <div >
+        <div className='md:container md:mx-auto min-h-screen'>
+            <div className="flex">
+            <select 
+            value={statusFilter} 
+            onChange={handleStatusChange} 
+            className="search-bar  m-4 px-2 bg-[#EEEDEB]">
+                <option value="">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Present">Present</option>
+                <option value="Completed">Completed</option>
+                <option value="Waiting List">Waiting List</option>
+            </select>
             <input
                 type="text"
                 placeholder="Search by Patient Name..."
@@ -92,15 +178,17 @@ const CheckPresence = () => {
                 onChange={handleChange}
                 className="search-bar my-4"
             />
+            </div>
+
             <table className="table-auto my-7 text-center ">
                 <thead>
                     <tr>
-                        <th>Patient ID</th>
-                        <th>Name</th>
-                        <th>Specialty</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                        <th>Check Presence</th>
+                        <th  className='font-droid-arabic-kufi'>ID</th>
+                        <th  className='font-droid-arabic-kufi'>الاسم</th>
+                        <th  className='font-droid-arabic-kufi'>التحصص</th>
+                        <th className='font-droid-arabic-kufi'>وقت المجيئ</th>
+                        <th  className='font-droid-arabic-kufi'>الحالة</th>
+                        <th  className='font-droid-arabic-kufi'>أمر</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -109,12 +197,12 @@ const CheckPresence = () => {
                             <tr onClick={() => toggleRow(patientId)} className='border-t-4 text-center'>
                                 <td>{patientId}</td>
                                 <td>
-                                {displayAppointments[patientId][0].position == 0 ? (<span className='text-red-500'>{displayAppointments[patientId][0].name}</span>): displayAppointments[patientId][0].name}
+                                {displayAppointments[patientId][0].position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{displayAppointments[patientId][0].name}</span>): displayAppointments[patientId][0].name}
                                 </td>
                                 <td>{displayAppointments[patientId][0].specialty.name}</td>
             
                                 <td>
-                                {displayAppointments[patientId][0].position == 0 ? (<span className='text-red-500'>When Ever He Came</span>): displayAppointments[patientId][0].time}
+                                {displayAppointments[patientId][0].position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>يجتاز متى ما جاء</span>): displayAppointments[patientId][0].time}
 
                                 </td>
                                 <td className='text-center'>
@@ -125,17 +213,19 @@ const CheckPresence = () => {
                                 <td className=' text-center mx-auto'>
                                     {displayAppointments[patientId][0].status == 'Pending' ? (
                                         <div className='flex justify-center'>
+                                        {(user.role_id == 1 || user.role_id == 5 ) && (
+                                            <>
                                          <form className='text-center max-w-fit' onSubmit={(e) => hanlePresence(e, patientId)}>
                                         <input
                                             value="Present"
                                             type="hidden" name="status" />
                                         <button
                                             type="submit"
-                                            className="text-green-700 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                            className="text-green-700 hover:text-white border font-droid-arabic-kufi border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
                                             disabled={displayAppointments[patientId][0].status !== 'Pending'}
 
                                         >
-                                            Present
+                                            حاضر
                                         </button>
 
                                     </form>
@@ -146,15 +236,44 @@ const CheckPresence = () => {
                                         <button
                                             type="submit"
                                             disabled={displayAppointments[patientId][0].status !== 'Pending'}
-                                            className="text-yellow-700 hover:text-white border border-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                            className="text-yellow-700 font-droid-arabic-kufi hover:text-white border border-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
                                         >
-                                            On Delay
+                                            جاء متأخرا
                                         </button>
 
                                     </form>
+                                    </>
+                                    )}
+                                    {(user.role_id == 1 || user.role_id == 3 ) && (
+                                          <form className='ml-4 ' onSubmit={(e) => hanleSpecialCase(e, patientId)}>
+                                          <input
+                                              value="Present"
+                                              type="hidden" name="status" />
+  
+                                          <button
+                                          type='submit'
+                                              className="text-yellow-500 font-droid-arabic-kufi hover:text-white border border-yellow-500 hover:bg-yellow-500 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                              >حالة خاصة </button>
+                                      </form>
+                                    )}
                                         </div>
-                                    ):
-                                    <h2 className='text-center'>No Actions To Perform</h2>
+                                    ): displayAppointments[patientId][0].status == 'Waiting List' && user.role_id == 1 ? 
+                                    <div className='flex justify-center'>
+                                    <form className='text-center max-w-fit' onSubmit={(e) => hanlePresence(e, patientId)}>
+                                    <input
+                                        value="Present"
+                                        type="hidden" name="status" />
+                                    <button
+                                        type="submit"
+                                        className="text-green-700  hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        disabled={displayAppointments[patientId][0].status !== 'Pending'}
+
+                                    >
+                                        يضاف لقائمة الاحتياط
+                                    </button>
+
+                                </form></div> :
+                                    <h2 className='text-center '>لا يوجد خيارات</h2>
                                     }
                                    
                                 </td>

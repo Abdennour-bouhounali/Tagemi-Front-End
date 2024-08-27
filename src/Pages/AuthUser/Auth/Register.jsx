@@ -35,13 +35,17 @@ export default function Register() {
 //  text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB]
   return (
     
-      <section className="flex items-center justify-center mt-6">
-        <div className="w-full max-w-lg px-5 bg-[#EEEDEB] rounded-lg shadow-md">
-          <div className="p-6 space-y-4">
-            <h1 className="text-xl font-bold text-gray-900 mb-16 text-center">Create an Account</h1>
+
+
+    <div className="relative w-full min-h-[12rem] lg:h-screen sm:h-fit bg-center bg-no-repeat bg-contain sm:bg-cover" style={{ backgroundImage: `url('/tagemi_consept.png')` }}>
+      <div className="flex items-center justify-center text-center p-4 sm:h-fit lg:h-screen">
+        <div className="p-5 text-2xl min-w-[578px] text-white bg-opacity-50 rounded-xl">
+          <div className=" min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-8 py-10" >
+          <div className="px-6 space-y-4">
+            <h1 className="text-xl font-bold text-gray-900 mb-4   font-droid-arabic-kufi  text-center">أنشئ حسابك</h1>
             <form className="space-y-4" onSubmit={handleRegister}>
               <div>
-                <label className="block mb-2 text-sm font-medium text-[#2F3645] ">Your Name</label>
+                <label className="block mb-2 text-sm font-medium  font-droid-arabic-kufi   text-[#2F3645] ">الإسم الكامل</label>
                 <input
                   value={FormData.name}
                   onChange={(e) => setFormData({ ...FormData, name: e.target.value })}
@@ -55,21 +59,21 @@ export default function Register() {
                 {errors.name && <p className="error">{errors.name[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-medium text-[#2F3645]  ">Your Phone Number</label>
+                <label className="block mb-2 text-sm font-droid-arabic-kufi  font-medium text-[#2F3645]  ">رقم الهانف</label>
                 <input
                   value={FormData.phone}
                   onChange={(e) => setFormData({ ...FormData, phone: e.target.value })}
                   type="tel"
                   name="phone"
                   id="phone"
-                  className="input-style"
+                  className="input-style font-droid-arabic-kufi"
                   placeholder="Ex: 0557211669"
                   required
                 />
                 {errors.phone && <p className="error">{errors.phone[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-medium text-[#2F3645] ">Your Email</label>
+                <label className="block mb-2 text-sm font-medium  font-droid-arabic-kufi text-[#2F3645]   ">الايمايل</label>
                 <input
                   value={FormData.email}
                   onChange={(e) => setFormData({ ...FormData, email: e.target.value })}
@@ -83,7 +87,7 @@ export default function Register() {
                 {errors.email && <p className="error">{errors.email[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-medium text-[#2F3645] ">Password</label>
+                <label className="block mb-2 text-sm font-medium  font-droid-arabic-kufi   text-[#2F3645] ">كلمة المرور</label>
                 <input
                   value={FormData.password}
                   onChange={(e) => setFormData({ ...FormData, password: e.target.value })}
@@ -97,7 +101,7 @@ export default function Register() {
                 {errors.password && <p className="error">{errors.password[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-medium text-[#2F3645]  ">Confirm Password</label>
+                <label className="block mb-2 text-sm font-medium font-droid-arabic-kufi    text-[#2F3645]  ">تأكيد كلمة المرور</label>
                 <input
                   value={FormData.password_confirmation}
                   onChange={(e) => setFormData({ ...FormData, password_confirmation: e.target.value })}
@@ -112,18 +116,19 @@ export default function Register() {
               </div>
 <div className="text-center">
 
-              <button type="submit" className="btn-primary bg-[#131842] text-[#EEEDEB] py-2 px-4 text-center mb-3 rounded-lg mx-auto">
-                Create an Account
+              <button type="submit" className="btn-primary   font-droid-arabic-kufi  bg-[#131842] text-[#EEEDEB] py-2 px-4 text-center mb-3 rounded-lg mx-auto">
+                أنشئ حسابك
               </button>
               </div>
 
-              <p className="text-sm font-light text-gray-500 ">
-                Already have an account ?    <Link to="/login" className="text-[#2F3645] font-bold hover:underline ml-4">       Login here</Link>
+              <p className="text-sm font-light font-droid-arabic-kufi  text-gray-500   ">
+                لديك حساب بالفعل ؟     <Link to="/login" className="text-[#2F3645]  font-droid-arabic-kufi   font-bold hover:underline ml-4"> دخول</Link>
               </p> 
             </form>
           </div>
         </div>
-      </section>
-    
+        </div>
+        </div>
+        </div>
   );
 }

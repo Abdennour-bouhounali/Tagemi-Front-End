@@ -34,7 +34,9 @@ const SpecialityTable = ({ specialities, getSpecialites }) => {
         </tr>
       </thead>
       <tbody>
-        {specialities.map((speciality) => (
+        {specialities
+        .filter(speciality => speciality.name !== 'NoSpeciality' )        
+        .map((speciality) => (
           <tr key={speciality.id}>
             <td className="border px-4 py-2">{speciality.name}</td>
             <td className="border px-4 py-2">{speciality.duration}</td>

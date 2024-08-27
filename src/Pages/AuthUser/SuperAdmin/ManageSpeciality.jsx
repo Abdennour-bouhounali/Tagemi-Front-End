@@ -24,8 +24,8 @@ export default function ManageSpeciality() {
   useEffect(() => {
     getSpecialites();
   }, []);
-  return <>
-    <div className="p-4">
+  return(
+    <div className="flex-grow container min-h-screen">
 
 
       <h4 className="my-6 text-xl font-bold text-black">
@@ -45,5 +45,5 @@ export default function ManageSpeciality() {
       <AssignSpecialities specialities={specialities} getSpecialites={getSpecialites} />
 
     </div>
-  </>
+  )
 }
