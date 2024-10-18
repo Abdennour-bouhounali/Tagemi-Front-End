@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 
 const Messages = () => {
@@ -9,7 +10,7 @@ const Messages = () => {
   const [filteredMessages, setFilteredMessages] = useState([]);
 
   useEffect(() => {
-    fetch('/api/contacts')
+    fetch(`${apiUrl}/api/contacts`)
       .then((response) => response.json())
       .then((data) => {
         setMessages(data);
@@ -57,7 +58,7 @@ const Messages = () => {
 
 
   const handleDelete = (id) => {
-    fetch(`/api/contacts/${id}`, {
+    fetch(`${apiUrl}/api/contacts/${id}`, {
       method: 'DELETE',
     })
     .then(() => {

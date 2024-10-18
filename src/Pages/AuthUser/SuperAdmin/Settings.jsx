@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../../../Context/AppContext"
 import { useTranslation } from "react-i18next";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 
 export default function Settings() {
@@ -14,7 +15,7 @@ export default function Settings() {
 
   async function handleDelete(e) {
     e.preventDefault();
-    const res = await fetch('/api/waitinglist/deleteAppointmentsAndAdmins', {
+    const res = await fetch(`${apiUrl}/api/waitinglist/deleteAppointmentsAndAdmins`, {
       method: 'post',
       headers: {
         Authorization: `Bearer ${token}`
@@ -34,7 +35,7 @@ export default function Settings() {
   async function handleStart(e) {
     e.preventDefault();
 
-    const res = await fetch('/api/startVisitDay',
+    const res = await fetch(`${apiUrl}/api/startVisitDay`,
 
       { method: 'POST' });
     const data = await res.json();
@@ -44,7 +45,7 @@ export default function Settings() {
   async function handleDisplayHideAuth(e) {
     e.preventDefault();
 
-    const res = await fetch('/api/DisplayHideAuth',
+    const res = await fetch(`${apiUrl}/api/DisplayHideAuth`,
 
       { method: 'POST' });
     const data = await res.json();
@@ -57,7 +58,7 @@ export default function Settings() {
   async function handleDownload(e) {
     e.preventDefault();
     try {
-      const res = await fetch('/api/exportData', {
+      const res = await fetch(`${apiUrl}/api/exportData`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
@@ -89,7 +90,7 @@ export default function Settings() {
     e.preventDefault();
     
     try {
-      const res = await fetch('/api/changeStatisticsLink', {
+      const res = await fetch(`${apiUrl}/api/changeStatisticsLink`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

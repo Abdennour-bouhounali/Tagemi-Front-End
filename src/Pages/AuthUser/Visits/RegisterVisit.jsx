@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../Context/AppContext';
 import logo from './tagemi_logo.png';
 import { useTranslation } from 'react-i18next';
-
+const apiUrl = import.meta.env.VITE_API_URL; 
 const RegisterVisit = ({ setSpecialities, specialities }) => {
   const { token } = useContext(AppContext);
   const { t } = useTranslation();
@@ -25,7 +25,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   }, []);
 
   async function getRules() {
-    const res = await fetch('/api/rules', {
+    const res = await fetch(`${apiUrl}/api/rules`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -35,7 +35,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   }
 
   async function getSpecialities() {
-    const res = await fetch('/api/specialty', {
+    const res = await fetch(`${apiUrl}/api/specialty`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -77,7 +77,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const res = await fetch('/api/appointment', {
+    const res = await fetch(`${apiUrl}/api/appointment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

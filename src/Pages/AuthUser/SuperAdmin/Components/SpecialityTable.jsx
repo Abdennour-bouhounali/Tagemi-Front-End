@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
 import { useNavigate } from 'react-router-dom';
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const SpecialityTable = ({ specialities, getSpecialites }) => {
   const { token } = useContext(AppContext);
@@ -9,7 +10,7 @@ const SpecialityTable = ({ specialities, getSpecialites }) => {
     e.preventDefault();
 
     console.log(specialityId);
-    const res = await fetch(`/api/specialty/${specialityId}`, {
+    const res = await fetch(`${apiUrl}/api/specialty/${specialityId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

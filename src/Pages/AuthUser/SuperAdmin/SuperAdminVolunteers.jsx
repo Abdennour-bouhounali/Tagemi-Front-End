@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const Volunteers = () => {
   const [volunteers, setVolunteers] = useState([]);
@@ -10,7 +11,7 @@ const Volunteers = () => {
   const [states, setStates] = useState([]);
 
   useEffect(() => {
-    fetch('/api/volunteers')
+    fetch(`${apiUrl}/api/volunteers`)
       .then(response => response.json())
       .then(data => {
         setVolunteers(data);
@@ -50,7 +51,7 @@ const Volunteers = () => {
   };
 
   const handleDelete = (id) => {
-    fetch(`/api/volunteers/${id}`, {
+    fetch(`${apiUrl}/api/volunteers/${id}`, {
       method: 'DELETE',
     })
     .then(() => {

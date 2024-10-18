@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from '../../../../Context/AppContext';
 import { useNavigate } from "react-router-dom";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 
 export default function AddSpeciality({getSpecialites}){
@@ -18,7 +19,7 @@ export default function AddSpeciality({getSpecialites}){
 async function handleAddSpeciality(e){
     e.preventDefault();
 
-    const res = await fetch('/api/specialty',{
+    const res = await fetch(`${apiUrl}/api/specialty`,{
         method : 'post',
         body: JSON.stringify(FormData),
         headers : {

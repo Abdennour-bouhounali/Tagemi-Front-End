@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const CheckPresence = () => {
 
@@ -15,7 +16,7 @@ const CheckPresence = () => {
     });
     const { token,startDay,setStartDay,displayAuth,setDisplayAuth } = useContext(AppContext);
     async function getAppoitments() {
-        const res = await fetch('/api/appointment', {
+        const res = await fetch(`${apiUrl}/api/appointment`, {
             headers: {
 
                 Authorization: `Bearer ${token}`
@@ -28,7 +29,7 @@ const CheckPresence = () => {
 
     }
     async function getstartDay(){
-        const res = await fetch('/api/getstartDay');
+        const res = await fetch(`${apiUrl}/api/getstartDay`);
         const data = await res.json();
         setStartDay(data);
     }
@@ -48,7 +49,7 @@ const CheckPresence = () => {
 
     async function hanlePresence(e, patientId) {
         e.preventDefault();
-        const res = await fetch(`/api/appointment/ConfirmPresence/${patientId}`, {
+        const res = await fetch(`${apiUrl}/api/appointment/ConfirmPresence/${patientId}`, {
             method: 'post',
             headers: {
                 Authorization: `Bearer ${token}`
@@ -59,7 +60,7 @@ const CheckPresence = () => {
 
     async function hanleOnDelay(e, patientId) {
         e.preventDefault();
-        const res = await fetch(`/api/appointment/ConfirmPresenceDelay/${patientId}`, {
+        const res = await fetch(`${apiUrl}/api/appointment/ConfirmPresenceDelay/${patientId}`, {
             method: 'post',
             headers: {
                 Authorization: `Bearer ${token}`
@@ -141,7 +142,7 @@ const CheckPresence = () => {
         
     async function hanleSpecialCase(e, patientId) {
         e.preventDefault();
-        const res = await fetch(`/api/appointment/SpecialCase/${patientId}`, {
+        const res = await fetch(`${apiUrl}/api/appointment/SpecialCase/${patientId}`, {
             method: 'post',
             headers: {
                 Authorization: `Bearer ${token}`

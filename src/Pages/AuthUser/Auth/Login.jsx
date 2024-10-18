@@ -1,6 +1,7 @@
 import { useContext, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { AppContext } from "../../../Context/AppContext";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 export default function Login() {
   const { token, setToken } = useContext(AppContext)
@@ -15,7 +16,7 @@ export default function Login() {
 
   async function handleLogin(e) {
     e.preventDefault();
-    const res = await fetch("/api/login", {
+    const res = await fetch(`${apiUrl}/api/login`, {
       method: "post",
       body: JSON.stringify(FormData)
     });

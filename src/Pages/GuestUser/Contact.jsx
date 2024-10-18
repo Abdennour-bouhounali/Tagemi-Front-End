@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../../Context/LanguageContext';
 import Footer from './HomePage/Components/Footer';
+
+
+const apiUrl = import.meta.env.VITE_API_URL; 
 const Contact = ({ project, projectName }) => {
   const { language } = useLanguage(); // Destructure language from useLanguage
   const [types, setTypes] = useState([]);
@@ -17,7 +20,7 @@ const Contact = ({ project, projectName }) => {
   const [message, setMessage] = useState('');
 
   async function getTypes() {
-    const res = await fetch('/api/types');
+    const res = await fetch(`${apiUrl}/api/types`);
     const data = await res.json();
     setTypes(data);
   } 
@@ -34,7 +37,7 @@ const Contact = ({ project, projectName }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/contacts', {
+      const response = await fetch(`${apiUrl}/api/contacts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

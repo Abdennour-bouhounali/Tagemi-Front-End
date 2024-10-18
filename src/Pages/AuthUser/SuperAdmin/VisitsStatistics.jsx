@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const VisitsStatistics = () => {
     const [statistics, setStatistics] = useState([]);
@@ -11,7 +12,7 @@ const VisitsStatistics = () => {
     }, []);
 
     async function getStatistics() {
-        const res = await fetch('/api/getStatistics', {
+        const res = await fetch(`${apiUrl}/api/getStatistics`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

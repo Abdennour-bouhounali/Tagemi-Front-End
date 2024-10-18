@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const UserTable = ({ users, specialities, roles }) => {
   const { token } = useContext(AppContext);
@@ -11,7 +12,7 @@ const UserTable = ({ users, specialities, roles }) => {
     const formData = new FormData(e.target);
     const roleId = formData.get('role');
 
-    const res = await fetch('/api/role/ChangeRole', {
+    const res = await fetch(`${apiUrl}/api/role/ChangeRole`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

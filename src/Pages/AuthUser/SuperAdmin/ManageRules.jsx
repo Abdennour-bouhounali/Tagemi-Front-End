@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../../Context/AppContext"
 import { useNavigate } from "react-router-dom";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 export default function ManageRules() {
     const navigate = useNavigate();
@@ -15,7 +16,7 @@ export default function ManageRules() {
     }, []);
 
     const fetchRules = async () => {
-        const res = await fetch('/api/rules', {
+        const res = await fetch(`${apiUrl}/api/rules`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -29,7 +30,7 @@ export default function ManageRules() {
 
     const handleAddRule = async (e) => {
         e.preventDefault();
-        const res = await fetch('/api/rules', {
+        const res = await fetch(`${apiUrl}/api/rules`, {
             method: 'POST',
             body: JSON.stringify(formData),
             headers: {
@@ -49,7 +50,7 @@ export default function ManageRules() {
 
     const handleUpdateRule = async (e) => {
         e.preventDefault();
-        const res = await fetch(`/api/rules/${editId}`, {
+        const res = await fetch(`${apiUrl}/api/rules/${editId}`, {
             method: 'PUT',
             body: JSON.stringify(formData),
             headers: {
@@ -69,7 +70,7 @@ export default function ManageRules() {
     };
 
     const handleDeleteRule = async (id) => {
-        const res = await fetch(`/api/rules/${id}`, {
+        const res = await fetch(`${apiUrl}/api/rules/${id}`, {
             method: 'DELETE',
             headers: {
                 Authorization: `Bearer ${token}`,

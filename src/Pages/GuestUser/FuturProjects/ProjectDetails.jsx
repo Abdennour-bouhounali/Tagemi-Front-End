@@ -12,7 +12,7 @@ const ProjectDetails = () => {
     const {language} = useLanguage();
 
     async function getTypes() {
-        const res = await fetch('/api/types');
+        const res = await fetch(`${apiUrl}/api/types`);
         const data = await res.json();
         setTypes(data);
 
@@ -23,7 +23,7 @@ const ProjectDetails = () => {
     }, []);
 
     async function getProject() {
-        const res = await fetch(`/api/projects/${Projectid}`);
+        const res = await fetch(`${apiUrl}/api/projects/${Projectid}`);
         const data = await res.json();
         console.log(data);
         setProject(data);

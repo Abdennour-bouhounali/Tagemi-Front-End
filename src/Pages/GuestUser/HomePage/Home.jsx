@@ -8,6 +8,7 @@ import Footer from "./Components/Footer";
 import { useEffect, useState } from "react";
 import Donate from "./Components/Donate";
 
+const apiUrl = import.meta.env.VITE_API_URL; 
 export default function Home() {
     const [types, setTypes] = useState([]);
     const [sponsors, setSponsors] = useState([]);
@@ -15,7 +16,7 @@ export default function Home() {
 
     async function getSponsors() {
         try {
-            const res = await fetch('/api/sponsors', {
+            const res = await fetch(`${apiUrl}/api/sponsors`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -32,7 +33,7 @@ export default function Home() {
 
     async function getTypes() {
         try {
-            const res = await fetch('/api/types');
+            const res = await fetch(`${apiUrl}/api/types`);
             if (!res.ok) {
                 throw new Error(`HTTP error! Status: ${res.status}`);
             }

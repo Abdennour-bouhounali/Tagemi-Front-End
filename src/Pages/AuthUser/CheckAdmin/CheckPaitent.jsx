@@ -11,7 +11,7 @@ const CheckPaitent = () => {
     const { token,startDay,setStartDay,displayAuth,setDisplayAuth } = useContext(AppContext);
 
     async function GetWaitingListBySpeciality(specialityId) {
-        const res = await fetch(`/api/waitinglist/GetWaitingListBySpeciality/${specialityId}`, {
+        const res = await fetch(`${apiUrl}/api/waitinglist/GetWaitingListBySpeciality/${specialityId}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -27,7 +27,7 @@ const CheckPaitent = () => {
         }
     })
     async function getstartDay(){
-        const res = await fetch('/api/getstartDay');
+        const res = await fetch(`${apiUrl}/api/getstartDay`);
         const data = await res.json();
         setStartDay(data);
     }
@@ -62,7 +62,7 @@ const CheckPaitent = () => {
 
     async function handleAbsent(e,AppointmentId){
         e.preventDefault();
-        const res = await fetch(`/api/waitinglist/Absent/${AppointmentId}`,{
+        const res = await fetch(`${apiUrl}/api/waitinglist/Absent/${AppointmentId}`,{
 method : 'post',
 headers:{
     Authorization : `Bearer ${token}`
@@ -76,7 +76,7 @@ headers:{
     }
     async function handleComplete(e,AppointmentId){
         e.preventDefault();
-        const res = await fetch(`/api/waitinglist/Complete/${AppointmentId}`,{
+        const res = await fetch(`${apiUrl}/api/waitinglist/Complete/${AppointmentId}`,{
 method : 'post',
 headers:{
     Authorization : `Bearer ${token}`

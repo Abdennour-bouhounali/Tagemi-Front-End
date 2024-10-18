@@ -4,8 +4,7 @@ import VideoBanner from "../HomePage/Components/VideoBanner";
 import AboutActvity from "./Components/AboutActvity";
 import Footer from "../HomePage/Components/Footer";
 import { useLanguage } from "../../../Context/LanguageContext";
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function Activities() {
     const { TypeId } = useParams();
     const [type, setType] = useState({ image_url: '/tagemi_consept.png', description_en: '', description_ar: '' });
@@ -14,7 +13,7 @@ export default function Activities() {
     const { language } = useLanguage();
 
     async function getTypes() {
-        const res = await fetch('/api/types');
+        const res = await fetch(`${apiUrl}/api/types`);
         const data = await res.json();
         setTypes(data);
     }
@@ -25,7 +24,7 @@ export default function Activities() {
 
     async function getType() {
         try {
-            const res = await fetch(`/api/types/${TypeId}`);
+            const res = await fetch(`${apiUrl}/api/types/${TypeId}`);
             if (res.ok) {
                 const data = await res.json();
                 setType(data);
@@ -40,7 +39,7 @@ export default function Activities() {
 
     async function getAllActivities() {
         try {
-            const res = await fetch(`/api/activities/showByActivitiesType/${TypeId}`);
+            const res = await fetch(`${apiUrl}/api/activities/showByActivitiesType/${TypeId}`);
             if (res.ok) {
                 const data = await res.json();
                 setActivities(data);

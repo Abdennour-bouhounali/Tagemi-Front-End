@@ -2,6 +2,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
 import { useNavigate } from 'react-router-dom';
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const AssignSpecialities = ({ specialities, getSpecialites }) => {
   const { token } = useContext(AppContext);
@@ -10,7 +11,7 @@ const AssignSpecialities = ({ specialities, getSpecialites }) => {
 
 
   async function getSpecialtiesAdmins() {
-    const res = await fetch('/api/role', {
+    const res = await fetch(`${apiUrl}/api/role`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -34,7 +35,7 @@ const AssignSpecialities = ({ specialities, getSpecialites }) => {
     const formData = new FormData(e.target);
     const userId = formData.get('user_id');
 
-    const res = await fetch('/api/role/AssignSpeciality', {
+    const res = await fetch(`${apiUrl}/api/role/AssignSpeciality`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

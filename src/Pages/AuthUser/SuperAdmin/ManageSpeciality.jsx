@@ -3,6 +3,8 @@ import { AppContext } from "../../../Context/AppContext"
 import SpecialityTable from "./Components/SpecialityTable"
 import AddSpeciality from "./Components/AddSpeciality";
 import AssignSpecialities from "./Components/AssignSpecialities";
+const apiUrl = import.meta.env.VITE_API_URL; 
+
 export default function ManageSpeciality() {
 
   const [specialities, setSpecialities] = useState([]);
@@ -10,7 +12,7 @@ export default function ManageSpeciality() {
 
   const { token } = useContext(AppContext);
   async function getSpecialites() {
-    const res = await fetch("/api/specialty", {
+    const res = await fetch(`${apiUrl}/api/specialty`, {
       headers: {
 
         Authorization: `Bearer ${token}`

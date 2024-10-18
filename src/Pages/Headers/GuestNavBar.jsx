@@ -24,7 +24,7 @@ const GuestNavBar = ({ user, types}) => {
     async function handlelogout(e) {
         e.preventDefault();
 
-        const res = await fetch("/api/logout", {
+        const res = await fetch(`${apiUrl}/api/logout`, {
             method: "post",
             headers: {
                 Authorization: `Bearer ${token}`,

@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../Context/AppContext';
 // import { AppContext } from './AppContext';
-
+const apiUrl = import.meta.env.VITE_API_URL; 
 const SponsorsPage = () => {
     const { token } = useContext(AppContext);
     const [sponsors, setSponsors] = useState([]);
@@ -12,7 +12,7 @@ const SponsorsPage = () => {
     }, []);
 
     const fetchSponsors = async () => {
-        const res = await fetch('api/sponsors', {
+        const res = await fetch(`${apiUrl}/api/sponsors`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

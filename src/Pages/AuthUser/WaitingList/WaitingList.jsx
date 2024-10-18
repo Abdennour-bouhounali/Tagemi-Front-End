@@ -1,13 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
-
+const apiUrl = import.meta.env.VITE_API_URL; 
 const WaitingList = () => {
     const [specialities, setSpecialities] = useState([]);
     const [waitingList, setWaitingList] = useState({});
     const { token,startDay,setStartDay,displayAuth,setDisplayAuth } = useContext(AppContext);
 
     async function getWaitingList() {
-        const res = await fetch('/api/waitinglist/getwaitinglist', {
+        const res = await fetch(`${apiUrl}/api/waitinglist/getwaitinglist`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -18,7 +18,7 @@ const WaitingList = () => {
     }
 
     async function getSpecialities() {
-        const res = await fetch("/api/specialty", {
+        const res = await fetch(`${apiUrl}/api/specialty`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -28,7 +28,7 @@ const WaitingList = () => {
         setSpecialities(filteredSpecialities);    }
 
     async function getstartDay(){
-        const res = await fetch('/api/getstartDay');
+        const res = await fetch(`${apiUrl}/api/getstartDay`);
         const data = await res.json();
         setStartDay(data);
     }

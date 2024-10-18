@@ -4,8 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUsers, faCalendarAlt, faPeopleArrows } from '@fortawesome/free-solid-svg-icons';
 import { AppContext } from '../../../../Context/AppContext';
 import { useLanguage } from '../../../../Context/LanguageContext';
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL; 
+
 
 const Sponsors = () => {
     const { token } = useContext(AppContext);
@@ -13,7 +13,7 @@ const Sponsors = () => {
     const [sponsors, setSponsors] = useState([]);
 
     async function getSponsors() {
-        const res = await fetch('api/sponsors', {
+        const res = await fetch(`${apiUrl}api/sponsors`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

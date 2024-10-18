@@ -4,8 +4,8 @@ import VideoBanner from "../HomePage/Components/VideoBanner";
 import AboutActvity from "../Actvities/Components/AboutActvity";
 import Footer from "../HomePage/Components/Footer";
 import { useLanguage } from "../../../Context/LanguageContext";
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+
+const apiUrl = import.meta.env.VITE_API_URL; 
 export default function FuturProjects() {
     // const { TypeId } = useParams();
     // const [type, setType] = useState({ image_url: '/tagemi_consept.jpg', description: '' });
@@ -14,13 +14,13 @@ export default function FuturProjects() {
     const [types, setTypes] = useState([]);
 const {language} = useLanguage();
     async function getTypes() {
-        const res = await fetch('/api/types');
+        const res = await fetch(`${apiUrl}/api/types`);
         const data = await res.json();
         setTypes(data);
 
     }
     async function getProjects() {
-        const res = await fetch('/api/projects');
+        const res = await fetch(`${apiUrl}/api/projects`);
         const data = await res.json();
         console.log(data);
 

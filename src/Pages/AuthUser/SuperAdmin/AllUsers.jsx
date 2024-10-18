@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../../../Context/AppContext"
 import AdminTable from './Components/AdminTable';
 import UserTable from "./Components/UserTable";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 export default function AllUsers() {
   const [admins, setAdmins] = useState([]);
@@ -11,7 +12,7 @@ export default function AllUsers() {
 
   const { token } = useContext(AppContext);
   async function getUsers() {
-    const res = await fetch("/api/role", {
+    const res = await fetch(`${apiUrl}/api/role`, {
       headers: {
 
         Authorization: `Bearer ${token}`

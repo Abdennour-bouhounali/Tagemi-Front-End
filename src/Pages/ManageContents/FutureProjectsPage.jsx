@@ -3,8 +3,7 @@ import { AppContext } from '../../Context/AppContext';
 import axios from 'axios';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css'; // import styles
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const ProjectsPage = () => {
     const { token } = useContext(AppContext);
@@ -27,7 +26,7 @@ const ProjectsPage = () => {
     }, []);
 
     const fetchProjects = async () => {
-        const res = await fetch('/api/projects', {
+        const res = await fetch(`${apiUrl}/api/projects`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -37,7 +36,7 @@ const ProjectsPage = () => {
 
 
     const addproject = async () => {
-        const projectRes = await fetch('/api/projects', {
+        const projectRes = await fetch(`${apiUrl}/api/projects`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -58,7 +57,7 @@ const ProjectsPage = () => {
         formData.append('projectId', currentProjectId);
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/projects/storeProjectImages', {
+            const response = await fetch(`/api/projects/storeProjectImages`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -89,7 +88,7 @@ const ProjectsPage = () => {
 
     async function deleteImage(ProjectImageId) {
         try {
-            const res = await fetch(`/api/projects/delete/${ProjectImageId}`, {
+            const res = await fetch(`${apiUrl}/api/projects/delete/${ProjectImageId}`, {
                 method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -111,7 +110,7 @@ const ProjectsPage = () => {
 
 
     const deleteProject = async (id) => {
-        const res = await fetch(`http://127.0.0.1:8000/api/projects/${id}`, {
+        const res = await fetch(`${apiUrl}/api/projects/${id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
         });

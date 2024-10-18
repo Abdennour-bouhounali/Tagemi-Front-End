@@ -2,8 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../../../Context/LanguageContext';
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const FeaturedActivities = () => {
     const { token } = useContext(AppContext);
@@ -12,7 +11,7 @@ const FeaturedActivities = () => {
 
 
     async function getActivities() {
-        const res = await fetch('api/activities', {
+        const res = await fetch(`${apiUrl}/api/activities`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

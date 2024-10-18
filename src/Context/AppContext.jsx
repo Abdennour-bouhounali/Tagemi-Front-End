@@ -1,4 +1,5 @@
 import { createContext, useEffect, useState } from "react";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 export const AppContext = createContext();
 export default function AppProvider({children}){
@@ -9,19 +10,19 @@ export default function AppProvider({children}){
     const [displayAuth,setDisplayAuth] = useState(0);
 
     async function getstartDay(){
-        const res = await fetch('/api/getstartDay');
+        const res = await fetch(`${apiUrl}/api/getstartDay`);
         const data = await res.json();
         setStartDay(data);
     }
 
     async function getdisplayAuth(){
-        const res = await fetch('/api/getdisplayAuth');
+        const res = await fetch(`${apiUrl}/api/getdisplayAuth`);
         const data = await res.json();
         setDisplayAuth(data);
     }
 
     async function getUser(){
-        const res = await fetch('/api/user',{
+        const res = await fetch(`${apiUrl}/api/user`,{
             headers:{
                 Authorization : `Bearer ${token}`,
             }

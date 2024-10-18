@@ -20,7 +20,7 @@ const TypesPage = () => {
     }, []);
 
     const fetchTypes = async () => {
-        const res = await fetch('api/types', {
+        const res = await fetch(`${apiUrl}/api/types`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -38,7 +38,7 @@ const TypesPage = () => {
             formData.append('image', image);
         }
 
-        const res = await fetch('http://127.0.0.1:8000/api/types', {
+        const res = await fetch(`${apiUrl}/api/types`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -61,7 +61,7 @@ const TypesPage = () => {
     };
 
     const deleteType = async (id) => {
-        await fetch(`http://127.0.0.1:8000/api/types/${id}`, {
+        await fetch(`${apiUrl}/api/types/${id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
         });
@@ -88,7 +88,7 @@ const TypesPage = () => {
             formData.append('image', image);
         }
 
-        const res = await fetch(`http://127.0.0.1:8000/api/Updatetype/${editingTypeId}`, {
+        const res = await fetch(`${apiUrl}/api/Updatetype/${editingTypeId}`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,

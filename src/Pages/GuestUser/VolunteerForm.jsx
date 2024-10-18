@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLanguage } from "../../Context/LanguageContext";
 import Footer from './HomePage/Components/Footer';
 
+const apiUrl = import.meta.env.VITE_API_URL; 
 const VolunteerForm = () => {
     const { language } = useLanguage(); // Destructure language from useLanguage
     const [types, setTypes] = useState([]);
@@ -40,7 +41,7 @@ const VolunteerForm = () => {
 
 
   async function getTypes() {
-    const res = await fetch('/api/types');
+    const res = await fetch(`${apiUrl}/api/types`);
     const data = await res.json();
     setTypes(data);
   } 
@@ -51,7 +52,7 @@ const VolunteerForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('/api/volunteers', {
+            const response = await fetch(`${apiUrl}/api/volunteers`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

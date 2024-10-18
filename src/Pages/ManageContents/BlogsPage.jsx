@@ -5,13 +5,13 @@ const BlogsPage = () => {
     const { token } = useContext(AppContext);
     const [blogs, setBlogs] = useState([]);
     const [newBlog, setNewBlog] = useState({ title: '', content: '', imageUrl: '' });
-
+    const apiUrl = import.meta.env.VITE_API_URL; 
     useEffect(() => {
         fetchBlogs();
     }, []);
 
     const fetchBlogs = async () => {
-        const res = await fetch('api/blogs', {
+        const res = await fetch(`${apiUrl}api/blogs`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

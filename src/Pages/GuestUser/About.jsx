@@ -9,7 +9,7 @@ const About = () => {
   const [types, setTypes] = useState([]);
 
   async function getTypes() {
-    const res = await fetch('/api/types');
+    const res = await fetch(`${apiUrl}/api/types`);
     const data = await res.json();
     setTypes(data);
   }

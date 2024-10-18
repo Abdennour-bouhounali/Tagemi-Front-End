@@ -76,7 +76,7 @@ export default function GuestLayout() {
     };
 
     async function getSpecialites() {
-        const res = await fetch("/api/specialty", {
+        const res = await fetch(`${apiUrl}/api/specialty`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -92,7 +92,7 @@ export default function GuestLayout() {
     async function handlelogout(e) {
         e.preventDefault();
 
-        const res = await fetch("/api/logout", {
+        const res = await fetch(`${apiUrl}/api/logout`, {
             method: "post",
             headers: {
                 Authorization: `Bearer ${token}`,

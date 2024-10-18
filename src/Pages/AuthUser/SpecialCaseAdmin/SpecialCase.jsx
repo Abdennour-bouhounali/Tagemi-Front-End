@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
+const apiUrl = import.meta.env.VITE_API_URL; 
 
 const SpecialCase = () => {
 
@@ -15,7 +16,7 @@ const SpecialCase = () => {
     });
     const { token } = useContext(AppContext);
     async function getAppoitments() {
-        const res = await fetch('/api/appointment', {
+        const res = await fetch(`${apiUrl}/api/appointment`, {
             headers: {
 
                 Authorization: `Bearer ${token}`
@@ -42,7 +43,7 @@ const SpecialCase = () => {
 
     async function hanleSpecialCase(e, patientId) {
         e.preventDefault();
-        const res = await fetch(`/api/appointment/SpecialCase/${patientId}`, {
+        const res = await fetch(`${apiUrl}/api/appointment/SpecialCase/${patientId}`, {
             method: 'post',
             headers: {
                 Authorization: `Bearer ${token}`

@@ -3,9 +3,8 @@ import { AppContext } from '../../Context/AppContext';
 import axios from 'axios';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css'; // import styles
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
 
+const apiUrl = import.meta.env.VITE_API_URL; 
 const ActivitiesPage = () => {
     const { token } = useContext(AppContext);
     const [activities, setActivities] = useState([]);
@@ -31,7 +30,7 @@ const ActivitiesPage = () => {
     }, []);
 
     const fetchActivities = async () => {
-        const res = await fetch('/api/activities', {
+        const res = await fetch(`${apiUrl}/api/activities`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -39,7 +38,7 @@ const ActivitiesPage = () => {
     };
 
     const fetchTypes = async () => {
-        const res = await fetch('/api/types', {
+        const res = await fetch(`${apiUrl}/api/types`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -47,7 +46,7 @@ const ActivitiesPage = () => {
     };
 
     const addActivity = async () => {
-        const activityRes = await fetch('/api/activities', {
+        const activityRes = await fetch(`${apiUrl}/api/activities`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -68,7 +67,7 @@ const ActivitiesPage = () => {
         formData.append('activityId', currentActivityId);
 
         try {
-            const response = await fetch('/api/mediaStore', {
+            const response = await fetch(`${apiUrl}/api/mediaStore`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -99,7 +98,7 @@ const ActivitiesPage = () => {
 
     async function deleteImage(mediaId) {
         try {
-            const res = await fetch(`/api/media/${mediaId}`, {
+            const res = await fetch(`${apiUrl}/api/media/${mediaId}`, {
                 method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -121,7 +120,7 @@ const ActivitiesPage = () => {
 
 
     const deleteActivity = async (id) => {
-        await fetch(`/api/activities/${id}`, {
+        await fetch(`${apiUrl}/api/activities/${id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
         });
@@ -131,7 +130,7 @@ const ActivitiesPage = () => {
 
     const makeSpecial = async (id) => {
         try {
-            const res = await fetch(`/api/activities/makeSpecial/${id}`, {
+            const res = await fetch(`${apiUrl}/api/activities/makeSpecial/${id}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

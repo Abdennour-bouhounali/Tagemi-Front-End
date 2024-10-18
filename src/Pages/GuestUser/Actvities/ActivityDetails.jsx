@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Footer from '../HomePage/Components/Footer';
 import { useLanguage } from '../../../Context/LanguageContext';
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 const ActivityDetails = () => {
     const { Actvityid } = useParams();
     const [activity, setActivity] = useState({});
@@ -11,7 +10,7 @@ const ActivityDetails = () => {
     const { language } = useLanguage();
 
     async function getTypes() {
-        const res = await fetch('/api/types');
+        const res = await fetch(`${apiUrl}/api/types`);
         const data = await res.json();
         setTypes(data);
 
@@ -22,7 +21,7 @@ const ActivityDetails = () => {
     }, []);
 
     async function getActivity() {
-        const res = await fetch(`/api/activities/${Actvityid}`);
+        const res = await fetch(`${apiUrl}/api/activities/${Actvityid}`);
         const data = await res.json();
         setActivity(data);
     }

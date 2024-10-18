@@ -4,7 +4,7 @@ import { faUsers, faCalendarAlt, faPeopleArrows } from '@fortawesome/free-solid-
 import { AppContext } from '../../../../Context/AppContext';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import { Link } from "react-router-dom";
-
+const apiUrl = import.meta.env.VITE_API_URL; 
 const Statistics = () => {
     const { token } = useContext(AppContext);
     const { language } = useLanguage();
@@ -18,7 +18,7 @@ const Statistics = () => {
 
     async function getStaticContent() {
         try {
-            const res = await fetch('api/static-contents', {
+            const res = await fetch(`${apiUrl}/api/static-contents`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
