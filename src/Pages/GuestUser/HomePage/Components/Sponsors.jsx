@@ -13,14 +13,10 @@ const Sponsors = () => {
     const [sponsors, setSponsors] = useState([]);
 
     async function getSponsors() {
-        const res = await fetch(`${apiUrl}api/sponsors`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const res = await fetch(`${apiUrl}api/sponsors`);
         const data = await res.json();
         setSponsors(data);
-        console.log(data);
+        // console.log(data);
     }
 
     useEffect(() => {

@@ -5,8 +5,11 @@ const LanguageContext = createContext();
 
 // Create a Provider component
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('en'); // Default language
+  const [language, setLanguage] = useState('ar'); // Default language
+  useEffect(()=>{
 
+    setLanguage('ar');
+  },[])
   const handleLanguageChange = (event) => {
     setLanguage(event.target.value);
   };

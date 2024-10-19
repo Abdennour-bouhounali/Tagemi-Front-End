@@ -11,14 +11,10 @@ const FeaturedActivities = () => {
 
 
     async function getActivities() {
-        const res = await fetch(`${apiUrl}/api/activities`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const res = await fetch(`${apiUrl}/api/activities`);
         const data = await res.json();
         setActivities(data);
-        console.log(data);
+        // console.log(data);
     }
 
     useEffect(() => {

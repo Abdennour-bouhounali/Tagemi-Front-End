@@ -24,7 +24,7 @@ const CheckPresence = () => {
         })
 
         const data = await res.json();
-        console.log(data);
+        // console.log(data);
         setAppointments(data['appoitments']);
 
     }
@@ -150,7 +150,7 @@ const CheckPresence = () => {
         })
         getAppoitments();
         const data = await res.json();
-        console.log(data);
+        // console.log(data);
         if (res.ok) {
           setMessage(data['message']);
         }

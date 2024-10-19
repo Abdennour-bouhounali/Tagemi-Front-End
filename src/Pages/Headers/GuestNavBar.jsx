@@ -1,16 +1,16 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../Context/AppContext";
 import 'flag-icons/css/flag-icons.min.css'; // Import flag-icons CSS
 import LanguageSelector from "../../LanguageSelector";
 import { useLanguage } from "../../Context/LanguageContext";
-
-const GuestNavBar = ({ user, types}) => {
+const apiUrl = import.meta.env.VITE_API_URL; 
+const GuestNavBar = ({ user, types }) => {
 
     const [isNavOpen, setIsNavOpen] = useState(false);
     const navigate = useNavigate();
 
-    const { token, startDay, setStartDay, displayAuth, setDisplayAuth } = useContext(AppContext);
+    const { token,setToken, startDay, setStartDay, displayAuth, setDisplayAuth } = useContext(AppContext);
 
     const { setUser } = useContext(AppContext);
 
@@ -38,7 +38,11 @@ const GuestNavBar = ({ user, types}) => {
             navigate("/");
         }
     }
+    const [isOpen, setIsOpen] = useState(false);
 
+    const toggleDropdown = () => {
+        setIsOpen((prev) => !prev); // Toggle dropdown visibility
+    };
     return (
         <header className='bg-white border-gray-200'>
             <nav className='max-w-screen-2xl flex flex-wrap items-center justify-between mx-auto py-2 '>
@@ -66,24 +70,34 @@ const GuestNavBar = ({ user, types}) => {
                     <ul className='font-medium flex flex-col p-4 custom:p-0 mt-4 border border-gray-100 rounded-lg custom:flex-row custom:space-x-4 rtl:space-x-reverse custom:mt-0 custom:border-0 custom:bg-white'>
                         <li>
                             <Link to="/" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
-                            
+
                             >
-                                                                {language === 'en' ? 'Home' : 'الصفحة الرئيسية'}
+                                {language === 'en' ? 'Home' : 'الصفحة الرئيسية'}
 
 
                             </Link>
                         </li>
                         <li className="relative group">
-                            <button className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                
+                            {/* Button to toggle dropdown */}
+                            <button
+                                onClick={toggleDropdown}
+                                className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
+                            >
                                 {language === 'en' ? 'Foundation Activities' : 'أنشطة المؤسسة'}
-
                             </button>
-                            <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+
+                            {/* Dropdown Menu */}
+                            <div
+                                className={`absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-100 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                            >
                                 <ul>
                                     {types.map((type) => (
                                         <li key={type.id}>
-                                            <Link to={`/activities/showByActivitiesType/${type.id}`} className="block px-4 py-2 text-gray-900 hover:bg-gray-100">
+                                            <Link
+                                                to={`/activities/showByActivitiesType/${type.id}`}
+                                                className="block px-4 py-2 text-gray-900 hover:bg-gray-100"
+                                                onClick={() => setIsOpen(false)} // Close dropdown on link click
+                                            >
                                                 {language === 'en' ? type.name_en : type.name_ar}
                                             </Link>
                                         </li>
@@ -92,26 +106,26 @@ const GuestNavBar = ({ user, types}) => {
                             </div>
                         </li>
                         <li>
-                            <Link to="/futureProjects" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">                                                               
-                            {language === 'en' ? 'Futur Projects' : ' مشاريع مستقبلية'}
-</Link>
+                            <Link to="/futureProjects" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
+                                {language === 'en' ? 'Futur Projects' : ' مشاريع مستقبلية'}
+                            </Link>
                         </li>
                         <li>
                             <Link to="/volunteer" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                
-                                 {language === 'en' ? 'Voulenteer With Us' : 'تطوع معنا'} 
-                                
-                                </Link>
+
+                                {language === 'en' ? 'Voulenteer With Us' : 'تطوع معنا'}
+
+                            </Link>
                         </li>
                         <li>
                             <Link to="/about" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                            {language === 'en' ? 'About' : 'من نحن'} 
+                                {language === 'en' ? 'About' : 'من نحن'}
 
-                                </Link>
+                            </Link>
                         </li>
                         <li>
-                            <Link to="/contact" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"> 
-                            {language === 'en' ? 'Contact Us' : 'تواصل معنا '} 
+                            <Link to="/contact" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
+                                {language === 'en' ? 'Contact Us' : 'تواصل معنا '}
 
                             </Link>
                         </li>
@@ -119,14 +133,14 @@ const GuestNavBar = ({ user, types}) => {
                         {user ? (
                             <>
                                 <li><button className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi" onClick={handlelogout}>
-                                {language === 'en' ? ' Log Out' : ' خروج '} 
+                                    {language === 'en' ? ' Log Out' : ' خروج '}
 
-                                    </button></li>
+                                </button></li>
                             </>
                         ) : displayAuth ? (
                             <>
-                                <li><Link to="/login" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">     {language === 'en' ? ' Log In ' : ' دخول '} 
-</Link></li>
+                                <li><Link to="/login" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">     {language === 'en' ? ' Log In ' : ' دخول '}
+                                </Link></li>
                                 <li><Link to="/register" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">  {language === 'en' ? ' Register ' : ' تسجيل'} </Link></li>
                             </>
                         ) : ''}
@@ -159,7 +173,7 @@ const GuestNavBar = ({ user, types}) => {
                         )}
 
                         <li>
-                       <LanguageSelector />
+                            <LanguageSelector />
 
                         </li>
                     </ul>

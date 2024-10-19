@@ -18,9 +18,19 @@ export default function Register() {
 
   async function handleRegister(e) {
     e.preventDefault();
+    let headers = new Headers();
+
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
+  
+    headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+    headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+    headers.append('Access-Control-Allow-Headers' ,'Origin, Content-Type, X-Auth-Token , Cookie');
+    headers.append('Access-Control-Allow-Credentials', 'true');
     const res = await fetch(`${apiUrl}/api/register`, {
       method: "post",
-      body: JSON.stringify(FormData)
+      body: JSON.stringify(FormData),
+      headers : headers
     });
 
     const data = await res.json();
@@ -30,7 +40,7 @@ export default function Register() {
       localStorage.setItem('token', data.token);
       setToken(data.token);
       navigate("/");
-      console.log(data);
+      // console.log(data);
     }
   }
 //  text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB]

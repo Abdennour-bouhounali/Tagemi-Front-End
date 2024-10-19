@@ -5,7 +5,7 @@ import Home from './Pages/GuestUser/HomePage/Home';
 import Login from './Pages/AuthUser/Auth/Login';
 import Register from './Pages/AuthUser/Auth/Register';
 import AllUsers from './Pages/AuthUser/SuperAdmin/AllUsers'
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { AppContext } from './Context/AppContext';
 import ManageSpeciality from './Pages/AuthUser/SuperAdmin/ManageSpeciality';
 import RegisterVisit from './Pages/AuthUser/Visits/RegisterVisit';
@@ -115,8 +115,6 @@ export default function App() {
           <Route path='/actvities/:Actvityid' element={<ActivityDetails />} />
           <Route path="/futureProjects" element={<FuturProjects />} />
           <Route path="/future-prjects/:Projectid" element={<ProjectDetails />} />
-
-
 
         </Route>
 

@@ -25,7 +25,7 @@ const ProjectDetails = () => {
     async function getProject() {
         const res = await fetch(`${apiUrl}/api/projects/${Projectid}`);
         const data = await res.json();
-        console.log(data);
+        // console.log(data);
         setProject(data);
     }
 

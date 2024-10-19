@@ -14,7 +14,7 @@ const ActivitiesPage = () => {
     const [currentActivityId, setCurrentActivityId] = useState(null);
 
 
-    console.log(apiUrl);
+    // console.log(apiUrl);
     const [newActivity, setNewActivity] = useState({
         title_en: '',
         title_ar: '',
@@ -125,7 +125,7 @@ const ActivitiesPage = () => {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        console.log(data);
+        // console.log(data);
     };
 
     const makeSpecial = async (id) => {
@@ -143,7 +143,7 @@ const ActivitiesPage = () => {
             }
 
             const data = await res.json();
-            console.log(data);
+            // console.log(data);
             fetchActivities();
 
         } catch (error) {

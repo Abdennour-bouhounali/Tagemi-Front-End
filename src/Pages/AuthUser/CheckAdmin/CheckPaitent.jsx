@@ -1,7 +1,8 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
 import { useParams } from 'react-router-dom';
-
+// const apiUrl = import.meta.env.VITE_API_URL;
+import { apiUrl } from '../../../Context/AppContext';
 const CheckPaitent = () => {
     const { specialityId } = useParams();
     const [appointments, setAppointmentIds] = useState([]);
@@ -18,7 +19,7 @@ const CheckPaitent = () => {
         });
 
         const data = await res.json();
-        console.log(data);
+        // // console.log(data);
         setAppointmentIds(data['appointments']);
     }
 
@@ -70,7 +71,7 @@ headers:{
         })
 
         const data = await res.json();
-        console.log(data);
+        // console.log(data);
         GetWaitingListBySpeciality(specialityId);
 
     }
@@ -84,7 +85,7 @@ headers:{
         })
 
         const data = await res.json();
-        console.log(data);
+        // // console.log(data);
         GetWaitingListBySpeciality(specialityId);
 
     }

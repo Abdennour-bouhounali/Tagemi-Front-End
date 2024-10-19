@@ -8,15 +8,11 @@ const AllActivities = ({TypeId}) => {
     const [activities, setActivities] = useState([]);
 const {language}=useLanguage();
     async function getAllActivities() {
-        const res = await fetch(`api/activities/showByActivitiesType/${TypeId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const res = await fetch(`api/activities/showByActivitiesType/${TypeId}`);
         const data = await res.json();
         setActivities(data);
-        console.log("activities  : ");
-        console.log(activities);
+        // console.log("activities  : ");
+        // console.log(activities);
     }
 
     useEffect(() => {

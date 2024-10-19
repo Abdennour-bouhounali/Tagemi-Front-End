@@ -31,7 +31,7 @@ const ProjectsPage = () => {
         });
         const data = await res.json();
         setProjects(data);
-        console.log(data)
+        // console.log(data)
     };
 
 
@@ -115,7 +115,7 @@ const ProjectsPage = () => {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        console.log(data);
+        // console.log(data);
     };
 
 

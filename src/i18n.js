@@ -9,8 +9,8 @@ i18n
   .use(LanguageDetector) // Detect language from browser
   .use(initReactI18next) // Passes i18n instance to react-i18next
   .init({
-    fallbackLng: 'en', // Default language
-    debug: true,
+    fallbackLng: 'ar', // Default language
+    debug: false,
     interpolation: {
       escapeValue: false, // React already does escaping
     },

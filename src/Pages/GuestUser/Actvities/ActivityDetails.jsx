@@ -34,10 +34,10 @@ const ActivityDetails = () => {
         <>
             <div className="min-h-[500px] px-10 flex flex-col lg:flex-row bg-[#EEF7FF] items-center justify-center text-center lg:text-left">
                 <div className="lg:w-1/2 mt-4 lg:mt-0 lg:ml-12 p-4 rounded-lg text-right">
-                    <h2 className="font-droid-arabic-kufi text-2xl font-bold text-[#101E58] text-center mb-5">
-                    {language === 'en' ? activity.title_en : activity.title_ar}
+                    <h2 className="font-droid-arabic-kufi text-2xl sm:text-3xl md:text-4xl font-bold text-[#101E58] text-center mb-5">
+                        {language === 'en' ? activity.title_en : activity.title_ar}
                     </h2>
-                    <p className="text-gray-700 leading-relaxed my-4 font-droid-arabic-kufi">
+                    <p className="text-gray-700 leading-relaxed my-4 font-droid-arabic-kufi text-base sm:text-lg md:text-xl">
                         <div
                             className="my-4 pb-4"
                             dangerouslySetInnerHTML={{
@@ -68,11 +68,11 @@ const ActivityDetails = () => {
                     )}
                 </div>
             </div>
+
             {activity.media && activity.media.length > 1 && (
-            <div className="min-h-[500px] px-10 flex flex-col lg:flex-row bg-gray-100 items-center justify-center text-center lg:text-left">
-                <div className="py-14 flex flex-wrap justify-center lg:justify-start">
-                    {activity.media && activity.media.length > 1 && (
-                        activity.media.slice(1).map((mediaItem, index) => (
+                <div className="min-h-[500px] px-10 flex flex-col lg:flex-row bg-gray-100 items-center justify-center text-center lg:text-left">
+                    <div className="py-14 flex flex-wrap justify-center lg:justify-start">
+                        {activity.media.slice(1).map((mediaItem, index) => (
                             <div key={index} className="p-4">
                                 {mediaItem.type === 'image' && (
                                     <img
@@ -89,11 +89,12 @@ const ActivityDetails = () => {
                                     ></video>
                                 )}
                             </div>
-                        ))
-                    )}
+                        ))}
+                    </div>
                 </div>
-            </div>)}
-            <Footer  types={types}/>
+            )}
+            
+            <Footer types={types} />
         </>
     );
 };

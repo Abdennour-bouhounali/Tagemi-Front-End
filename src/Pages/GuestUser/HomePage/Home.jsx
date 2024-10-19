@@ -12,15 +12,10 @@ const apiUrl = import.meta.env.VITE_API_URL;
 export default function Home() {
     const [types, setTypes] = useState([]);
     const [sponsors, setSponsors] = useState([]);
-    const token = "your-auth-token"; // Replace with your actual token
 
     async function getSponsors() {
         try {
-            const res = await fetch(`${apiUrl}/api/sponsors`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const res = await fetch(`${apiUrl}/api/sponsors`);
             if (!res.ok) {
                 throw new Error(`HTTP error! Status: ${res.status}`);
             }

@@ -18,16 +18,12 @@ const Statistics = () => {
 
     async function getStaticContent() {
         try {
-            const res = await fetch(`${apiUrl}/api/static-contents`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const res = await fetch(`${apiUrl}/api/static-contents`);
             if (!res.ok) {
                 throw new Error(`Error fetching static content: ${res.statusText}`);
             }
             const data = await res.json();
-            console.log(data);
+            // console.log(data);
 
             // Assuming the first item in the response is the statistics data
             if (data.length > 0) {

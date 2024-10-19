@@ -9,7 +9,7 @@ const SpecialityTable = ({ specialities, getSpecialites }) => {
   async function handleDelete(e, specialityId) {
     e.preventDefault();
 
-    console.log(specialityId);
+    // console.log(specialityId);
     const res = await fetch(`${apiUrl}/api/specialty/${specialityId}`, {
       method: 'DELETE',
       headers: {
@@ -21,7 +21,7 @@ const SpecialityTable = ({ specialities, getSpecialites }) => {
     if (res.ok) {
       getSpecialites();
     }
-    console.log(data);
+    // console.log(data);
   }
 
   return (

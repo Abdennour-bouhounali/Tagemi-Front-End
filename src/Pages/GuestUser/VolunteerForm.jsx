@@ -62,7 +62,7 @@ const VolunteerForm = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log(data);
+                // console.log(data);
                 setMessage(language === 'en' ? 'Form submitted successfully!' : 'تم إرسال النموذج بنجاح!');
 
                 setFormData({

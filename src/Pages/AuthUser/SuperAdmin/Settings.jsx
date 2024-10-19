@@ -22,7 +22,7 @@ export default function Settings() {
       }
     })
     const data = await res.json();
-    console.log(data);
+    // console.log(data);
     if (res.ok) {
       setMessage(data['message']);
     }
@@ -100,7 +100,7 @@ export default function Settings() {
       });
 
       const data = await res.json();
-      console.log(data);
+      // console.log(data);
 
       if (!res.ok) {
         throw new Error(setMessage(data.message) || setMessage('Something went wrong'));

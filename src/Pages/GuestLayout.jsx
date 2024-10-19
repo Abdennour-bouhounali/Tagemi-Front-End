@@ -8,7 +8,7 @@ import Footer from "./GuestUser/HomePage/Components/Footer";
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n'; // Ensure this path matches your i18n configuration file
 import { useLanguage } from "../Context/LanguageContext";
-
+const apiUrl = import.meta.env.VITE_API_URL; 
 export default function GuestLayout() {
     const { setUser, token, setToken } = useContext(AppContext);
     const navigate = useNavigate();
@@ -31,7 +31,18 @@ export default function GuestLayout() {
     // };
       
     async function getTypes() {
-        const res = await fetch('/api/types');
+        let headers = new Headers();
+
+        headers.append('Content-Type', 'application/json');
+        headers.append('Accept', 'application/json');
+      
+        headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+        headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+        headers.append('Access-Control-Allow-Headers' ,'Origin, Content-Type, X-Auth-Token , Cookie');
+        headers.append('Access-Control-Allow-Credentials', 'true');
+        const res = await fetch(`${apiUrl}/api/types`,{
+            headers : headers
+        });
         const data = await res.json();
         setTypes(data);
 
@@ -76,10 +87,17 @@ export default function GuestLayout() {
     };
 
     async function getSpecialites() {
+        let headers = new Headers();
+
+        headers.append('Content-Type', 'application/json');
+        headers.append('Accept', 'application/json');
+      
+        headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+        headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+        headers.append('Access-Control-Allow-Headers' ,'Origin, Content-Type, X-Auth-Token , Cookie');
+        headers.append('Access-Control-Allow-Credentials', 'true');
         const res = await fetch(`${apiUrl}/api/specialty`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: headers,
         });
         const data = await res.json();
         setSpecialities(data["specialties"]);
@@ -91,12 +109,17 @@ export default function GuestLayout() {
 
     async function handlelogout(e) {
         e.preventDefault();
+        let headers = new Headers();
 
+        headers.append('Content-Type', 'application/json');
+        headers.append('Accept', 'application/json');
+        headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+        headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+        headers.append('Authorization',`Bearer ${token}`);
         const res = await fetch(`${apiUrl}/api/logout`, {
+            
             method: "post",
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: headers,
         });
 
         if (res.ok) {

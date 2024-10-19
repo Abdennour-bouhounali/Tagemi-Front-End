@@ -24,7 +24,7 @@ export default function AllUsers() {
     setSpecialities(data['specialities']);
     setRoles(data['roles']);
 
-    console.log(data);
+    // console.log(data);
   }
   useEffect(() => {
     getUsers();

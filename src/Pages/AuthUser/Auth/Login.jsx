@@ -16,9 +16,19 @@ export default function Login() {
 
   async function handleLogin(e) {
     e.preventDefault();
+    let headers = new Headers();
+
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
+    headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+    headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+    // headers.append('Access-Control-Allow-Headers' ,'Origin, Content-Type, X-Auth-Token , Cookie');
+    // headers.append('Access-Control-Allow-Credentials', 'true');
+
     const res = await fetch(`${apiUrl}/api/login`, {
       method: "post",
-      body: JSON.stringify(FormData)
+      body: JSON.stringify(FormData),
+      headers: headers
     });
 
     const data = await res.json()
@@ -28,7 +38,7 @@ export default function Login() {
       localStorage.setItem('token', data.token)
       setToken(data.token);
       navigate("/");
-      console.log(data);
+    
     }
   }
 

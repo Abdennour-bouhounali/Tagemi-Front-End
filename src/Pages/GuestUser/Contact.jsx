@@ -36,18 +36,22 @@ const Contact = ({ project, projectName }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    let headers = new Headers();
+
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
+    headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+    headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
     try {
       const response = await fetch(`${apiUrl}/api/contacts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
+        // console.log(data);
         setMessage(data['message']);
 
         setFormData({
@@ -102,21 +106,21 @@ const Contact = ({ project, projectName }) => {
         <div className="flex flex-wrap -mx-2">
           <div className="w-full sm:w-1/2 px-2 mb-4 sm:mb-0">
             <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'First Name' : 'الإسم'}</label>
-            <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
+            <input  required type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
           </div>
           <div className="w-full sm:w-1/2 px-2">
             <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'Last Name' : 'اللقب'}</label>
-            <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
+            <input required type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
           </div>
         </div>
         <div className="flex flex-wrap -mx-2">
           <div className="w-full sm:w-1/2 px-2 mb-4 sm:mb-0">
             <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'Phone Number (WhatsApp)' : 'رقم الهاتف (الواتساب)'}</label>
-            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
+            <input required type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
           </div>
           <div className="w-full sm:w-1/2 px-2">
             <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'Wilaya' : 'الولاية'}</label>
-            <select name="wilaya" value={formData.wilaya} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500">
+            <select required name="wilaya" value={formData.wilaya} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500">
               <option value="" className='font-droid-arabic-kufi'>{language === 'en' ? 'Select Wilaya' : 'اختر الولاية'}</option>
               {wilayas.map((wilaya, index) => (
                 <option key={index} value={wilaya} className='font-droid-arabic-kufi'>{wilaya}</option>
@@ -128,7 +132,7 @@ const Contact = ({ project, projectName }) => {
           {!project && (
             <>
               <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'Message' : 'الرسالة'}</label>
-              <textarea name="message" value={formData.message} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm h-32 focus:outline-none focus:border-blue-500"></textarea>
+              <textarea name="message" required value={formData.message} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm h-32 focus:outline-none focus:border-blue-500"></textarea>
             </>
           )}
         </div>

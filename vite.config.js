@@ -12,6 +12,9 @@ export default defineConfig({
         headers:{
           Accept:'application/json',
           "Content-Type" : 'application/json',
+          "Access-Control-Allow-Origin": "https://tagemi-foundation.org",
+          "Access-Control-Allow-Methods":"GET, POST, PUT, OPTIONS"
+
         }
       }
     }

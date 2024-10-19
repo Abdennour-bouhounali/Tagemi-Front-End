@@ -6,6 +6,8 @@ import SuperAdminNav from "./Headers/SuperAdminNav";
 import AuthNavBar from "./Headers/AuthNavBar";
 import GuestNavBar from "./Headers/GuestNavBar";
 
+const apiUrl = import.meta.env.VITE_API_URL; 
+
 export default function AdminLayout() {
   const { setUser, token, setToken } = useContext(AppContext);
   const navigate = useNavigate();
@@ -62,12 +64,17 @@ export default function AdminLayout() {
 
   async function handlelogout(e) {
     e.preventDefault();
+    let headers = new Headers();
 
+    headers.append('Content-Type', 'application/json');
+    headers.append('Accept', 'application/json');
+    headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+    headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+    headers.append('Authorization',`Bearer ${token}`);
     const res = await fetch(`${apiUrl}/api/logout`, {
-      method: "post",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+        
+        method: "post",
+        headers: headers,
     });
 
     if (res.ok) {

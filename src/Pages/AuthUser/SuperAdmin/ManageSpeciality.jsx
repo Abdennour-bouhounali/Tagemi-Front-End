@@ -21,7 +21,7 @@ export default function ManageSpeciality() {
     const data = await res.json();
     setSpecialities(data['specialties']);
 
-    console.log(data['specialties']);
+    // console.log(data['specialties']);
   }
   useEffect(() => {
     getSpecialites();

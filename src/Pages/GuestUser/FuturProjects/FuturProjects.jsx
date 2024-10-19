@@ -22,7 +22,7 @@ const {language} = useLanguage();
     async function getProjects() {
         const res = await fetch(`${apiUrl}/api/projects`);
         const data = await res.json();
-        console.log(data);
+        // console.log(data);
 
         setProjects(data);
 
@@ -40,7 +40,7 @@ const {language} = useLanguage();
     //         if (res.ok) {
     //             const data = await res.json();
     //             setType(data);
-    //             console.log('Type data:', data);
+    //             // console.log('Type data:', data);
     //         } else {
     //             console.error('Failed to fetch type data');
     //         }
@@ -55,7 +55,7 @@ const {language} = useLanguage();
     //         if (res.ok) {
     //             const data = await res.json();
     //             setActivities(data);
-    //             console.log('Activities data:', data);
+    //             // console.log('Activities data:', data);
     //         } else {
     //             console.error('Failed to fetch activities data');
     //         }
