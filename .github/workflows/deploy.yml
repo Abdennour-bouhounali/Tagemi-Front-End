@@ -22,6 +22,10 @@ jobs:
         run: |
           npm install
           npm run build
+          
+      - name: Add Hostinger to known_hosts
+        run: |
+          ssh-keyscan -p ${{ secrets.HOSTINGER_PORT }} ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
