@@ -10,8 +10,8 @@ const GuestNavBar = ({ user, types }) => {
     const [isNavOpen, setIsNavOpen] = useState(false);
     const navigate = useNavigate();
 
-    const { token,setToken, startDay, setStartDay, displayAuth, setDisplayAuth } = useContext(AppContext);
-
+    const { token,setToken, startDay, setStartDay } = useContext(AppContext);
+    const [displayAuth,setDisplayAuth] = useState(0);
     const { setUser } = useContext(AppContext);
 
     const { language } = useLanguage();
@@ -20,7 +20,11 @@ const GuestNavBar = ({ user, types }) => {
     const toggleNav = () => {
         setIsNavOpen(!isNavOpen);
     };
-
+    async function getdisplayAuth(){
+        const res = await fetch(`${apiUrl}/api/getdisplayAuth`);
+        const data = await res.json();
+        setDisplayAuth(data);
+    }
     async function handlelogout(e) {
         e.preventDefault();
 
@@ -43,6 +47,9 @@ const GuestNavBar = ({ user, types }) => {
     const toggleDropdown = () => {
         setIsOpen((prev) => !prev); // Toggle dropdown visibility
     };
+    useEffect(()=>{
+        getdisplayAuth();
+    },[])
     return (
         <header className='bg-white border-gray-200'>
             <nav className='max-w-screen-2xl flex flex-wrap items-center justify-between mx-auto py-2 '>

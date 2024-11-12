@@ -7,7 +7,7 @@ export default function AppProvider({children}){
     const [token,setToken] = useState(localStorage.getItem('token'));
     const [user,setUser] = useState(null);
     const [startDay,setStartDay] = useState(0);
-    const [displayAuth,setDisplayAuth] = useState(0);
+
 
     async function getstartDay(){
         const res = await fetch(`${apiUrl}/api/getstartDay`);
@@ -15,11 +15,7 @@ export default function AppProvider({children}){
         setStartDay(data);
     }
 
-    async function getdisplayAuth(){
-        const res = await fetch(`${apiUrl}/api/getdisplayAuth`);
-        const data = await res.json();
-        setDisplayAuth(data);
-    }
+
 
     async function getUser(){
         const res = await fetch(`${apiUrl}/api/user`,{
