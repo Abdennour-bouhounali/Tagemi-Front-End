@@ -49,6 +49,9 @@ export default function AppProvider({children}){
             getdisplayAuth();
         }
     },[token])
+    useEffect(()=>{
+        getdisplayAuth();
+    },[])
     return <AppContext.Provider value={{token,setToken,user,setUser,startDay,setStartDay,displayAuth,setDisplayAuth}}>
         {children}
     </AppContext.Provider>
