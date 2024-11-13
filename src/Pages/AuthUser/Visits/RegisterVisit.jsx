@@ -16,6 +16,12 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    lastName: '',
+    birthday: '',
+    residence: '',
+    diseases: '',
+    phone: '',
+    sex: '', // TinyInt for sex (0 or 1)
     specialties: [{ specialty_id: '' }],
   });
 
@@ -25,21 +31,13 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   }, []);
 
   async function getRules() {
-    const res = await fetch(`${apiUrl}/api/rules`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const res = await fetch(`${apiUrl}/api/rules`);
     const data = await res.json();
     setRules(data);
   }
 
   async function getSpecialities() {
-    const res = await fetch(`${apiUrl}/api/specialty`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const res = await fetch(`${apiUrl}/api/specialty`);
     const data = await res.json();
     setSpecialities(data['specialties']);
     const openSpecialities = data['specialties'].filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed');
@@ -53,6 +51,14 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
         specialties: [...formData.specialties, { specialty_id: '' }],
       });
     }
+  };
+
+  const handleChangeData = (event) => {
+    const { name, value } = event.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
   };
 
   const handleRemoveSpecialty = () => {
@@ -71,30 +77,31 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     setFormData({ ...formData, specialties: updatedSpecialties });
   };
 
-  const handleChangeName = (event) => {
-    setFormData({ ...formData, name: event.target.value });
-  };
+
 
   const handleSubmit = async (event) => {
+
     event.preventDefault();
+    console.log('Form Data:', formData); // Print formData to the console
+
     const res = await fetch(`${apiUrl}/api/appointment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(formData),
     });
     const data = await res.json();
-
+    console.log(res);
     if (res.ok) {
       setAppointments(data['appointments']);
       setMinTime(data['minTime']);
       getSpecialities();
-      setFormData({
-        name: '',
-        specialties: [{ specialty_id: '' }],
-      });
+      
+      // setFormData({
+      //   name: '',
+      //   specialties: [{ specialty_id: '' }],
+      // });
       setMessage(data['message']);
       setWaiting(data['waitinglist_message']);
     }
@@ -174,7 +181,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   )}
 
                   {message && message.length > 0 && (
-                    <span className="font-medium font-droid-arabic-kufi">{message}</span>
+                    <span className="font-bold font-droid-arabic-kufi">{message}</span>
                   )}
                 </div>
               </div>
@@ -183,16 +190,98 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
             {/* Appointment Form */}
             <form onSubmit={handleSubmit} className="space-y-4 text-lg">
               <div>
-                <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>
-                <input
-                  type="text"
-                  id="name"
-                  value={formData.name}
-                  onChange={handleChangeName}
-                  className="mt-1 block w-full rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="أكتب إسمك كاملا"
-                  required
-                />
+                {/* Name Field */}
+      <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        value={formData.name}
+        onChange={handleChangeData}
+        className="mt-1 block w-full rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        placeholder="أكتب إسمك كاملا"
+        required
+      />
+
+      {/* Last Name Field */}
+      <label htmlFor="lastName" className="block text-gray-700 font-droid-arabic-kufi">اللقب :</label>
+      <input
+        type="text"
+        id="lastName"
+        name="lastName"
+        value={formData.lastName}
+        onChange={handleChangeData}
+        className="mt-1 block w-full text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        placeholder="أكتب لقبك"
+        required
+      />
+
+      {/* Birthday Field */}
+      <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
+      <input
+        type="date"
+        id="birthday"
+        name="birthday"
+        value={formData.birthday}
+        onChange={handleChangeData}
+        className="mt-1 block w-full text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        required
+      />
+
+      {/* Residence Field */}
+      <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label>
+      <input
+        type="text"
+        id="residence"
+        name="residence"
+        value={formData.residence}
+        onChange={handleChangeData}
+        className="mt-1 block w-full rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        placeholder="أدخل الإقامة"
+        required
+      />
+
+      {/* Diseases Field */}
+      <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label>
+      <input
+        type="text"
+        id="diseases"
+        name="diseases"
+        value={formData.diseases}
+        onChange={handleChangeData}
+        className="mt-1 block w-full rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
+        
+      />
+
+      {/* Phone Field */}
+      <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label>
+      <input
+        type="tel"
+        id="phone"
+        name="phone"
+        value={formData.phone}
+        onChange={handleChangeData}
+        className="mt-1 block w-full rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        placeholder="أدخل رقم الهاتف"
+        required
+      />
+
+      {/* Sex Field */}
+      <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label>
+      <select
+        id="sex"
+        name="sex"
+        value={formData.sex}
+        onChange={handleChangeData}
+        className="mt-1 block w-full text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        required
+      >
+        <option value="">اختر الجنس</option>
+        <option value="0">ذكر</option>
+        <option value="1">أنثى</option>
+      </select>
+                
               </div>
               {formData.specialties.map((specialty, index) => (
                 <div key={index} className="flex space-x-4 items-end">
