@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../Context/AppContext';
 import logo from './tagemi_logo.png';
 import { useTranslation } from 'react-i18next';
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = import.meta.env.VITE_API_URL;
 const RegisterVisit = ({ setSpecialities, specialities }) => {
   const { token } = useContext(AppContext);
   const { t } = useTranslation();
@@ -12,7 +12,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const [minTime, setMinTime] = useState(0);
   const [openSpecialitiesCount, setOpenSpecialitiesCount] = useState(0);
   const [rules, setRules] = useState([]);
-  const [confirm,setConfirm] = useState(false)
+  const [confirm, setConfirm] = useState(false)
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -82,7 +82,21 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const handleSubmit = async (event) => {
 
     event.preventDefault();
-    console.log('Form Data:', formData); // Print formData to the console
+    // Log each field one by one
+    // console.log("Name:", formData.name);
+    // console.log("Last Name:", formData.lastName);
+    // console.log("Birthday:", formData.birthday);
+    // console.log("Residence:", formData.residence);
+    // console.log("Diseases:", formData.diseases);
+    // console.log("Phone:", formData.phone);
+    // console.log("Sex:", formData.sex);
+    // console.log("Specialties:", formData.specialties);
+
+    // If you want to log each specialty ID individually
+    formData.specialties.forEach((specialty, index) => {
+      console.log(`Specialty ${index + 1} ID:`, specialty.specialty_id);
+    });
+
 
     const res = await fetch(`${apiUrl}/api/appointment`, {
       method: 'POST',
@@ -97,11 +111,17 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
       setAppointments(data['appointments']);
       setMinTime(data['minTime']);
       getSpecialities();
-      
-      // setFormData({
-      //   name: '',
-      //   specialties: [{ specialty_id: '' }],
-      // });
+
+      setFormData({
+        name: '',
+        lastName: '',
+        birthday: '',
+        residence: '',
+        diseases: '',
+        phone: '',
+        sex: '', // TinyInt for sex (0 or 1)
+        specialties: [{ specialty_id: '' }],
+      });
       setMessage(data['message']);
       setWaiting(data['waitinglist_message']);
     }
@@ -117,46 +137,48 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   return (
     <div className="relative md:static">
       {!confirm && (
-        <div className="rules w-full max-w-md h-auto bg-white shadow-lg rounded-lg fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 p-6" dir="rtl">
-        <h2 className="font-sans text-2xl font-semibold mb-6 text-center">
-          ضوابط نظام الفحوصات الطبية
-        </h2>
-        <ul className="list-disc list-inside mb-6 space-y-2 text-gray-800">
-          {rules.map(rule => (
-            <li key={rule.id} className="text-sm">
-              {rule.rule}
-            </li>
-          ))}
-        </ul>
-        <div className="flex items-center mb-4">
-          <input
-            type="checkbox"
-            id="acceptRules"
-            className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            onChange={(e) => setAcceptedRules(e.target.checked)}
-          />
-          <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-sm">
-            أوافق على الشروط
-          </label>
+        <div className="rules w-full max-w-xs sm:max-w-screen-md h-auto bg-white shadow-lg rounded-lg p-4 sm:p-6 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" dir="rtl">
+          <h2 className="font-sans text-lg sm:text-2xl font-semibold mb-4 sm:mb-6 text-center">
+            ضوابط نظام الفحوصات الطبية
+          </h2>
+          <ul className="list-disc list-inside mb-4 sm:mb-6 space-y-2 text-gray-800">
+            {rules.map(rule => (
+              <li key={rule.id} className="text-xs sm:text-sm">
+                {rule.rule}
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="acceptRules"
+              className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              onChange={(e) => setAcceptedRules(e.target.checked)}
+            />
+            <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-sm">
+              أوافق على الشروط
+            </label>
+          </div>
+          <button
+            onClick={() => setConfirm(true)}
+            className="w-full bg-blue-600 text-white py-2 sm:py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={!acceptedRules}
+          >
+            تأكيد
+          </button>
         </div>
-        <button
-          onClick={() => setConfirm(true)}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={!acceptedRules}
-        >
-          تأكيد
-        </button>
-      </div>
-      
+
       )}
 
-      <img src="/tagemi_consept.jpg" className="hidden lg:block w-full h-auto" alt="Concept Image" />
 
       {confirm && (
-        <div className="p-2 text-2xl min-w-[500px] h-fit text-white bg-opacity-50 rounded-xl fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-8 py-10">
+                <div className="p-2 text-l  h-fit text-white bg-opacity-50 rounded-xl md:fixed md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2">
+          <div className=" mx-auto bg-opacity-95 bg-[#EEEDEB] px-8 py-10">
+
+        {/* <div className="p-2 text-lg sm:text-2xl min-w-[300px] sm:min-w-[500px] h-fit text-white bg-opacity-50 rounded-xl "> */}
+          {/* <div className="min-w-[250px] sm:min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-4 sm:px-8 py-6 sm:py-10 "> */}
             {/* Picture and Title */}
-            <div className="flex items-center justify-center mb-8">
+            <div className="flex items-center justify-center mb-4 sm:mb-8">
               <div className="text-center">
                 <img src={logo} alt="Appointment Form" className="h-44 w-auto mb-4 mx-auto" />
                 <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أحجز موعدا مع الطبيب</h1>
@@ -165,7 +187,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
             {/* Success Message */}
             {(message || waiting) && (
-              <div className="flex items-center p-4 mb-4 text-sm text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB]" role="alert">
+              <div className="flex items-center text-center w-4/5 mx-auto p-3 sm:p-4 mb-4 text-lg sm:text-lg text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" role="alert">
                 <svg className="flex-shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
                 </svg>
@@ -181,111 +203,116 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   )}
 
                   {message && message.length > 0 && (
-                    <span className="font-bold font-droid-arabic-kufi">{message}</span>
-                  )}
+                    <>
+                      <span className="font-extrabold font-droid-arabic-kufi">{message}</span>
+                      <br />
+                      <span className="font-extrabold font-droid-arabic-kufi">أحجز لشخص آخر</span>
+                    </>)}
                 </div>
               </div>
             )}
 
             {/* Appointment Form */}
-            <form onSubmit={handleSubmit} className="space-y-4 text-lg">
-              <div>
+            {/* <form onSubmit={handleSubmit} className="space-y-4 text-lg"> */}
+
+            <form onSubmit={handleSubmit} className="space-y-4 md:text-lg   sm:text-lg sm:w-full md:w-full">
+              
                 {/* Name Field */}
-      <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>
-      <input
-        type="text"
-        id="name"
-        name="name"
-        value={formData.name}
-        onChange={handleChangeData}
-        className="mt-1 block w-full rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        placeholder="أكتب إسمك كاملا"
-        required
-      />
+                <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChangeData}
+                  className="mt-1 block max-w-80 rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="أكتب إسمك "
+                  required
+                />
 
-      {/* Last Name Field */}
-      <label htmlFor="lastName" className="block text-gray-700 font-droid-arabic-kufi">اللقب :</label>
-      <input
-        type="text"
-        id="lastName"
-        name="lastName"
-        value={formData.lastName}
-        onChange={handleChangeData}
-        className="mt-1 block w-full text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        placeholder="أكتب لقبك"
-        required
-      />
+                {/* Last Name Field */}
+                <label htmlFor="lastName" className="block text-gray-700 font-droid-arabic-kufi">اللقب :</label>
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChangeData}
+                  className="mt-1 block max-w-80 text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="أكتب لقبك"
+                  required
+                />
 
-      {/* Birthday Field */}
-      <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
-      <input
-        type="date"
-        id="birthday"
-        name="birthday"
-        value={formData.birthday}
-        onChange={handleChangeData}
-        className="mt-1 block w-full text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        required
-      />
+                {/* Birthday Field */}
+                <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
+                <input
+                  type="date"
+                  id="birthday"
+                  name="birthday"
+                  value={formData.birthday}
+                  onChange={handleChangeData}
+                  className="mt-1 block max-w-80 text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  required
+                />
 
-      {/* Residence Field */}
-      <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label>
-      <input
-        type="text"
-        id="residence"
-        name="residence"
-        value={formData.residence}
-        onChange={handleChangeData}
-        className="mt-1 block w-full rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        placeholder="أدخل الإقامة"
-        required
-      />
+                {/* Residence Field */}
+                <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label>
+                <input
+                  type="text"
+                  id="residence"
+                  name="residence"
+                  value={formData.residence}
+                  onChange={handleChangeData}
+                  className="mt-1 block max-w-80 rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="عنوان الإقامة"
+                  required
+                />
 
-      {/* Diseases Field */}
-      <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label>
-      <input
-        type="text"
-        id="diseases"
-        name="diseases"
-        value={formData.diseases}
-        onChange={handleChangeData}
-        className="mt-1 block w-full rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
-        
-      />
+                {/* Diseases Field */}
+                <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label>
+                <input
+                  type="text"
+                  id="diseases"
+                  name="diseases"
+                  value={formData.diseases}
+                  onChange={handleChangeData}
+                  className="mt-1 block max-w-80 rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
 
-      {/* Phone Field */}
-      <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label>
-      <input
-        type="tel"
-        id="phone"
-        name="phone"
-        value={formData.phone}
-        onChange={handleChangeData}
-        className="mt-1 block w-full rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        placeholder="أدخل رقم الهاتف"
-        required
-      />
+                />
 
-      {/* Sex Field */}
-      <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label>
-      <select
-        id="sex"
-        name="sex"
-        value={formData.sex}
-        onChange={handleChangeData}
-        className="mt-1 block w-full text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        required
-      >
-        <option value="">اختر الجنس</option>
-        <option value="0">ذكر</option>
-        <option value="1">أنثى</option>
-      </select>
-                
-              </div>
+                {/* Phone Field */}
+                <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChangeData}
+                  className="mt-1 block max-w-80 rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="أدخل رقم هاتف الواتساب"
+                  required
+                />
+
+                {/* Sex Field */}
+                <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label>
+                <select
+                  id="sex"
+                  name="sex"
+                  value={formData.sex}
+                  onChange={handleChangeData}
+                  className="mt-1 block max-w-80 text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  required
+                >
+                  <option value="">اختر الجنس</option>
+                  <option value="0">ذكر</option>
+                  <option value="1">أنثى</option>
+                </select>
+
+              
               {formData.specialties.map((specialty, index) => (
-                <div key={index} className="flex space-x-4 items-end">
-                  <div className='mx-4'>
+                <div key={index} className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 items-end">
+                  <div className="mx-auto">
                     <label htmlFor={`specialty_id_${index}`} className="block text-gray-700 font-droid-arabic-kufi">إختر التخصص</label>
                     <div className="relative">
                       <select
@@ -294,7 +321,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                         name="specialty_id"
                         value={specialty.specialty_id}
                         onChange={(event) => handleChange(index, event)}
-                        className="block appearance-none text-black font-normal text-lg w-full bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842] px-4 py-2 pr-8 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                        className="block appearance-none text-black font-normal text-lg w-52 bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842] px-4 py-2 pr-8 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                       >
                         <option value="">إختر تخصصا</option>
                         {specialities
@@ -308,7 +335,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                     </div>
                   </div>
                   {index === formData.specialties.length - 1 && (
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 mx-auto">
                       {formData.specialties.length < 2 && openSpecialitiesCount > 1 && (
                         <button
                           type="button"
@@ -331,6 +358,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   )}
                 </div>
               ))}
+
               <div className="flex items-center justify-center">
                 <button
                   type="submit"

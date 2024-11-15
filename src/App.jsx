@@ -104,18 +104,18 @@ export default function App() {
         </Route>
 
         <Route path='/' element={<GuestLayout />}>
-          <Route index element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<Home />} />
+          <Route index element={<Home />} />
           <Route path="/appointment" element={<RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />} />
-          <Route path="/about" element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<About />} />
-          <Route path="/contact" element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<Contact />} />
-          <Route path="/volunteer" element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<VolunteerForm />} />
-          <Route path='/activities/activity1' element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<Activities />} />
-          <Route path="/activities/showByActivitiesType/:TypeId" element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<Activities />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/volunteer" element={<VolunteerForm />} />
+          <Route path='/activities/activity1' element={<Activities />} />
+          <Route path="/activities/showByActivitiesType/:TypeId" element={<Activities />} />
           <Route path="/login" element={user ? <Home /> : <Login />} />
           <Route path="/register" element={user ? <Home /> : <Register />} />
-          <Route path='/actvities/:Actvityid' element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<ActivityDetails />} />
-          <Route path="/futureProjects" element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<FuturProjects />} />
-          <Route path="/future-prjects/:Projectid" element={a? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />:<ProjectDetails />} />
+          <Route path='/actvities/:Actvityid' element={<ActivityDetails />} />
+          <Route path="/futureProjects" element={<FuturProjects />} />
+          <Route path="/future-prjects/:Projectid" element={<ProjectDetails />} />
 
         </Route>
 
