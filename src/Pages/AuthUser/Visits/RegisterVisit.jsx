@@ -172,11 +172,11 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
 
       {confirm && (
-                <div className="p-2 text-l  h-fit text-white bg-opacity-50 rounded-xl md:fixed md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2">
+        <div className="p-2 text-l  h-fit text-white bg-opacity-50 rounded-xl container mx-auto">
           <div className=" mx-auto bg-opacity-95 bg-[#EEEDEB] px-8 py-10">
 
-        {/* <div className="p-2 text-lg sm:text-2xl min-w-[300px] sm:min-w-[500px] h-fit text-white bg-opacity-50 rounded-xl "> */}
-          {/* <div className="min-w-[250px] sm:min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-4 sm:px-8 py-6 sm:py-10 "> */}
+            {/* <div className="p-2 text-lg sm:text-2xl min-w-[300px] sm:min-w-[500px] h-fit text-white bg-opacity-50 rounded-xl "> */}
+            {/* <div className="min-w-[250px] sm:min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-4 sm:px-8 py-6 sm:py-10 "> */}
             {/* Picture and Title */}
             <div className="flex items-center justify-center mb-4 sm:mb-8">
               <div className="text-center">
@@ -214,114 +214,116 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
             {/* Appointment Form */}
             {/* <form onSubmit={handleSubmit} className="space-y-4 text-lg"> */}
+<div className="flex justify-center flex-col ">
 
-            <form onSubmit={handleSubmit} className="space-y-4 md:text-lg   sm:text-lg sm:w-full md:w-full">
-              
-                {/* Name Field */}
-                <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChangeData}
-                  className="mt-1 block max-w-80 rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="أكتب إسمك "
-                  required
-                />
 
-                {/* Last Name Field */}
-                <label htmlFor="lastName" className="block text-gray-700 font-droid-arabic-kufi">اللقب :</label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChangeData}
-                  className="mt-1 block max-w-80 text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="أكتب لقبك"
-                  required
-                />
+            <form onSubmit={handleSubmit} className="space-y-4 md:text-lg w-[400px]  sm:text-lg  ">
 
-                {/* Birthday Field */}
-                <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
-                <input
-                  type="date"
-                  id="birthday"
-                  name="birthday"
-                  value={formData.birthday}
-                  onChange={handleChangeData}
-                  className="mt-1 block max-w-80 text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  required
-                />
+              {/* Name Field */}
+              <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChangeData}
+                className="mt-1 block  rounded-md sm:w-80 font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                placeholder="أكتب إسمك "
+                required
+              />
 
-                {/* Residence Field */}
-                <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label>
-                <input
-                  type="text"
-                  id="residence"
-                  name="residence"
-                  value={formData.residence}
-                  onChange={handleChangeData}
-                  className="mt-1 block max-w-80 rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="عنوان الإقامة"
-                  required
-                />
+              {/* Last Name Field */}
+              <label htmlFor="lastName" className="block text-gray-700 font-droid-arabic-kufi">اللقب :</label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChangeData}
+                className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                placeholder="أكتب لقبك"
+                required
+              />
 
-                {/* Diseases Field */}
-                <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label>
-                <input
-                  type="text"
-                  id="diseases"
-                  name="diseases"
-                  value={formData.diseases}
-                  onChange={handleChangeData}
-                  className="mt-1 block max-w-80 rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
+              {/* Birthday Field */}
+              <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
+              <input
+                type="date"
+                id="birthday"
+                name="birthday"
+                value={formData.birthday}
+                onChange={handleChangeData}
+                className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                required
+              />
 
-                />
+              {/* Residence Field */}
+              <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label>
+              <input
+                type="text"
+                id="residence"
+                name="residence"
+                value={formData.residence}
+                onChange={handleChangeData}
+                className="mt-1 block  rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                placeholder="عنوان الإقامة"
+                required
+              />
 
-                {/* Phone Field */}
-                <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChangeData}
-                  className="mt-1 block max-w-80 rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="أدخل رقم هاتف الواتساب"
-                  required
-                />
+              {/* Diseases Field */}
+              <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label>
+              <input
+                type="text"
+                id="diseases"
+                name="diseases"
+                value={formData.diseases}
+                onChange={handleChangeData}
+                className="mt-1 block  rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
 
-                {/* Sex Field */}
-                <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label>
-                <select
-                  id="sex"
-                  name="sex"
-                  value={formData.sex}
-                  onChange={handleChangeData}
-                  className="mt-1 block max-w-80 text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  required
-                >
-                  <option value="">اختر الجنس</option>
-                  <option value="0">ذكر</option>
-                  <option value="1">أنثى</option>
-                </select>
+              />
 
-              
+              {/* Phone Field */}
+              <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChangeData}
+                className="mt-1 block  rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                placeholder="أدخل رقم هاتف الواتساب"
+                required
+              />
+
+              {/* Sex Field */}
+              <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label>
+              <select
+                id="sex"
+                name="sex"
+                value={formData.sex}
+                onChange={handleChangeData}
+                className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                required
+              >
+                <option value="">اختر الجنس</option>
+                <option value="0">ذكر</option>
+                <option value="1">أنثى</option>
+              </select>
+
+
               {formData.specialties.map((specialty, index) => (
-                <div key={index} className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 items-end">
+                <div key={index} className="block text-center sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 items-end">
                   <div className="mx-auto">
                     <label htmlFor={`specialty_id_${index}`} className="block text-gray-700 font-droid-arabic-kufi">إختر التخصص</label>
-                    <div className="relative">
+                    <div className="relative w-1/2">
                       <select
                         id={`specialty_id_${index}`}
                         required
                         name="specialty_id"
                         value={specialty.specialty_id}
                         onChange={(event) => handleChange(index, event)}
-                        className="block appearance-none text-black font-normal text-lg w-52 bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842] px-4 py-2 pr-8 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                        className="block appearance-none text-black font-normal text-lg w-auto bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842] px-1 py-2 pr-8 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                       >
                         <option value="">إختر تخصصا</option>
                         {specialities
@@ -333,9 +335,12 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                           ))}
                       </select>
                     </div>
-                  </div>
-                  {index === formData.specialties.length - 1 && (
-                    <div className="flex space-x-2 mx-auto">
+
+
+
+
+                    {index === formData.specialties.length - 1 && (
+                    <div className="flex w-1/2 mt-3">
                       {formData.specialties.length < 2 && openSpecialitiesCount > 1 && (
                         <button
                           type="button"
@@ -356,6 +361,10 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                       )}
                     </div>
                   )}
+
+                  </div>
+                 
+
                 </div>
               ))}
 
@@ -369,6 +378,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
