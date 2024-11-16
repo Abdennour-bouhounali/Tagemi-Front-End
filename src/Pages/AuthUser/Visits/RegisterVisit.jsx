@@ -217,7 +217,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 <div className="flex justify-center flex-col ">
 
 
-            <form onSubmit={handleSubmit} className="space-y-4 md:text-lg w-[400px]  sm:text-lg  ">
+            <form onSubmit={handleSubmit} className="space-y-4 md:text-lg w-[400px] mx-auto  sm:text-lg  ">
 
               {/* Name Field */}
               <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>

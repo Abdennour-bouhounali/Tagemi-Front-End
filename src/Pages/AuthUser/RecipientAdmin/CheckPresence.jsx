@@ -2,11 +2,18 @@ import React, { useContext, useEffect, useState } from 'react';
 // import { saveAs } from 'file-saver';
 // import { pdf } from '@react-pdf/renderer';
 
+
+
 import { AppContext } from "../../../Context/AppContext";
 const apiUrl = import.meta.env.VITE_API_URL;
 import Card from './card';
 import './card.css'
-import { generatePDF } from '../../../pdf';
+// import { generatePDF } from '../../../pdf';
+
+import { PDFDocument, rgb,StandardFonts } from 'pdf-lib';
+import * as fontkit from 'fontkit';
+import { saveAs } from 'file-saver'; // To save the modified PDF
+
 // import DownloadButton from './DownloadButton';
 const CheckPresence = () => {
 
@@ -42,7 +49,7 @@ const CheckPresence = () => {
         setStartDay(data);
     }
 
-    
+
 
     useEffect(() => {
         getAppoitments();
@@ -169,6 +176,55 @@ const CheckPresence = () => {
         }, 2000);
     }
 
+
+    const printPDF = async (data) => {
+        console.log(data);
+        // Load the PDF template
+        const pdfUrl = '/formulaire_vide.pdf';
+        const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+
+        // Load PDF with PDF-Lib
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        pdfDoc.registerFontkit(fontkit);
+        // Get the first page
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const fontUrl = '/simpo.ttf'; // Update with your font path
+        const fontBytes = await fetch(fontUrl).then((res) => res.arrayBuffer());
+        const customFont = await pdfDoc.embedFont(fontBytes);
+        // // Define patient data
+        // const data = {
+        //     first_name: "John",
+        //     last_name: "Doe",
+        //     birthday: "1990-01-01",
+        //     patient_id: "12345",
+        //     speciality1: "Cardiology",
+        //     speciality2: "Neurology",
+        // };
+
+        // Add text to specific coordinates
+        firstPage.drawText(`${data[0].name}`, { x: 400, y: 160, size: 12,  font: customFont ,color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].lastName}`, { x: 400, y: 130, size: 12, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].birthday}`, { x: 400, y: 100, size: 12, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].patient_id}`, { x: 400, y: 190, size: 12, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].specialty.name}`, { x: 100, y: 348, size: 12, font: customFont, color: rgb(0, 0, 0) });
+
+        // Serialize the PDF document to bytes
+        const pdfBytes = await pdfDoc.save();
+
+        // Create a Blob for the PDF
+        const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+        // Create an Object URL for the Blob
+        const pdfUrlToPrint = URL.createObjectURL(pdfBlob);
+
+        // Open the Object URL in a new tab for printing
+        const printWindow = window.open(pdfUrlToPrint, '_blank');
+        printWindow.onload = () => {
+            printWindow.print();
+        };
+    };
+
     return (
         <div className='md:container md:mx-auto min-h-screen'>
             <div className="flex">
@@ -241,7 +297,7 @@ const CheckPresence = () => {
                                                         </button>
 
                                                     </form>
-                                                  
+
                                                     <form className='ml-4 text-center  max-w-fit' onSubmit={(e) => hanleOnDelay(e, patientId)}>
                                                         <input
                                                             value="Present"
@@ -291,11 +347,13 @@ const CheckPresence = () => {
 
                                 </td>
                                 <td className='text-center mx-auto'>
-                                <Card data={displayAppointments[patientId]} />
-                                 {/* <DownloadButton CardComponent={<Card data={displayAppointments[patientId]} />} /> */}
-                                <button className="button" onClick={() => generatePDF(`card-${patientId}`)}>
-                                    Generate Card PDF
-                                </button>
+                                    {/* <Card data={displayAppointments[patientId]} /> */}
+                                    {/* <DownloadButton CardComponent={<Card data={displayAppointments[patientId]} />} /> */}
+                                    {/* <button className="button" onClick={() => generatePDF(`card-${patientId}`)}> */}
+                                    {/* Generate Card PDF */}
+                                    {/* </button> */}
+                                    <button onClick={() => printPDF(displayAppointments[patientId])}>Print PDF</button>
+
                                 </td>
                             </tr>
                             {expandedRows[patientId] &&
