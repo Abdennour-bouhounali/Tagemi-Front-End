@@ -34,6 +34,7 @@ import SuperAdminVolunteers from './Pages/AuthUser/SuperAdmin/SuperAdminVoluntee
 import WaitingList from './Pages/AuthUser/WaitingList/WaitingList';
 
 import { LanguageProvider, useLanguage } from './Context/LanguageContext';
+import RedirectToAppointment from './RedirectToAppointment';
 
 export default function App() {
 
@@ -44,7 +45,7 @@ export default function App() {
   var CheckAdmin = false;
   var RecipientAdmin = false;
   var SpecialAdmin = false;
-  var a=true;
+  var a = true;
   // console.log(user.role_id);
   if (user) {
     Superadmin = user.role_id == 1 ? true : false;
@@ -82,7 +83,7 @@ export default function App() {
 
           <Route path="/users" element={Superadmin ? <AllUsers /> : <Home />} />
           <Route path="/speciality" element={Superadmin ? <ManageSpeciality /> : <Home />} />
-          <Route path="/AllAppointments" element={RecipientAdmin ? <CheckPresence /> : <Home />} />
+          <Route path="/AllAppointments" element={RecipientAdmin || Superadmin || SpecialAdmin ? <CheckPresence /> : <Home />} />
           <Route path="/settings" element={Superadmin ? <Settings /> : <Home />} />
           <Route path="/WaitingList/:specialityId" element={CheckAdmin ? <CheckPaitent /> : <Home />} />
           <Route path="/SpecialCase" element={SpecialAdmin ? <CheckPresence /> : <Home />} />
@@ -91,7 +92,7 @@ export default function App() {
 
           <Route path="/GeneralWaitingList" element={Superadmin ? <WaitingList /> : <Home />} />
 
-          <Route path="/types" element={Superadmin ? <TypesPage /> : <Home />} />
+          <Route path="/types" element={Superadmin || SpecialAdmin ? <TypesPage /> : <Home />} />
           <Route path="/activities" element={Superadmin ? <ActivitiesPage /> : <Home />} />
           <Route path="/contacts" element={Superadmin ? <Messages /> : <Home />} />
           <Route path="/sponsors" element={Superadmin ? <SponsorsPage /> : <Home />} />
@@ -104,20 +105,21 @@ export default function App() {
         </Route>
 
         <Route path='/' element={<GuestLayout />}>
-          <Route index element={<Home />} />
+          <Route index element={<RedirectToAppointment><Home /></RedirectToAppointment>} />
           <Route path="/appointment" element={<RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/volunteer" element={<VolunteerForm />} />
-          <Route path='/activities/activity1' element={<Activities />} />
-          <Route path="/activities/showByActivitiesType/:TypeId" element={<Activities />} />
-          <Route path="/login" element={user ? <Home /> : <Login />} />
-          <Route path="/register" element={user ? <Home /> : <Register />} />
-          <Route path='/actvities/:Actvityid' element={<ActivityDetails />} />
-          <Route path="/futureProjects" element={<FuturProjects />} />
-          <Route path="/future-prjects/:Projectid" element={<ProjectDetails />} />
 
+          <Route path="/about" element={<RedirectToAppointment><About /></RedirectToAppointment>} />
+          <Route path="/contact" element={<RedirectToAppointment><Contact /></RedirectToAppointment>} />
+          <Route path="/volunteer" element={<RedirectToAppointment><VolunteerForm /></RedirectToAppointment>} />
+          <Route path='/activities/activity1' element={<RedirectToAppointment><Activities /></RedirectToAppointment>} />
+          <Route path="/activities/showByActivitiesType/:TypeId" element={<RedirectToAppointment><Activities /></RedirectToAppointment>} />
+          <Route path="/login" element={user ? <Home /> : <RedirectToAppointment><Login /></RedirectToAppointment>} />
+          <Route path="/register" element={user ? <Home /> : <RedirectToAppointment><Register /></RedirectToAppointment>} />
+          <Route path='/actvities/:Actvityid' element={<RedirectToAppointment><ActivityDetails /></RedirectToAppointment>} />
+          <Route path="/futureProjects" element={<RedirectToAppointment><FuturProjects /></RedirectToAppointment>} />
+          <Route path="/future-prjects/:Projectid" element={<RedirectToAppointment><ProjectDetails /></RedirectToAppointment>} />
         </Route>
+
 
 
 

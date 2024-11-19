@@ -1,12 +1,13 @@
 import React, { useContext, useRef, useEffect, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
 
 import SuperAdminNav from "./Headers/SuperAdminNav";
 import AuthNavBar from "./Headers/AuthNavBar";
 import GuestNavBar from "./Headers/GuestNavBar";
+import WaitingList from "./AuthUser/WaitingList/WaitingList";
 
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function AdminLayout() {
   const { setUser, token, setToken } = useContext(AppContext);
@@ -15,7 +16,7 @@ export default function AdminLayout() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+
 
   const dropdownRef = useRef(null);
 
@@ -69,12 +70,12 @@ export default function AdminLayout() {
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-    headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
-    headers.append('Authorization',`Bearer ${token}`);
+    headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+    headers.append('Authorization', `Bearer ${token}`);
     const res = await fetch(`${apiUrl}/api/logout`, {
-        
-        method: "post",
-        headers: headers,
+
+      method: "post",
+      headers: headers,
     });
 
     if (res.ok) {
@@ -127,13 +128,14 @@ export default function AdminLayout() {
 
             <div className="hidden md:flex space-x-6 items-center">
 
-           {user && user.role_id == 2 && <GuestNavBar />
-}
-          <AuthNavBar user={user} specialities={specialities} dropdownRef={dropdownRef} toggleMobileMenu={toggleMobileMenu} toggleDropdown={toggleDropdown} isOpen={isOpen}/>
-          
+              {user && user.role_id == 2 && <GuestNavBar />
+              }
+              
+              <AuthNavBar user={user} specialities={specialities} dropdownRef={dropdownRef} toggleMobileMenu={toggleMobileMenu} toggleDropdown={toggleDropdown} isOpen={isOpen} />
+
 
               {/*Language Selector  */}
-{/* 
+              {/* 
               <div className="relative px-4 py-3">
                 <select
                   onChange={(e) => changeLanguage(e.target.value)} defaultValue={i18n.language}
@@ -173,16 +175,16 @@ export default function AdminLayout() {
           {isMobileMenuOpen && (
             <div className="md:hidden mt-4">
               <div className="space-y-2 block">
-              <GuestNavBar />
-              <AuthNavBar user={user} specialities={specialities} />
+                <GuestNavBar />
+                <AuthNavBar user={user} specialities={specialities} />
 
               </div>
             </div>
           )}
         </header>
-        
-        
-        <main className=" container p-0 mx-auto" >
+
+
+        <main className={`container p-0 mx-auto`}>
           <Outlet />
         </main>
       </div>

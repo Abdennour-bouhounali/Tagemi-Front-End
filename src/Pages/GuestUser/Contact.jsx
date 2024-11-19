@@ -3,10 +3,12 @@ import { useLanguage } from '../../Context/LanguageContext';
 import Footer from './HomePage/Components/Footer';
 
 
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = import.meta.env.VITE_API_URL;
 const Contact = ({ project, projectName }) => {
   const { language } = useLanguage(); // Destructure language from useLanguage
   const [types, setTypes] = useState([]);
+  const [selectedWilaya, setSelectedWilaya] = useState('');
+  const [selectedCommun, setSelectedCommun] = useState('');
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -23,7 +25,7 @@ const Contact = ({ project, projectName }) => {
     const res = await fetch(`${apiUrl}/api/types`);
     const data = await res.json();
     setTypes(data);
-  } 
+  }
   useEffect(() => {
     getTypes();
   }, []);
@@ -41,7 +43,7 @@ const Contact = ({ project, projectName }) => {
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-    headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+    headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
     try {
       const response = await fetch(`${apiUrl}/api/contacts`, {
         method: 'POST',
@@ -79,9 +81,24 @@ const Contact = ({ project, projectName }) => {
     'تمنراست', 'تبسة', 'تلمسان', 'تيارت', 'تيزي وزو', 'الجزائر', 'الجلفة', 'جيجل', 'سطيف', 'سعيدة',
     'سكيكدة', 'سيدي بلعباس', 'عنابة', 'قالمة', 'قسنطينة', 'المدية', 'مستغانم', 'المسيلة', 'معسكر', 'ورقلة',
     'وهران', 'البيض', 'إليزي', 'برج بوعريريج', 'بومرداس', 'الطارف', 'تندوف', 'تيسمسيلت', 'الوادي', 'خنشلة',
-    'سوق أهراس', 'تيبازة', 'ميلة', 'عين الدفلى', 'النعامة', 'عين تموشنت', 'غرداية', 'غليزان'
+    'سوق أهراس', 'تيبازة', 'ميلة', 'عين الدفلى', 'النعامة', 'عين تموشنت', 'غرداية', 'غليزان', 'تيميمون', 'برج باجي مختار',
+    'أولاد جلال', 'بني عباس', 'إن صالح', 'إن قزام', 'تقرت', 'جانت', 'المغير', 'المنيعة'
   ];
+    
+  const communes = {
+    'أدرار': ['دبيلة', 'مكمن', 'عين صالح'],
+    'الشلف': ['عين تموشنت', 'تاجموت', 'العوينات'],
+    'الأغواط': ['العيون', 'الشيخ عبد الله', 'عين الملوك'],
+    // Add other wilayas and their communes here...
+  };
+  const handleWilayaChange = (e) => {
+    setSelectedWilaya(e.target.value);
+    setSelectedCommun(''); // Reset the selected commune when wilaya changes
+  };
 
+  const handleCommunChange = (e) => {
+    setSelectedCommun(e.target.value);
+  };
   return (
     <>    <div className={`${project ? 'min-h-fit' : 'min-h-screen'} px-10 block mx-auto py-12 bg-gradient-to-b from-white to-[#DAE0F5]`}>
       {message && (
@@ -106,7 +123,7 @@ const Contact = ({ project, projectName }) => {
         <div className="flex flex-wrap -mx-2">
           <div className="w-full sm:w-1/2 px-2 mb-4 sm:mb-0">
             <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'First Name' : 'الإسم'}</label>
-            <input  required type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
+            <input required type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" />
           </div>
           <div className="w-full sm:w-1/2 px-2">
             <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'Last Name' : 'اللقب'}</label>
@@ -120,12 +137,43 @@ const Contact = ({ project, projectName }) => {
           </div>
           <div className="w-full sm:w-1/2 px-2">
             <label className="block text-xl mb-2 text-gray-800 font-droid-arabic-kufi">{language === 'en' ? 'Wilaya' : 'الولاية'}</label>
-            <select required name="wilaya" value={formData.wilaya} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500">
-              <option value="" className='font-droid-arabic-kufi'>{language === 'en' ? 'Select Wilaya' : 'اختر الولاية'}</option>
-              {wilayas.map((wilaya, index) => (
-                <option key={index} value={wilaya} className='font-droid-arabic-kufi'>{wilaya}</option>
-              ))}
-            </select>
+            <div>
+              <select
+                required
+                name="wilaya"
+                value={selectedWilaya}
+                onChange={handleWilayaChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="" className='font-droid-arabic-kufi'>
+                  {language === 'en' ? 'Select Wilaya' : 'اختر الولاية'}
+                </option>
+                {wilayas.map((wilaya, index) => (
+                  <option key={index} value={wilaya} className='font-droid-arabic-kufi'>
+                    {wilaya}
+                  </option>
+                ))}
+              </select>
+
+              {selectedWilaya && (
+                <select
+                  required
+                  name="commune"
+                  value={selectedCommun}
+                  onChange={handleCommunChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500 mt-4"
+                >
+                  <option value="" className='font-droid-arabic-kufi'>
+                    {language === 'en' ? 'Select Commune' : 'اختر البلدية'}
+                  </option>
+                  {communes[selectedWilaya]?.map((commune, index) => (
+                    <option key={index} value={commune} className='font-droid-arabic-kufi'>
+                      {commune}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
         </div>
         <div>
@@ -157,7 +205,7 @@ const Contact = ({ project, projectName }) => {
         </div>
       </form>
     </div>
-<Footer types={types} />
+      <Footer types={types} />
     </>
 
   );

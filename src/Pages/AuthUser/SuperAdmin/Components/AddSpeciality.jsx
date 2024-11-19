@@ -18,12 +18,16 @@ export default function AddSpeciality({getSpecialites}){
 
 async function handleAddSpeciality(e){
     e.preventDefault();
+    console.log(FormData);
+    console.log(`${apiUrl}/api/specialty`);
 
     const res = await fetch(`${apiUrl}/api/specialty`,{
-        method : 'post',
+        method : 'POST',
         body: JSON.stringify(FormData),
         headers : {
-            Authorization : `Bearer ${token}`
+            Authorization : `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
         }
     })
 
@@ -32,7 +36,7 @@ async function handleAddSpeciality(e){
         getSpecialites();
     }
 
-    // console.log(data);
+    console.log(data);
 }
     return <>
     

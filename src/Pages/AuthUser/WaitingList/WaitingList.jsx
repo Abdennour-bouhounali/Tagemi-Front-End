@@ -52,8 +52,8 @@ const WaitingList = () => {
     const maxRows = Math.max(...Object.values(waitingList).map(arr => arr.length), 0);
 
     return (
-        <div className='w-full min-h-screen'>
-            <table className="table-auto my-7 text-center w-full">
+        <div className='w-full min-h-screen mx-auto'>
+            <table className="table-auto my-7 text-center ">
                 <thead>
                     <tr>
                         {specialities.map((speciality) => (
@@ -70,26 +70,24 @@ const WaitingList = () => {
                             </th>
                         ))}
                     </tr>
-                    {/* <tr>
-                        {specialities.map((speciality) => (
-                            <React.Fragment key={speciality.id}>
-                                <th className='font-droid-arabic-kufi'>Patient ID</th>
-                                <th className='font-droid-arabic-kufi'>Name</th>
-                            </React.Fragment>
-                        ))}
-                    </tr> */}
+                   
                 </thead>
                 <tbody>
                 {Array.from({ length: maxRows }).map((_, rowIndex) => (
-                        <tr key={rowIndex}>
+                        <tr key={rowIndex} 
+                        className={`${rowIndex % 2 === 0 ? 'bg-red-100' : 'bg-green-100'}`}>
+
+                        
                             {specialities.map((speciality) => {
                                 const patients = waitingList[speciality.id] || [];
                                 const patient = patients[rowIndex] || null;
 
                                 return (
-                                    <td key={speciality.id} className='border-4 p-2'>
+                                    <td key={speciality.id} className='border-4 p-2' >
                                         {patient ? (
                                             <div className='flex'>
+
+                                            
                                                 <div className='w-1/2  '>{patient.patient_id}</div>
                                                 <div className='w-1/2  '>{patient.name}</div>
                                             </div>

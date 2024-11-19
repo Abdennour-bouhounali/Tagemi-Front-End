@@ -4,14 +4,14 @@ import { AppContext } from "../../Context/AppContext";
 import 'flag-icons/css/flag-icons.min.css'; // Import flag-icons CSS
 import LanguageSelector from "../../LanguageSelector";
 import { useLanguage } from "../../Context/LanguageContext";
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = import.meta.env.VITE_API_URL;
 const GuestNavBar = ({ user, types }) => {
-
+    const onlyAdmins = false;
     const [isNavOpen, setIsNavOpen] = useState(false);
     const navigate = useNavigate();
 
-    const { token,setToken, startDay, setStartDay } = useContext(AppContext);
-    const [displayAuth,setDisplayAuth] = useState(0);
+    const { token, setToken, startDay, setStartDay } = useContext(AppContext);
+    const [displayAuth, setDisplayAuth] = useState(0);
     const { setUser } = useContext(AppContext);
 
     const { language } = useLanguage();
@@ -20,7 +20,7 @@ const GuestNavBar = ({ user, types }) => {
     const toggleNav = () => {
         setIsNavOpen(!isNavOpen);
     };
-    async function getdisplayAuth(){
+    async function getdisplayAuth() {
         const res = await fetch(`${apiUrl}/api/getdisplayAuth`);
         const data = await res.json();
         setDisplayAuth(data);
@@ -47,9 +47,9 @@ const GuestNavBar = ({ user, types }) => {
     const toggleDropdown = () => {
         setIsOpen((prev) => !prev); // Toggle dropdown visibility
     };
-    useEffect(()=>{
+    useEffect(() => {
         getdisplayAuth();
-    },[])
+    }, [])
     return (
         <header className='bg-white border-gray-200'>
             <nav className='max-w-screen-2xl flex flex-wrap items-center justify-between mx-auto py-2 '>
@@ -75,67 +75,72 @@ const GuestNavBar = ({ user, types }) => {
                     id="navbar-default"
                 >
                     <ul className='font-medium flex flex-col p-4 custom:p-0 mt-4 border border-gray-100 rounded-lg custom:flex-row custom:space-x-4 rtl:space-x-reverse custom:mt-0 custom:border-0 custom:bg-white'>
-                        <li>
-                            <Link to="/" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
+                        {onlyAdmins ? (
+                            <>
+                                <li>
+                                    <Link to="/" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
 
-                            >
-                                {language === 'en' ? 'Home' : 'الصفحة الرئيسية'}
+                                    >
+                                        {language === 'en' ? 'Home' : 'الصفحة الرئيسية'}
 
 
-                            </Link>
-                        </li>
-                        <li className="relative group">
-                            {/* Button to toggle dropdown */}
-                            <button
-                                onClick={toggleDropdown}
-                                className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
-                            >
-                                {language === 'en' ? 'Foundation Activities' : 'أنشطة المؤسسة'}
-                            </button>
+                                    </Link>
+                                </li>
+                                <li className="relative group">
+                                    {/* Button to toggle dropdown */}
+                                    <button
+                                        onClick={toggleDropdown}
+                                        className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
+                                    >
+                                        {language === 'en' ? 'Foundation Activities' : 'أنشطة المؤسسة'}
+                                    </button>
 
-                            {/* Dropdown Menu */}
-                            <div
-                                className={`absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-100 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                            >
-                                <ul>
-                                    {types.map((type) => (
-                                        <li key={type.id}>
-                                            <Link
-                                                to={`/activities/showByActivitiesType/${type.id}`}
-                                                className="block px-4 py-2 text-gray-900 hover:bg-gray-100"
-                                                onClick={() => setIsOpen(false)} // Close dropdown on link click
-                                            >
-                                                {language === 'en' ? type.name_en : type.name_ar}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </li>
-                        <li>
-                            <Link to="/futureProjects" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Futur Projects' : ' مشاريع مستقبلية'}
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to="/volunteer" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
+                                    {/* Dropdown Menu */}
+                                    <div
+                                        className={`absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-100 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                                    >
+                                        <ul>
+                                            {types.map((type) => (
+                                                <li key={type.id}>
+                                                    <Link
+                                                        to={`/activities/showByActivitiesType/${type.id}`}
+                                                        className="block px-4 py-2 text-gray-900 hover:bg-gray-100"
+                                                        onClick={() => setIsOpen(false)} // Close dropdown on link click
+                                                    >
+                                                        {language === 'en' ? type.name_en : type.name_ar}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </li>
+                                <li>
+                                    <Link to="/futureProjects" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
+                                        {language === 'en' ? 'Futur Projects' : ' مشاريع مستقبلية'}
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link to="/volunteer" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
 
-                                {language === 'en' ? 'Voulenteer With Us' : 'تطوع معنا'}
+                                        {language === 'en' ? 'Voulenteer With Us' : 'تطوع معنا'}
 
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to="/about" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                {language === 'en' ? 'About' : 'من نحن'}
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link to="/about" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
+                                        {language === 'en' ? 'About' : 'من نحن'}
 
-                            </Link>
-                        </li>
-                        <li>
-                            <Link to="/contact" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Contact Us' : 'تواصل معنا '}
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link to="/contact" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
+                                        {language === 'en' ? 'Contact Us' : 'تواصل معنا '}
 
-                            </Link>
-                        </li>
+                                    </Link>
+                                </li>
+                            </>
+                        ) : ''
+                        }
 
                         {user ? (
                             <>
@@ -151,6 +156,7 @@ const GuestNavBar = ({ user, types }) => {
                                 <li><Link to="/register" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">  {language === 'en' ? ' Register ' : ' تسجيل'} </Link></li>
                             </>
                         ) : ''}
+                        
                         {user && (
                             <li>
                                 <Link to="/appointment" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">{language === 'en' ? 'Make An Appointment' : 'إحجز موعدا'} </Link>
@@ -173,16 +179,20 @@ const GuestNavBar = ({ user, types }) => {
                                 <Link to={`WaitingList/${user.specialty_id}`} className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">لوحة التحكم</Link>
                             </li>
                         )}
+
                         {user && user.role_id == 5 && (
                             <li>
                                 <Link to="/AllAppointments" className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">لوحة التحكم</Link>
                             </li>
                         )}
+                        {onlyAdmins ? (
+                            <li>
+                                <LanguageSelector />
 
-                        <li>
-                            <LanguageSelector />
+                            </li>
 
-                        </li>
+                        ) : ''}
+
                     </ul>
                 </div>
             </nav>

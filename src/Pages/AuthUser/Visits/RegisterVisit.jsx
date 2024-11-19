@@ -13,6 +13,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const [openSpecialitiesCount, setOpenSpecialitiesCount] = useState(0);
   const [rules, setRules] = useState([]);
   const [confirm, setConfirm] = useState(false)
+  const [confirmafter, setConfirmAfter] = useState(false)
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -107,6 +108,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     });
     const data = await res.json();
     console.log(res);
+    setConfirmAfter(true);
     if (res.ok) {
       setAppointments(data['appointments']);
       setMinTime(data['minTime']);
@@ -126,24 +128,22 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
       setWaiting(data['waitinglist_message']);
     }
 
-    setTimeout(() => {
-      setMessage(null);
-      setWaiting(null);
-    }, 5000);
+
   };
 
   const isFormValid = formData.name && formData.specialties.every(specialty => specialty.specialty_id);
 
   return (
-    <div className="relative md:static">
+    <div className="relative md:static bg-slate-100 w-screen h-screen">
       {!confirm && (
         <div className="rules w-full max-w-xs sm:max-w-screen-md h-auto bg-white shadow-lg rounded-lg p-4 sm:p-6 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" dir="rtl">
-          <h2 className="font-sans text-lg sm:text-2xl font-semibold mb-4 sm:mb-6 text-center">
+          <h2 className=" text-lg sm:text-2xl font-semibold mb-4 sm:mb-6 text-center font-droid-arabic-kufi">
             ضوابط نظام الفحوصات الطبية
           </h2>
           <ul className="list-disc list-inside mb-4 sm:mb-6 space-y-2 text-gray-800">
             {rules.map(rule => (
-              <li key={rule.id} className="text-xs sm:text-sm">
+
+              <li key={rule.id} className={`text-3xl sm:text-lg font-bold font-droid-arabic-kufi  ${rule.id == 1 ? 'text-red-500' : ''}`}>
                 {rule.rule}
               </li>
             ))}
@@ -152,7 +152,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
             <input
               type="checkbox"
               id="acceptRules"
-              className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="h-4 w-4 sm:h-5 sm:w-5 text-3xl sm:text-lg font-bold font-droid-arabic-kufi  text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               onChange={(e) => setAcceptedRules(e.target.checked)}
             />
             <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-sm">
@@ -161,7 +161,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
           </div>
           <button
             onClick={() => setConfirm(true)}
-            className="w-full bg-blue-600 text-white py-2 sm:py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-blue-600 text-3xl sm:text-lg font-bold font-droid-arabic-kufi  text-white py-2 sm:py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!acceptedRules}
           >
             تأكيد
@@ -173,25 +173,26 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
       {confirm && (
         <div className="p-2 text-l  h-fit text-white bg-opacity-50 rounded-xl container mx-auto">
-          <div className=" mx-auto bg-opacity-95 bg-[#EEEDEB] px-8 py-10">
+          <div className=" mx-auto bg-opacity-95   py-10">
 
             {/* <div className="p-2 text-lg sm:text-2xl min-w-[300px] sm:min-w-[500px] h-fit text-white bg-opacity-50 rounded-xl "> */}
             {/* <div className="min-w-[250px] sm:min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-4 sm:px-8 py-6 sm:py-10 "> */}
             {/* Picture and Title */}
-            <div className="flex items-center justify-center mb-4 sm:mb-8">
-              <div className="text-center">
-                <img src={logo} alt="Appointment Form" className="h-44 w-auto mb-4 mx-auto" />
-                <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أحجز موعدا مع الطبيب</h1>
-              </div>
-            </div>
+
 
             {/* Success Message */}
-            {(message || waiting) && (
-              <div className="flex items-center text-center w-4/5 mx-auto p-3 sm:p-4 mb-4 text-lg sm:text-lg text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" role="alert">
-                <svg className="flex-shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-                </svg>
+            {(message && confirmafter) && (
+              <div className="flex flex-col items-center text-center max-w-[700px] container p-3 sm:p-4 mb-4 text-lg sm:text-lg text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" role="alert">
                 <span className="sr-only font-droid-arabic-kufi">ملاحظة</span>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setConfirmAfter(false)}
+                  className="absolute top-2 right-2 text-[#2F3645] bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                >
+                  ×
+                </button>
+
                 <div>
                   {waiting && waiting.length > 0 && (
                     <>
@@ -206,178 +207,213 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                     <>
                       <span className="font-extrabold font-droid-arabic-kufi">{message}</span>
                       <br />
+                      <span className="text-lg text-red-500 font-droid-arabic-kufi">
+                        نأكد على ضرورة الحضور بمحرم
+                      </span>
+                      <br />
                       <span className="font-extrabold font-droid-arabic-kufi">أحجز لشخص آخر</span>
-                    </>)}
+                    </>
+                  )}
                 </div>
               </div>
+
             )}
 
             {/* Appointment Form */}
             {/* <form onSubmit={handleSubmit} className="space-y-4 text-lg"> */}
-<div className="flex justify-center flex-col ">
+            <div className="flex justify-center flex-col tetx-center max-w-[700px] mx-auto px-1 py-5 bg-[#EEEDEB] ">
+              <div className="flex items-center justify-center mb-4 sm:mb-8">
+                <div className="text-center">
+                  <img src={logo} alt="Appointment Form" className="h-44 w-auto mb-4 mx-auto" />
+                  <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أحجز موعدا مع الطبيب</h1>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4 md:text-lg max-w-[600px] mx-auto  sm:text-lg ">
+
+                {/* Name Field */}
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChangeData}
+                  className="mt-1 block min-w-[320px] rounded-md sm:w-80 font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="الإسم"
+                  required
+                />
+
+                {/* Last Name Field */}
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChangeData}
+                  className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="اللقب"
+                  required
+                />
+
+                {/* Birthday Field */}
+                <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
+                <input
+                  type="date"
+                  id="birthday"
+                  name="birthday"
+                  value={formData.birthday}
+                  onChange={handleChangeData}
+                  className="mt-1 block  text-black px-5 rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  required
+                />
+
+                {/* Residence Field */}
+                {/* <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label> */}
+
+                <select
+                  id="residence"
+                  name="residence"
+                  value={formData.residence}
+                  onChange={handleChangeData}
+                  className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  required
+                >
+                  <option value="">قصر الإنتماء</option>
+                  <option value="tajnint">تاجنينت</option>
+                  <option value="bonora">آت بونور</option>
+                  <option value="taghardait">تغردايت</option>
+                  <option value="yazgan">آت يزجن</option>
+                  <option value="mlichat">آت مليشت</option>
+                  <option value="karara">القرارة</option>
+                  <option value="berian">بريان</option>
+                  <option value="warjlan">ورجلان</option>
+                </select>
 
 
-            <form onSubmit={handleSubmit} className="space-y-4 md:text-lg w-[400px] mx-auto  sm:text-lg  ">
+                {/* Diseases Field */}
+                {/* <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label> */}
+                <input
+                  type="text"
+                  id="diseases"
+                  name="diseases"
+                  value={formData.diseases}
+                  onChange={handleChangeData}
+                  className="mt-1 block  rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
 
-              {/* Name Field */}
-              <label htmlFor="name" className="block text-gray-700 font-droid-arabic-kufi">الإسم الكامل :</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChangeData}
-                className="mt-1 block  rounded-md sm:w-80 font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                placeholder="أكتب إسمك "
-                required
-              />
+                />
 
-              {/* Last Name Field */}
-              <label htmlFor="lastName" className="block text-gray-700 font-droid-arabic-kufi">اللقب :</label>
-              <input
-                type="text"
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChangeData}
-                className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                placeholder="أكتب لقبك"
-                required
-              />
-
-              {/* Birthday Field */}
-              <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
-              <input
-                type="date"
-                id="birthday"
-                name="birthday"
-                value={formData.birthday}
-                onChange={handleChangeData}
-                className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                required
-              />
-
-              {/* Residence Field */}
-              <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label>
-              <input
-                type="text"
-                id="residence"
-                name="residence"
-                value={formData.residence}
-                onChange={handleChangeData}
-                className="mt-1 block  rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                placeholder="عنوان الإقامة"
-                required
-              />
-
-              {/* Diseases Field */}
-              <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label>
-              <input
-                type="text"
-                id="diseases"
-                name="diseases"
-                value={formData.diseases}
-                onChange={handleChangeData}
-                className="mt-1 block  rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
-
-              />
-
-              {/* Phone Field */}
-              <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChangeData}
-                className="mt-1 block  rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                placeholder="أدخل رقم هاتف الواتساب"
-                required
-              />
-
-              {/* Sex Field */}
-              <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label>
-              <select
-                id="sex"
-                name="sex"
-                value={formData.sex}
-                onChange={handleChangeData}
-                className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                required
-              >
-                <option value="">اختر الجنس</option>
-                <option value="0">ذكر</option>
-                <option value="1">أنثى</option>
-              </select>
+                {/* Phone Field */}
+                {/* <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label> */}
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChangeData}
+                  className="mt-1 block rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="أدخل رقم هاتف الواتساب"
+                  required
+                  dir="rtl" // This ensures RTL text direction for the placeholder and user input
+                />
 
 
-              {formData.specialties.map((specialty, index) => (
-                <div key={index} className="block text-center sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 items-end">
-                  <div className="mx-auto">
-                    <label htmlFor={`specialty_id_${index}`} className="block text-gray-700 font-droid-arabic-kufi">إختر التخصص</label>
-                    <div className="relative w-1/2">
-                      <select
-                        id={`specialty_id_${index}`}
-                        required
-                        name="specialty_id"
-                        value={specialty.specialty_id}
-                        onChange={(event) => handleChange(index, event)}
-                        className="block appearance-none text-black font-normal text-lg w-auto bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842] px-1 py-2 pr-8 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                      >
-                        <option value="">إختر تخصصا</option>
-                        {specialities
-                          .filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed')
-                          .map(specialty => (
-                            <option key={specialty.id} value={specialty.id}>
-                              {specialty.name}
-                            </option>
-                          ))}
-                      </select>
+                {/* Sex Field */}
+                {/* <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label> */}
+                <select
+                  id="sex"
+                  name="sex"
+                  value={formData.sex}
+                  onChange={handleChangeData}
+                  className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  required
+                >
+                  <option value="">اختر الجنس</option>
+                  <option value="0">ذكر</option>
+                  <option value="1">أنثى</option>
+                </select>
+
+
+                {formData.specialties.map((specialty, index) => (
+                  <div key={index} className="block sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 items-end">
+                    <div className="mx-auto">
+                      {index === formData.specialties.length - 1 && formData.specialties.length > 1 && (
+
+
+                        <span className='mr-0 text-red-600 font-droid-arabic-kufi'>حسب توفر الوقت</span>
+
+                      )}
+                      {/* <label htmlFor={`specialty_id_${index}`} className="block text-gray-700 font-droid-arabic-kufi">إختر التخصص</label> */}
+                      <div className="relative w-1/2">
+
+                        <select
+                          id={`specialty_id_${index}`}
+                          required
+                          name="specialty_id"
+                          value={specialty.specialty_id}
+                          onChange={(event) => handleChange(index, event)}
+                          dir="rtl" // This ensures the entire select dropdown is RTL
+                          className="block mt-2 appearance-none text-black font-normal text-lg w-auto bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842]  py-2 pl-5 pr-1 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                        >
+
+                          <option value="" className='text-red-600' dir="rtl">إختر تخصصا</option> {/* Ensure RTL for this option */}
+                          {specialities
+                            .filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed')
+                            .map(specialty => (
+                              <option className='' dir="rtl" key={specialty.id} value={specialty.id}>
+                                {specialty.name}
+                              </option> // Ensure RTL for each option
+                            ))}
+                        </select>
+
+                      </div>
+
+
+
+
+                      {index === formData.specialties.length - 1 && (
+                        <div className="flex w-full mt-3">
+                          {formData.specialties.length < 2 && openSpecialitiesCount > 1 && (
+                            <button
+                              type="button"
+                              onClick={handleAddSpecialty}
+                              className="bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded font-droid-arabic-kufi"
+                            >
+                              أضف تخصص آخر
+                            </button>
+                          )}
+                          {formData.specialties.length > 1 && (
+                            <div className='flex w-full flex-row'>
+
+                              <button
+                                type="button"
+                                onClick={handleRemoveSpecialty}
+                                className="bg-red-500  hover:bg-red-700 text-white py-2 px-4 rounded font-droid-arabic-kufi"
+                              >
+                                إزالة التخصص
+                              </button>
+
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                     </div>
 
-
-
-
-                    {index === formData.specialties.length - 1 && (
-                    <div className="flex w-1/2 mt-3">
-                      {formData.specialties.length < 2 && openSpecialitiesCount > 1 && (
-                        <button
-                          type="button"
-                          onClick={handleAddSpecialty}
-                          className="bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded font-droid-arabic-kufi"
-                        >
-                          أضف تخصص آخر
-                        </button>
-                      )}
-                      {formData.specialties.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveSpecialty}
-                          className="bg-red-500 hover:bg-red-700 text-white py-2 px-4 rounded font-droid-arabic-kufi"
-                        >
-                          إزالة التخصص
-                        </button>
-                      )}
-                    </div>
-                  )}
 
                   </div>
-                 
+                ))}
 
+                <div className="flex items-center justify-center">
+                  <button
+                    type="submit"
+                    disabled={!isFormValid}
+                    className="text-white bg-[#2F3645] hover:bg-[#131842] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
+                  >
+                    إحجز موعدك
+                  </button>
                 </div>
-              ))}
-
-              <div className="flex items-center justify-center">
-                <button
-                  type="submit"
-                  disabled={!isFormValid}
-                  className="text-white bg-[#2F3645] hover:bg-[#131842] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
-                >
-                  إحجز موعدك
-                </button>
-              </div>
-            </form>
+              </form>
             </div>
           </div>
         </div>
