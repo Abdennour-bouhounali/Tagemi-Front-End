@@ -180,8 +180,8 @@ const CheckPresence = () => {
     const printPDF = async (data) => {
         console.log(data);
         // Load the PDF template
-        // const pdfUrl = '/formulaire_vide.pdf';formulaire.pdf
-        const pdfUrl = '/formule.pdf';
+        const pdfUrl = '/formulaire_vide.pdf';formulaire.pdf
+        // const pdfUrl = '/formule.pdf';
 
         const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
 
@@ -195,6 +195,10 @@ const CheckPresence = () => {
         const fontBytes = await fetch(fontUrl).then((res) => res.arrayBuffer());
         const customFont = await pdfDoc.embedFont(fontBytes);
 
+        const fontUrlBold = '/simpoBold.ttf'; // Update with your font path
+        const fontBytesBold = await fetch(fontUrlBold).then((res) => res.arrayBuffer());
+        const customFontBold = await pdfDoc.embedFont(fontBytesBold);
+
         const title1 = "الفحوصات الطبية 92 نوفمبر 0242";
         const title2 = "مركب العالية الشيخ طفيش الجزائر العاصمة"
 
@@ -203,14 +207,14 @@ const CheckPresence = () => {
         firstPage.drawText(`${data[0].name}`, { x: 400, y: 160, size: 13,  font: customFont ,color: rgb(0, 0, 0) });
         firstPage.drawText(`${data[0].lastName}`, { x: 400, y: 130, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`${data[0].birthday}`, { x: 400, y: 100, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText("الفحوصات الطبية 92 نوفمبر 4202", { x: 370, y: 338, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`${title2}`, { x: 360, y: 320, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText("الفحوصات الطبية 92 نوفمبر 4202", { x: 360, y: 338, size: 15, font: customFontBold, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${title2}`, { x: 360, y: 317, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`TAJ_${data[0].patient_id}`, { x: 400, y: 190, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`${data[0].specialty.name}`, { x: 130, y: 348, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`/`, { x: 130, y: 320, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`/`, { x: 130, y: 142, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].specialty.name}`, { x: 130, y: 348, size: 13, font: customFontBold, color: rgb(0, 0, 0) });
+        firstPage.drawText(`/`, { x: 200, y: 320, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`/`, { x: 200, y: 142, size: 13, font: customFont, color: rgb(0, 0, 0) });
         if(data[1]){
-            firstPage.drawText(`${data[1].specialty.name}`, { x: 130, y: 170, size: 13, font: customFont, color: rgb(0, 0, 0)});
+            firstPage.drawText(`${data[1].specialty.name}`, { x: 130, y: 170, size: 13, font: customFontBold, color: rgb(0, 0, 0)});
     }
         // Serialize the PDF document to bytes
         const pdfBytes = await pdfDoc.save();
