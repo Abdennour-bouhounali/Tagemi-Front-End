@@ -2,7 +2,7 @@ import { useContext, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { AppContext } from "../../../Context/AppContext";
 const apiUrl = import.meta.env.VITE_API_URL;
-
+import logo from '/tagemi_logo.png';
 export default function Login() {
   const { token, setToken } = useContext(AppContext)
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export default function Login() {
     } else {
       localStorage.setItem('token', data.token)
       setToken(data.token);
-      navigate("/AllAppointments");
+      navigate("/GeneralWaitingList", { state: { loggedIn: true } });
 
     }
   }
@@ -51,7 +51,10 @@ export default function Login() {
       <div className=" bg-opacity-95 w-full bg-[#EEEDEB] px-3 py-3">
         {/* Picture and Title */}
         <div className="p-2 space-y-2">
-          <h1 className="text-lg sm:text-xl font-bold mb-8 sm:mb-5 text-center font-droid-arabic-kufi text-[#2F3645]">أدخل إلى حسابك</h1>
+        <div className="text-center w-1/2 mx-auto">
+                  <img src={logo} alt="Appointment Form" className=" mb-4 mx-auto" />
+                  <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أدخل إلى حسابك</h1>
+                </div>
           <form className="space-y-4" onSubmit={handleLogin}>
             <div>
               <input
@@ -60,8 +63,8 @@ export default function Login() {
                 type="email"
                 name="email"
                 id="email"
-                className="input-style text-sm sm:text-base"
-                placeholder="name@company.com"
+                className="input-style text-sm sm:text-base font-droid-arabic-kufi"
+                placeholder="الإيمايل"
                 required
               />
               {errors.email && <p className="error text-xs">{errors.email[0]}</p>}
@@ -73,8 +76,8 @@ export default function Login() {
                 type="password"
                 name="password"
                 id="password"
-                className="input-style text-sm sm:text-base"
-                placeholder="••••••••"
+                className="input-style text-sm sm:text-base font-droid-arabic-kufi"
+                placeholder="كلمة السر"
                 required
               />
               {errors.password && <p className="error text-xs">{errors.password[0]}</p>}

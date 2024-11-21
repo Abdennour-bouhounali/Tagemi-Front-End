@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 const apiUrl = import.meta.env.VITE_API_URL; 
-
+import logo from '/tagemi_logo.png';
 export default function Register() {
   const { token, setToken } = useContext(AppContext);
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export default function Register() {
     } else {
       localStorage.setItem('token', data.token);
       setToken(data.token);
-      navigate("/");
+      navigate("/GeneralWaitingList", { state: { loggedIn: true } });
       // console.log(data);
     }
   }
@@ -48,29 +48,30 @@ export default function Register() {
     
 
 
-    <div className="relative w-full min-h-[12rem] lg:h-screen sm:h-fit bg-center bg-no-repeat bg-contain sm:bg-cover" style={{ backgroundImage: `url('/tagemi_consept.png')` }}>
-      <div className="flex items-center justify-center text-center p-4 sm:h-fit lg:h-screen">
-        <div className="p-5 text-2xl min-w-[578px] text-white bg-opacity-50 rounded-xl">
-          <div className=" min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-8 py-10" >
+<div className="relative m-0 bg-slate-100 w-screen h-screen">
+  <div className="flex items-center justify-center w-full text-center p-4 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+    <div className=" text-sm sm:text-base lg:text-lg w-full max-w-[600px] text-white bg-opacity-50 rounded-xl">
+      <div className=" bg-opacity-95 w-full bg-[#EEEDEB] px-3 py-3">
           <div className="px-6 space-y-4">
-            <h1 className="text-xl font-bold text-gray-900 mb-4   font-droid-arabic-kufi  text-center">أنشئ حسابك</h1>
+          <div className="text-center w-1/2 mx-auto">
+                  <img src={logo} alt="Appointment Form" className=" mb-4 mx-auto" />
+                  <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أنشئ حسابك</h1>
+                </div>
             <form className="space-y-4" onSubmit={handleRegister}>
               <div>
-                <label className="block mb-2 text-sm font-medium  font-droid-arabic-kufi   text-[#2F3645] ">الإسم الكامل</label>
                 <input
                   value={FormData.name}
                   onChange={(e) => setFormData({ ...FormData, name: e.target.value })}
                   type="text"
                   name="name"
                   id="name"
-                  className="input-style"
-                  placeholder="Mouhammed"
+                  className="input-style font-droid-arabic-kufi"
+                  placeholder="الإسم الكامل"
                   required
                 />
                 {errors.name && <p className="error">{errors.name[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-droid-arabic-kufi  font-medium text-[#2F3645]  ">رقم الهانف</label>
                 <input
                   value={FormData.phone}
                   onChange={(e) => setFormData({ ...FormData, phone: e.target.value })}
@@ -78,49 +79,47 @@ export default function Register() {
                   name="phone"
                   id="phone"
                   className="input-style font-droid-arabic-kufi"
-                  placeholder="Ex: 0557211669"
+                  placeholder="رقم الهاتف"
                   required
+                  dir="rtl"
                 />
                 {errors.phone && <p className="error">{errors.phone[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-medium  font-droid-arabic-kufi text-[#2F3645]   ">الايمايل</label>
                 <input
                   value={FormData.email}
                   onChange={(e) => setFormData({ ...FormData, email: e.target.value })}
                   type="email"
                   name="email"
                   id="email"
-                  className="input-style"
-                  placeholder="name@company.com"
+                  className="input-style font-droid-arabic-kufi"
+                  placeholder="الايمايل"
                   required
                 />
                 {errors.email && <p className="error">{errors.email[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-medium  font-droid-arabic-kufi   text-[#2F3645] ">كلمة المرور</label>
                 <input
                   value={FormData.password}
                   onChange={(e) => setFormData({ ...FormData, password: e.target.value })}
                   type="password"
                   name="password"
                   id="password"
-                  className="input-style"
-                  placeholder="••••••••"
+                  className="input-style font-droid-arabic-kufi"
+                  placeholder="كلمة السر"
                   required
                 />
                 {errors.password && <p className="error">{errors.password[0]}</p>}
               </div>
               <div>
-                <label className="block mb-2 text-sm font-medium font-droid-arabic-kufi    text-[#2F3645]  ">تأكيد كلمة المرور</label>
                 <input
                   value={FormData.password_confirmation}
                   onChange={(e) => setFormData({ ...FormData, password_confirmation: e.target.value })}
                   type="password"
                   name="password_confirmation"
                   id="confirm-password"
-                  className="input-style"
-                  placeholder="••••••••"
+                  className="input-style font-droid-arabic-kufi"
+                  placeholder="تأكيد كلمة السر"
                   required
                 />
                 {errors.password_confirmation && <p className="error">{errors.password_confirmation[0]}</p>}

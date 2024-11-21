@@ -138,7 +138,7 @@ export default function GuestLayout() {
 
     return (
         <main className='max-w-[1833px] m-0 p-0'>
-            <GuestNavBar user={user} types={types}/>
+            {user && (<GuestNavBar user={user} types={types}/>)}
 
             <section className="z-99"> {/* Adjust margin to match the header height */}
                 <Outlet />

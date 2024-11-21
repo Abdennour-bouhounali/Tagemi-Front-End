@@ -90,7 +90,7 @@ export default function App() {
           <Route path="/Statitistics" element={Superadmin ? <VisitsStatistics /> : <Home />} />
           <Route path="/rules" element={Superadmin ? <ManageRules /> : <Home />} />
 
-          <Route path="/GeneralWaitingList" element={Superadmin ? <WaitingList /> : <Home />} />
+          <Route path="/GeneralWaitingList" element={ user ? <WaitingList /> : <Home />} />
 
           <Route path="/types" element={Superadmin || SpecialAdmin ? <TypesPage /> : <Home />} />
           <Route path="/activities" element={Superadmin ? <ActivitiesPage /> : <Home />} />

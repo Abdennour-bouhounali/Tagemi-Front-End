@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 import { apiUrl } from '../../../Context/AppContext';
 const CheckPaitent = () => {
     const { specialityId } = useParams();
+    const [speciality,setSpeciality] = useState('');
     const [appointments, setAppointmentIds] = useState([]);
     const [expandedRows, setExpandedRows] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
@@ -19,9 +20,9 @@ const CheckPaitent = () => {
         });
 
         const data = await res.json();
-        // // console.log(data);
+        // console.log(data);
         setAppointmentIds(data['appointments']);
-    }
+        setSpeciality(data['speciality']);   }
 
     useEffect(()=>{
         if(startDay){
@@ -91,20 +92,25 @@ headers:{
     }
     
     return (
-        <div className='md:container md:mx-auto min-w-full min-h-screen'>
+        <div className='md:container md:mx-auto min-w-full min-h-screen mb-5 overflow-x-auto'>
+<h1 className='font-droid-arabic-kufi my-4 mx-auto text-2xl font-black text-[#131842]'>{speciality}</h1>
+
+
 
             <input
                 type="text"
-                placeholder="Search by Patient Name..."
+                placeholder="إبحث بالإسم"
                 value={searchTerm}
                 onChange={handleChange}
-                className="search-bar my-4"
+                className="search-bar my-4 font-droid-arabic-kufi"
             />
-            <table className="table-auto my-7 text-center">
+            <table className="table-auto my-7 overflow-x-auto text-center font-droid-arabic-kufi">
                 <thead>
                     <tr>
                         <th> ID</th>
                         <th>الإسم</th>
+                        <th>اللقب</th>
+                        <th>تاريخ الميلاد</th>
                         <th>الترتيب</th>
                         <th>أمر</th>
                     </tr>
@@ -120,6 +126,14 @@ headers:{
                                 </td>
                                 <td>
                                 {appointment.position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{appointment.name}</span>): appointment.name}
+
+                                </td>
+                                <td>
+                                {appointment.position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{appointment.name}</span>): appointment.lastName}
+
+                                </td>
+                                                                <td>
+                                {appointment.position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{appointment.name}</span>): appointment.birthday}
 
                                 </td>
                                 <td>

@@ -2,21 +2,22 @@ import { Link } from "react-router-dom";
 
 const AuthNavBar = ({user,specialities,dropdownRef,toggleDropdown,isOpen}) => {
     return (
-        
-        <nav className="ml-4 space-y-2">
+
+        <nav className="ml-4 space-y-2 font-droid-arabic-kufi">
                 {user && (
-                  <Link to="/appointment" className="block px-4 py-2 font-medium mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">أحجز موعدا</Link>
-
+                  <>
+                  <Link to="/appointment" className="block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">أحجز موعدا</Link>
+                  <Link to="/GeneralWaitingList"  className="block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" >قائمة الإنتظار الكبيرة</Link>
+                  </>
                 )}
 
-                {user && user.role_id === 5 && (
-                  <Link to="/AllAppointments" className="block px-5 py-2 text-[#2F3645] hover:text-[#131842]  transition duration-300">جميع المواعيد </Link>
+                {user && (user.role_id === 3 || user.role_id === 5) && (
+                  <Link to="/AllAppointments" className="block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">جميع المواعيد </Link>
                 )}
 
-                {user && (user.role_id == 1 ||  user.role_id  == 3) && (<>
+                {user && (user.role_id == 1) && (<>
                   <Link to="/contacts"  className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >الإتصالات</Link>
                   <Link to="/voulenteers"  className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >المتطوعون</Link>
-                  <Link to="/GeneralWaitingList"  className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >قائمة الإنتظار الكبيرة</Link>
 
                   
 </>

@@ -51,11 +51,11 @@ const GuestNavBar = ({ user, types }) => {
         getdisplayAuth();
     }, [])
     return (
-        <header className='bg-white border-gray-200'>
+        <header className=''>
             <nav className='max-w-screen-2xl flex flex-wrap items-center justify-between mx-auto py-2 '>
-                <Link to="/">
+                {/* <Link to="/">
                     <img src="/tagemi_logo.png" className="w-[12rem] h-auto" alt="" />
-                </Link>
+                </Link> */}
 
 
                 <button
@@ -144,10 +144,15 @@ const GuestNavBar = ({ user, types }) => {
 
                         {user ? (
                             <>
-                                <li><button className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi" onClick={handlelogout}>
+                                <li><button className="max-w-32 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" onClick={handlelogout}>
                                     {language === 'en' ? ' Log Out' : ' خروج '}
 
                                 </button></li>
+                                <li>
+                                <Link to="/GeneralWaitingList"  className="max-w-48 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" >قائمة الإنتظار الكبيرة</Link>
+
+                                </li>
+                                
                             </>
                         ) : displayAuth ? (
                             <>
@@ -159,30 +164,30 @@ const GuestNavBar = ({ user, types }) => {
                         
                         {user && (
                             <li>
-                                <Link to="/appointment" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">{language === 'en' ? 'Make An Appointment' : 'إحجز موعدا'} </Link>
+                                <Link to="/appointment" className="max-w-32 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">{language === 'en' ? 'Make An Appointment' : 'إحجز موعدا'} </Link>
                             </li>
                         )}
 
                         {user && user.role_id == 1 && (
                             <li>
-                                <Link to="/settings" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">{language === 'en' ? 'Admin Panel' : 'لوحة التحكم'}</Link>
+                                <Link to="/settings" className="max-w-44 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">{language === 'en' ? 'Admin Panel' : 'لوحة التحكم'}</Link>
                             </li>
                         )}
 
                         {user && user.role_id == 3 && (
                             <li>
-                                <Link to="/AllAppointments" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">لوحة التحكم</Link>
+                                <Link to="/AllAppointments" className="max-w-44 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300"> جميع المواعيد</Link>
                             </li>
                         )}
                         {user && user.role_id == 4 && (
                             <li>
-                                <Link to={`WaitingList/${user.specialty_id}`} className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">لوحة التحكم</Link>
+                                <Link to={`WaitingList/${user.specialty_id}`} className="max-w-48 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300i"> قائمة إنتظار التخصص</Link>
                             </li>
                         )}
 
                         {user && user.role_id == 5 && (
                             <li>
-                                <Link to="/AllAppointments" className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">لوحة التحكم</Link>
+                                <Link to="/AllAppointments" className="max-w-42 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">جميع المواعيد </Link>
                             </li>
                         )}
                         {onlyAdmins ? (

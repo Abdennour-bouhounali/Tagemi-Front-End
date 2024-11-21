@@ -180,7 +180,9 @@ const CheckPresence = () => {
     const printPDF = async (data) => {
         console.log(data);
         // Load the PDF template
-        const pdfUrl = '/formulaire_vide.pdf';
+        // const pdfUrl = '/formulaire_vide.pdf';formulaire.pdf
+        const pdfUrl = '/formule.pdf';
+
         const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
 
         // Load PDF with PDF-Lib
@@ -192,23 +194,24 @@ const CheckPresence = () => {
         const fontUrl = '/simpo.ttf'; // Update with your font path
         const fontBytes = await fetch(fontUrl).then((res) => res.arrayBuffer());
         const customFont = await pdfDoc.embedFont(fontBytes);
-        // // Define patient data
-        // const data = {
-        //     first_name: "John",
-        //     last_name: "Doe",
-        //     birthday: "1990-01-01",
-        //     patient_id: "12345",
-        //     speciality1: "Cardiology",
-        //     speciality2: "Neurology",
-        // };
+
+        const title1 = "الفحوصات الطبية 92 نوفمبر 0242";
+        const title2 = "مركب العالية الشيخ طفيش الجزائر العاصمة"
 
         // Add text to specific coordinates
-        firstPage.drawText(`${data[0].name}`, { x: 400, y: 160, size: 12,  font: customFont ,color: rgb(0, 0, 0) });
-        firstPage.drawText(`${data[0].lastName}`, { x: 400, y: 130, size: 12, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`${data[0].birthday}`, { x: 400, y: 100, size: 12, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`${data[0].patient_id}`, { x: 400, y: 190, size: 12, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`${data[0].specialty.name}`, { x: 100, y: 348, size: 12, font: customFont, color: rgb(0, 0, 0) });
 
+        firstPage.drawText(`${data[0].name}`, { x: 400, y: 160, size: 13,  font: customFont ,color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].lastName}`, { x: 400, y: 130, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].birthday}`, { x: 400, y: 100, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText("الفحوصات الطبية 92 نوفمبر 4202", { x: 370, y: 338, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${title2}`, { x: 360, y: 320, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`TAJ_${data[0].patient_id}`, { x: 400, y: 190, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].specialty.name}`, { x: 130, y: 348, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`/`, { x: 130, y: 320, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`/`, { x: 130, y: 142, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        if(data[1]){
+            firstPage.drawText(`${data[1].specialty.name}`, { x: 130, y: 170, size: 13, font: customFont, color: rgb(0, 0, 0)});
+    }
         // Serialize the PDF document to bytes
         const pdfBytes = await pdfDoc.save();
 
@@ -226,33 +229,35 @@ const CheckPresence = () => {
     };
 
     return (
-        <div className='md:container md:mx-auto min-h-screen'>
+        <div className='md:container md:mx-auto min-h-screen text-center'>
+            <h1 className='font-droid-arabic-kufi my-4 mx-auto text-2xl font-black text-[#131842]'>جميع المواعيد</h1>
             <div className="flex">
                 <select
                     value={statusFilter}
                     onChange={handleStatusChange}
-                    className="search-bar  m-4 px-2 bg-[#EEEDEB]">
-                    <option value="">All</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Present">Present</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Waiting List">Waiting List</option>
+                    className="search-bar font-droid-arabic-kufi  m-4 px-2 bg-[#EEEDEB]">
+                    <option className='font-droid-arabic-kufi' value="">الكل</option>
+                    <option className='font-droid-arabic-kufi' value="Pending">لم يأت بعد</option>
+                    <option className='font-droid-arabic-kufi' value="Present">الحاضرون</option>
+                    <option className='font-droid-arabic-kufi' value="Completed">تم فحصهم</option>
+                    <option className='font-droid-arabic-kufi' value="Waiting List">في الإنتظار</option>
                 </select>
                 <input
-                    type="text"
-                    placeholder="Search by Patient Name..."
-                    value={searchTerm}
-                    onChange={handleChange}
-                    className="search-bar my-4"
-                />
+                type="text"
+                placeholder="إبحث بالإسم"
+                value={searchTerm}
+                onChange={handleChange}
+                className="search-bar my-4 font-droid-arabic-kufi"
+            />
             </div>
-
-            <table className="table-auto my-7 text-center ">
+            <table className="table-auto my-7 text-center font-droid-arabic-kufi">
                 <thead>
                     <tr>
                         <th className='font-droid-arabic-kufi'>ID</th>
                         <th className='font-droid-arabic-kufi'>الاسم</th>
-                        <th className='font-droid-arabic-kufi'>التحصص</th>
+                        <th className='font-droid-arabic-kufi'>اللقب</th>
+                        <th className='font-droid-arabic-kufi'>تاريخ الميلاد</th>
+                        <th className='font-droid-arabic-kufi'>التخصص</th>
                         <th className='font-droid-arabic-kufi'>وقت المجيئ</th>
                         <th className='font-droid-arabic-kufi'>الحالة</th>
                         <th className='font-droid-arabic-kufi'>أمر</th>
@@ -263,9 +268,15 @@ const CheckPresence = () => {
                     {Object.keys(displayAppointments).map((patientId) => (
                         <React.Fragment key={patientId}>
                             <tr onClick={() => toggleRow(patientId)} className='border-t-4 text-center'>
-                                <td>{patientId}</td>
+                                <td>TJM_{patientId}</td>
                                 <td>
                                     {displayAppointments[patientId][0].position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{displayAppointments[patientId][0].name}</span>) : displayAppointments[patientId][0].name}
+                                </td>
+                                <td>
+                                    {displayAppointments[patientId][0].position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{displayAppointments[patientId][0].name}</span>) : displayAppointments[patientId][0].lastName}
+                                </td>
+                                <td>
+                                    {displayAppointments[patientId][0].position == 0 ? (<span className='text-red-500 font-droid-arabic-kufi'>{displayAppointments[patientId][0].name}</span>) : displayAppointments[patientId][0].birthday}
                                 </td>
                                 <td>{displayAppointments[patientId][0].specialty.name}</td>
 

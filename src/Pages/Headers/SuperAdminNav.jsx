@@ -5,7 +5,7 @@ return (
     
 
 
-<nav className="mt-4 space-y-2 block">
+<nav className="mt-4 space-y-2 block ">
             {/* <Link to="/specialCase" className="block font-medium px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">Special Case</Link> */}
 
             <Link to="/AllAppointments" className="block font-medium font-droid-arabic-kufi py-2 px-4 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">جميع المواعيد</Link>

@@ -15,6 +15,10 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const [confirm, setConfirm] = useState(false)
   const [confirmafter, setConfirmAfter] = useState(false)
   const [acceptedRules, setAcceptedRules] = useState(false);
+  const [isArabic, setIsArabic] = useState(false);
+  const [validationMessage, setValidationMessage] = useState(""); // Track validation message
+ 
+
   const [formData, setFormData] = useState({
     name: '',
     lastName: '',
@@ -54,13 +58,38 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     }
   };
 
-  const handleChangeData = (event) => {
-    const { name, value } = event.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
+  const handleChangeData = (e) => {
+    const { name, value } = e.target;
+
+    const arabicRegex = /^[\u0621-\u064A\u0660-\u0669\s]*$/;
+
+    // If the name is 'name' or 'lastName', we validate Arabic input
+    if (name === 'name' || name === 'lastName') {
+        if (arabicRegex.test(value)) {
+            // Input is valid (Arabic)
+            setFormData({
+                ...formData,
+                [name]: value,
+            });
+            setIsArabic(true);
+            setValidationMessage("");  // Clear validation message
+        } else {
+            // Input is invalid (non-Arabic)
+            setIsArabic(false);
+            setValidationMessage("يرجى إدخال أحرف عربية فقط");
+        }
+    } else {
+        // For other fields, just update form data
+        setFormData((prevData) => ({
+            ...prevData,
+            [name]: value,
+        }));
+        setIsArabic(true); // Assuming other fields are valid
+        setValidationMessage(""); // Clear validation message
+    }
+};
+
+
 
   const handleRemoveSpecialty = () => {
     if (formData.specialties.length > 1) {
@@ -79,21 +108,10 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   };
 
 
-
   const handleSubmit = async (event) => {
 
     event.preventDefault();
-    // Log each field one by one
-    // console.log("Name:", formData.name);
-    // console.log("Last Name:", formData.lastName);
-    // console.log("Birthday:", formData.birthday);
-    // console.log("Residence:", formData.residence);
-    // console.log("Diseases:", formData.diseases);
-    // console.log("Phone:", formData.phone);
-    // console.log("Sex:", formData.sex);
-    // console.log("Specialties:", formData.specialties);
 
-    // If you want to log each specialty ID individually
     formData.specialties.forEach((specialty, index) => {
       console.log(`Specialty ${index + 1} ID:`, specialty.specialty_id);
     });
@@ -136,36 +154,39 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   return (
     <div className="relative md:static bg-slate-100 w-screen h-screen">
       {!confirm && (
-        <div className="rules w-full max-w-xs sm:max-w-screen-md h-auto bg-white shadow-lg rounded-lg p-4 sm:p-6 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" dir="rtl">
-          <h2 className=" text-lg sm:text-2xl font-semibold mb-4 sm:mb-6 text-center font-droid-arabic-kufi">
+        <div className="rules w-full max-w-md sm:max-w-screen-md h-auto bg-white  shadow-lg rounded-lg p-2 sm:p-2 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" dir="rtl">
+          <h1 className="text-2xl font-semibold mb-4 sm:mb-6 text-[#131842] text-center font-droid-arabic-kufi">
             ضوابط نظام الفحوصات الطبية
-          </h2>
+          </h1>
           <ul className="list-disc list-inside mb-4 sm:mb-6 space-y-2 text-gray-800">
             {rules.map(rule => (
 
-              <li key={rule.id} className={`text-3xl sm:text-lg font-bold font-droid-arabic-kufi  ${rule.id == 1 ? 'text-red-500' : ''}`}>
+              <li key={rule.id} className={`font-bold font-droid-arabic-kufi  ${rule.id == 1 ? 'text-red-500' : ''}`}>
                 {rule.rule}
               </li>
             ))}
           </ul>
-          <div className="flex items-center mb-4">
+          <div className="flex items-center text-center mb-4">
             <input
               type="checkbox"
               id="acceptRules"
               className="h-4 w-4 sm:h-5 sm:w-5 text-3xl sm:text-lg font-bold font-droid-arabic-kufi  text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               onChange={(e) => setAcceptedRules(e.target.checked)}
             />
-            <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-sm">
+            <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-lg font-droid-arabic-kufi">
               أوافق على الشروط
             </label>
           </div>
-          <button
-            onClick={() => setConfirm(true)}
-            className="w-full bg-blue-600 text-3xl sm:text-lg font-bold font-droid-arabic-kufi  text-white py-2 sm:py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={!acceptedRules}
-          >
-            تأكيد
-          </button>
+          <div className="text-center">
+
+            <button
+              onClick={() => setConfirm(true)}
+              className="text-white bg-blue-600 w-1/2 mx-auto focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
+              disabled={!acceptedRules}
+            >
+              تأكيد
+            </button>
+          </div>
         </div>
 
       )}
@@ -182,16 +203,16 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
             {/* Success Message */}
             {(message && confirmafter) && (
-              <div className="flex flex-col items-center text-center max-w-[700px] container p-3 sm:p-4 mb-4 text-lg sm:text-lg text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" role="alert">
+              <div className="flex flex-col  items-center text-center max-w-[700px] container p-3 sm:p-4 mb-4 text-lg sm:text-lg text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" role="alert">
                 <span className="sr-only font-droid-arabic-kufi">ملاحظة</span>
 
                 {/* Close Button */}
-                <button
+                {/* <button
                   onClick={() => setConfirmAfter(false)}
                   className="absolute top-2 right-2 text-[#2F3645] bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
                 >
                   ×
-                </button>
+                </button> */}
 
                 <div>
                   {waiting && waiting.length > 0 && (
@@ -205,23 +226,32 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
                   {message && message.length > 0 && (
                     <>
-                      <span className="font-extrabold font-droid-arabic-kufi">{message}</span>
+                      <span className="font-extrabold font-droid-arabic-kufi my-4">{message}</span>
                       <br />
-                      <span className="text-lg text-red-500 font-droid-arabic-kufi">
-                        نأكد على ضرورة الحضور بمحرم
-                      </span>
                       <br />
-                      <span className="font-extrabold font-droid-arabic-kufi">أحجز لشخص آخر</span>
+                      <span className="text-lg text-red-500 font-bold my-4 font-droid-arabic-kufi">
+بالنسبة للنساء يجب الحضور بمحرم                      </span>
+                      <br />
+                      <br />
+                      <span className="font-extrabold font-droid-arabic-kufi my-4">أحجز لشخص آخر</span>
+                      <br />
+                      <br />
                     </>
                   )}
                 </div>
+                <button
+                  onClick={() => setConfirmAfter(false)}
+                  className="text-white bg-blue-600 w-1/2 mx-auto focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
+                >
+                  تأكيد
+                </button>
               </div>
 
             )}
 
             {/* Appointment Form */}
             {/* <form onSubmit={handleSubmit} className="space-y-4 text-lg"> */}
-            <div className="flex justify-center flex-col tetx-center max-w-[700px] mx-auto px-1 py-5 bg-[#EEEDEB] ">
+            <div className={`flex justify-center flex-col tetx-center max-w-[700px] mx-auto px-1 py-5 bg-[#EEEDEB] ${confirmafter ? 'hidden' : ''}`}>
               <div className="flex items-center justify-center mb-4 sm:mb-8">
                 <div className="text-center">
                   <img src={logo} alt="Appointment Form" className="h-44 w-auto mb-4 mx-auto" />
@@ -241,7 +271,9 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   className="mt-1 block min-w-[320px] rounded-md sm:w-80 font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                   placeholder="الإسم"
                   required
-                />
+                />{!isArabic && formData.name && (
+                  <p className="text-red-500 font-droid-arabic-kufi text-sm mt-1">{validationMessage}</p>
+                )}
 
                 {/* Last Name Field */}
                 <input
@@ -254,7 +286,9 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   placeholder="اللقب"
                   required
                 />
-
+                {!isArabic && formData.name && (
+                  <p className="text-red-500 text-sm mt-1 font-droid-arabic-kufi">{validationMessage}</p>
+                )}
                 {/* Birthday Field */}
                 <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
                 <input
@@ -279,14 +313,14 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   required
                 >
                   <option value="">قصر الإنتماء</option>
-                  <option value="tajnint">تاجنينت</option>
+                  <option value="tajnint">تجنينت</option>
                   <option value="bonora">آت بونور</option>
                   <option value="taghardait">تغردايت</option>
                   <option value="yazgan">آت يزجن</option>
                   <option value="mlichat">آت مليشت</option>
                   <option value="karara">القرارة</option>
                   <option value="berian">بريان</option>
-                  <option value="warjlan">ورجلان</option>
+                  <option value="warjlan">وارجلان</option>
                 </select>
 
 
@@ -311,7 +345,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChangeData}
-                  className="mt-1 block rtl text-black rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  className="mt-1 block rtl text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                   placeholder="أدخل رقم هاتف الواتساب"
                   required
                   dir="rtl" // This ensures RTL text direction for the placeholder and user input
@@ -353,14 +387,14 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                           value={specialty.specialty_id}
                           onChange={(event) => handleChange(index, event)}
                           dir="rtl" // This ensures the entire select dropdown is RTL
-                          className="block mt-2 appearance-none text-black font-normal text-lg w-auto bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842]  py-2 pl-5 pr-1 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                          className="block mt-2 appearance-none text-black font-normal font-droid-arabic-kufi text-lg w-auto bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842]  py-2 pl-5 pr-1 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         >
 
-                          <option value="" className='text-red-600' dir="rtl">إختر تخصصا</option> {/* Ensure RTL for this option */}
+                          <option value="" className='text-red-600 font-droid-arabic-kufi' dir="rtl">إختر تخصصا</option> {/* Ensure RTL for this option */}
                           {specialities
                             .filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed')
                             .map(specialty => (
-                              <option className='' dir="rtl" key={specialty.id} value={specialty.id}>
+                              <option className='font-droid-arabic-kufi' dir="rtl" key={specialty.id} value={specialty.id}>
                                 {specialty.name}
                               </option> // Ensure RTL for each option
                             ))}
