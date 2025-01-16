@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../../../Context/AppContext"
 import AdminTable from './Components/AdminTable';
 import UserTable from "./Components/UserTable";
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function AllUsers() {
   const [admins, setAdmins] = useState([]);
@@ -29,18 +29,17 @@ export default function AllUsers() {
   useEffect(() => {
     getUsers();
   }, []);
-  return(
-    <div className="flex-grow container min-h-screen">
-      <h4 className="mb-6 text-xl font-bold text-black">
-        All Admins
-      </h4>
+  return (
+    <div className="flex-grow container min-h-screen text-nowrap ">
+      <h4 className="mb-6 text-xl font-bold text-black font-droid-arabic-kufi mt-4">
+        كل من لديه مهمة      </h4>
       <AdminTable admins={admins} specialities={specialities} roles={roles} />
 
       <hr />
-      <h4 className="mb-6 text-xl font-bold text-black">
-        All Users
+      <h4 className="mb-6 text-xl font-bold text-black font-droid-arabic-kufi">
+        كل المستعملين
       </h4>
       <UserTable users={users} specialities={specialities} roles={roles} />
     </div>)
-  
+
 }

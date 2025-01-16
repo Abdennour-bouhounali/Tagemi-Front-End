@@ -4,7 +4,7 @@ import { faUsers, faCalendarAlt, faPeopleArrows } from '@fortawesome/free-solid-
 import { AppContext } from '../../../../Context/AppContext';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import { Link } from "react-router-dom";
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = import.meta.env.VITE_API_URL;
 const Statistics = () => {
     const { token } = useContext(AppContext);
     const { language } = useLanguage();
@@ -13,8 +13,8 @@ const Statistics = () => {
         { label: language === 'en' ? 'Events Organized' : 'البرامج المنظمة', value: 'Loading...', icon: faCalendarAlt },
         { label: language === 'en' ? 'People Benefited' : 'عدد المستفيجين', value: 'Loading...', icon: faPeopleArrows }
     ]);
- 
-    const [moreStatisticsLink,setMoreStatisticsLink] = useState('');
+
+    const [moreStatisticsLink, setMoreStatisticsLink] = useState('');
 
     async function getStaticContent() {
         try {
@@ -32,7 +32,7 @@ const Statistics = () => {
                 setStats([
                     { label: language === 'en' ? 'Number of Volunteers' : 'عدد المتطوعين', value: `${statisticsData['number_of_volunteers']}+`, icon: faUsers },
                     { label: language === 'en' ? 'Events Organized' : 'البرامج المنظمة', value: `${statisticsData['events_organized']}+`, icon: faCalendarAlt },
-                    { label: language === 'en' ? 'People Benefited' : 'عدد المستفيجين', value: `${statisticsData['people_benefited']}+`, icon: faPeopleArrows }
+                    { label: language === 'en' ? 'People Benefited' : 'عدد المستفيدين', value: `${statisticsData['people_benefited']}+`, icon: faPeopleArrows }
                 ]);
             }
         } catch (error) {
@@ -44,7 +44,7 @@ const Statistics = () => {
         getStaticContent();
     }, [token, language]); // Add language to dependency array if language change affects the content
 
-    async function downloadStatistic(){
+    async function downloadStatistic() {
 
     }
     return (
@@ -67,14 +67,14 @@ const Statistics = () => {
                     ))}
                 </div>
             </div>
-            <a 
-    href={moreStatisticsLink}
-    target='_blank'
-    rel='noopener noreferrer'
-    className='bg-[#9c004c] hover:bg-[#c8102e] text-white rounded py-3 px-4 my-15'
->
-    {language === 'en' ? 'More Statistics' : 'المزيد من الإحصائيات'}
-</a>
+            <a
+                href={moreStatisticsLink}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='bg-[#9c004c] hover:bg-[#c8102e] text-white rounded py-3 px-4 my-15'
+            >
+                {language === 'en' ? 'More Statistics' : 'المزيد من الإحصائيات'}
+            </a>
 
         </section>
     );

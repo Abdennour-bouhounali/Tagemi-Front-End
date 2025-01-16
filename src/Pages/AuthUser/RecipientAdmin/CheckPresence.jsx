@@ -10,7 +10,7 @@ import Card from './card';
 import './card.css'
 // import { generatePDF } from '../../../pdf';
 
-import { PDFDocument, rgb,StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as fontkit from 'fontkit';
 import { saveAs } from 'file-saver'; // To save the modified PDF
 
@@ -22,11 +22,44 @@ const CheckPresence = () => {
     const [expandedRows, setExpandedRows] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [pdfTemplate, setPdfTemplate] = useState(null);
+    const [customFont, setCustomFont] = useState(null);
+    const [customFontBold, setCustomFontBold] = useState(null);
 
     const { user } = useContext(AppContext);
     const [FormData, setFormData] = useState({
         'status': ''
     });
+    useEffect(() => {
+        const loadAssets = async () => {
+            try {
+                // Load the PDF template
+                const pdfUrl = '/formulaire_vide.pdf';
+                const pdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+                const pdfDoc = await PDFDocument.load(pdfBytes);
+                pdfDoc.registerFontkit(fontkit);
+
+                // Load the regular font
+                const fontUrl = '/simpo.ttf';
+                const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
+                const regularFont = await pdfDoc.embedFont(fontBytes);
+
+                // Load the bold font
+                const fontUrlBold = '/simpoBold.ttf';
+                const fontBytesBold = await fetch(fontUrlBold).then(res => res.arrayBuffer());
+                const boldFont = await pdfDoc.embedFont(fontBytesBold);
+
+                // Save the loaded assets in state
+                setPdfTemplate(pdfDoc);
+                setCustomFont(regularFont);
+                setCustomFontBold(boldFont);
+            } catch (error) {
+                console.error('Error loading PDF or fonts:', error);
+            }
+        };
+
+        loadAssets();
+    }, []);
     const { token, startDay, setStartDay } = useContext(AppContext);
     async function getAppoitments() {
         const res = await fetch(`${apiUrl}/api/appointment`, {
@@ -179,45 +212,37 @@ const CheckPresence = () => {
 
     const printPDF = async (data) => {
         console.log(data);
-        // Load the PDF template
-        const pdfUrl = '/formulaire_vide.pdf';formulaire.pdf
-        // const pdfUrl = '/formule.pdf';
+        if (!pdfTemplate || !customFont || !customFontBold) {
+            console.error('Assets not loaded');
+            return;
+        }
 
-        const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
-
-        // Load PDF with PDF-Lib
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
-        pdfDoc.registerFontkit(fontkit);
-        // Get the first page
+        // Clone the loaded PDF template
+        const pdfDoc = await PDFDocument.load(await pdfTemplate.save());
         const pages = pdfDoc.getPages();
         const firstPage = pages[0];
-        const fontUrl = '/simpo.ttf'; // Update with your font path
-        const fontBytes = await fetch(fontUrl).then((res) => res.arrayBuffer());
-        const customFont = await pdfDoc.embedFont(fontBytes);
 
-        const fontUrlBold = '/simpoBold.ttf'; // Update with your font path
-        const fontBytesBold = await fetch(fontUrlBold).then((res) => res.arrayBuffer());
-        const customFontBold = await pdfDoc.embedFont(fontBytesBold);
-
-        const title1 = "الفحوصات الطبية 92 نوفمبر 0242";
-        const title2 = "مركب العالية الشيخ طفيش الجزائر العاصمة"
-
-        // Add text to specific coordinates
-
-        firstPage.drawText(`${data[0].name}`, { x: 400, y: 160, size: 13,  font: customFont ,color: rgb(0, 0, 0) });
+        // Add text to the PDF using the pre-loaded fonts
+        firstPage.drawText(`${data[0].name}`, { x: 400, y: 160, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`${data[0].lastName}`, { x: 400, y: 130, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`${data[0].birthday}`, { x: 400, y: 100, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText("الفحوصات الطبية 92 نوفمبر 4202", { x: 360, y: 338, size: 15, font: customFontBold, color: rgb(0, 0, 0) });
-        firstPage.drawText(`${title2}`, { x: 360, y: 317, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText("الفحوصات الطبية 71 جانفي 5202", { x: 360, y: 338, size: 15, font: customFontBold, color: rgb(0, 0, 0) });
+        firstPage.drawText("مركب الفلك وهران", { x: 360, y: 317, size: 13, font: customFont, color: rgb(0, 0, 0) });
+
         firstPage.drawText(`TAJ_${data[0].patient_id}`, { x: 400, y: 190, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText(`${data[0].specialty.name}`, { x: 130, y: 348, size: 13, font: customFontBold, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${data[0].specialty.name}`, { x: 130, y: 348, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`/`, { x: 200, y: 320, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`/`, { x: 200, y: 142, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        if(data[1]){
-            firstPage.drawText(`${data[1].specialty.name}`, { x: 130, y: 170, size: 13, font: customFontBold, color: rgb(0, 0, 0)});
-    }
+        if (data[1]) {
+            firstPage.drawText(`${data[1].specialty.name}`, { x: 130, y: 170, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        }
+        if (data[0].position === 0) {
+            firstPage.drawText(`حالة خاصة`, { x: 400, y: 60, size: 25, font: customFontBold, color: rgb(0, 0, 0) });
+
+        }
         // Serialize the PDF document to bytes
         const pdfBytes = await pdfDoc.save();
+
 
         // Create a Blob for the PDF
         const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -231,6 +256,8 @@ const CheckPresence = () => {
             printWindow.print();
         };
     };
+
+
 
     return (
         <div className='md:container md:mx-auto min-h-screen text-center'>
@@ -247,25 +274,25 @@ const CheckPresence = () => {
                     <option className='font-droid-arabic-kufi' value="Waiting List">في الإنتظار</option>
                 </select>
                 <input
-                type="text"
-                placeholder="إبحث بالإسم"
-                value={searchTerm}
-                onChange={handleChange}
-                className="search-bar my-4 font-droid-arabic-kufi"
-            />
+                    type="text"
+                    placeholder="إبحث بالإسم"
+                    value={searchTerm}
+                    onChange={handleChange}
+                    className="search-bar my-4 font-droid-arabic-kufi"
+                />
             </div>
-            <table className="table-auto my-7 text-center font-droid-arabic-kufi">
+            <table className="table-auto my-7 text-nowrap text-center font-droid-arabic-kufi">
                 <thead>
                     <tr>
-                        <th className='font-droid-arabic-kufi'>ID</th>
-                        <th className='font-droid-arabic-kufi'>الاسم</th>
-                        <th className='font-droid-arabic-kufi'>اللقب</th>
-                        <th className='font-droid-arabic-kufi'>تاريخ الميلاد</th>
-                        <th className='font-droid-arabic-kufi'>التخصص</th>
-                        <th className='font-droid-arabic-kufi'>وقت المجيئ</th>
-                        <th className='font-droid-arabic-kufi'>الحالة</th>
-                        <th className='font-droid-arabic-kufi'>أمر</th>
-                        <th className='font-droid-arabic-kufi'>طباعة</th>
+                        <th className='font-droid-arabic-kufi mx-4'>ID</th>
+                        <th className='font-droid-arabic-kufi mx-4'>الاسم</th>
+                        <th className='font-droid-arabic-kufi mx-14'>اللقب</th>
+                        <th className='font-droid-arabic-kufi mx-4'>تاريخ الميلاد</th>
+                        <th className='font-droid-arabic-kufi mx-4'>التخصص</th>
+                        <th className='font-droid-arabic-kufi mx-4'>وقت المجيئ</th>
+                        <th className='font-droid-arabic-kufi mx-4'>الحالة</th>
+                        <th className='font-droid-arabic-kufi mx-4'>أمر</th>
+                        <th className='font-droid-arabic-kufi mx-4'>طباعة</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -296,7 +323,7 @@ const CheckPresence = () => {
                                 <td className=' text-center mx-auto'>
                                     {displayAppointments[patientId][0].status == 'Pending' ? (
                                         <div className='flex justify-center'>
-                                            {(user.role_id == 1 || user.role_id == 5) && (
+                                            {(user.role_id == 1 || user.role_id == 5 || user.role_id == 3) && (
                                                 <>
                                                     <form className='text-center max-w-fit' onSubmit={(e) => hanlePresence(e, patientId)}>
                                                         <input

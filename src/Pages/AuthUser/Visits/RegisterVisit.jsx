@@ -17,7 +17,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [isArabic, setIsArabic] = useState(false);
   const [validationMessage, setValidationMessage] = useState(""); // Track validation message
- 
+
 
   const [formData, setFormData] = useState({
     name: '',
@@ -65,29 +65,29 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
     // If the name is 'name' or 'lastName', we validate Arabic input
     if (name === 'name' || name === 'lastName') {
-        if (arabicRegex.test(value)) {
-            // Input is valid (Arabic)
-            setFormData({
-                ...formData,
-                [name]: value,
-            });
-            setIsArabic(true);
-            setValidationMessage("");  // Clear validation message
-        } else {
-            // Input is invalid (non-Arabic)
-            setIsArabic(false);
-            setValidationMessage("يرجى إدخال أحرف عربية فقط");
-        }
+      if (arabicRegex.test(value)) {
+        // Input is valid (Arabic)
+        setFormData({
+          ...formData,
+          [name]: value,
+        });
+        setIsArabic(true);
+        setValidationMessage("");  // Clear validation message
+      } else {
+        // Input is invalid (non-Arabic)
+        setIsArabic(false);
+        setValidationMessage("يرجى إدخال أحرف عربية فقط");
+      }
     } else {
-        // For other fields, just update form data
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
-        setIsArabic(true); // Assuming other fields are valid
-        setValidationMessage(""); // Clear validation message
+      // For other fields, just update form data
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+      setIsArabic(true); // Assuming other fields are valid
+      setValidationMessage(""); // Clear validation message
     }
-};
+  };
 
 
 
@@ -149,16 +149,16 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
   };
 
-  const isFormValid = formData.name && formData.specialties.every(specialty => specialty.specialty_id);
+  const isFormValid = formData.name && formData.birthday && formData.residence && formData.sex && formData.specialties.every(specialty => specialty.specialty_id);
 
   return (
     <div className="relative md:static bg-slate-100 w-screen h-screen">
       {!confirm && (
-        <div className="rules w-full max-w-md sm:max-w-screen-md h-auto bg-white  shadow-lg rounded-lg p-2 sm:p-2 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" dir="rtl">
+        <div className="rules w-full max-w-[600px] h-auto bg-white  shadow-lg rounded-lg p-4 sm:p-2 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" dir="rtl">
           <h1 className="text-2xl font-semibold mb-4 sm:mb-6 text-[#131842] text-center font-droid-arabic-kufi">
             ضوابط نظام الفحوصات الطبية
           </h1>
-          <ul className="list-disc list-inside mb-4 sm:mb-6 space-y-2 text-gray-800">
+          <ul className="list-disc list-inside mb-4 sm:mb-6 px-4 space-y-2 text-gray-800">
             {rules.map(rule => (
 
               <li key={rule.id} className={`font-bold font-droid-arabic-kufi  ${rule.id == 1 ? 'text-red-500' : ''}`}>
@@ -166,7 +166,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
               </li>
             ))}
           </ul>
-          <div className="flex items-center text-center mb-4">
+          <div className="flex items-center px-4 text-center mb-4">
             <input
               type="checkbox"
               id="acceptRules"
@@ -174,7 +174,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
               onChange={(e) => setAcceptedRules(e.target.checked)}
             />
             <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-lg font-droid-arabic-kufi">
-              أوافق على الشروط
+              أوافق على الضوابط
             </label>
           </div>
           <div className="text-center">
@@ -226,14 +226,18 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
                   {message && message.length > 0 && (
                     <>
-                      <span className="font-extrabold font-droid-arabic-kufi my-4">{message}</span>
+                      <span className='font-droid-arabic-kufi my-4 text-xl'>نسأل الله الشفاء لكل مرضى المسلمين</span>
+                      <br />
+                      <br />
+                      {/* <span className=' font-black font-droid-arabic-kufi'>   نرجوا القدوم ساعة قبل   </span>    <span className='text-red-600 font-black font-droid-arabic-kufi'>{message}</span> */}
+                      <span className='font-droid-arabic-kufi font-black text-red-500'>{message}</span>
                       <br />
                       <br />
                       <span className="text-lg text-red-500 font-bold my-4 font-droid-arabic-kufi">
-بالنسبة للنساء يجب الحضور بمحرم                      </span>
+                        بالنسبة للنساء يجب الحضور بمحرم                      </span>
                       <br />
                       <br />
-                      <span className="font-extrabold font-droid-arabic-kufi my-4">أحجز لشخص آخر</span>
+                      <span className="font-extrabold font-droid-arabic-kufi my-4">إحجز لشخص آخر</span>
                       <br />
                       <br />
                     </>
@@ -255,6 +259,8 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
               <div className="flex items-center justify-center mb-4 sm:mb-8">
                 <div className="text-center">
                   <img src={logo} alt="Appointment Form" className="h-44 w-auto mb-4 mx-auto" />
+                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645]"> مركب الفلك وهران</h1>
+                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645] mb-3">الفحوصات الطبية 17 جانفي 2025</h1>
                   <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أحجز موعدا مع الطبيب</h1>
                 </div>
               </div>
@@ -318,8 +324,8 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   <option value="taghardait">تغردايت</option>
                   <option value="yazgan">آت يزجن</option>
                   <option value="mlichat">آت مليشت</option>
-                  <option value="karara">القرارة</option>
-                  <option value="berian">بريان</option>
+                  <option value="karara">إقرارن</option>
+                  <option value="berian">آت برقان</option>
                   <option value="warjlan">وارجلان</option>
                 </select>
 
@@ -392,10 +398,10 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
                           <option value="" className='text-red-600 font-droid-arabic-kufi' dir="rtl">إختر تخصصا</option> {/* Ensure RTL for this option */}
                           {specialities
-                            .filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed')
+                            .filter(specialty => (specialty.id !== 6 && specialty.Flag !== 'Closed'))
                             .map(specialty => (
                               <option className='font-droid-arabic-kufi' dir="rtl" key={specialty.id} value={specialty.id}>
-                                {specialty.name}
+                                {specialty.name == 'طب الأسنان' ? 'طب الأسنان ( فحص و استشارة)' : specialty.name}
                               </option> // Ensure RTL for each option
                             ))}
                         </select>
@@ -441,8 +447,8 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                 <div className="flex items-center justify-center">
                   <button
                     type="submit"
-                    disabled={!isFormValid}
-                    className="text-white bg-[#2F3645] hover:bg-[#131842] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
+                    // disabled={!isFormValid}
+                    className="text-white bg-[#2F3645] hover:bg-[#131842] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center font-droid-arabic-kufi"
                   >
                     إحجز موعدك
                   </button>

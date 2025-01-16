@@ -22,7 +22,7 @@ export default {
         'custom': '1265px', // Change this value to your desired width in pixels
       },
 
-      
+
     }
   },
   plugins: [],

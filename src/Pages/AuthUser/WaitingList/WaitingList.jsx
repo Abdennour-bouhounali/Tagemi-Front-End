@@ -6,12 +6,11 @@ import { useLocation } from "react-router-dom";
 const WaitingList = () => {
     const [specialities, setSpecialities] = useState([]);
     const [waitingList, setWaitingList] = useState({});
-    const [newNames, setNewNames] = useState({});
     const { token, startDay, setStartDay, displayAuth, setDisplayAuth } = useContext(AppContext);
     const location = useLocation();
     const loggedIn = location.state?.loggedIn; // Optional chaining to handle undefined state
-    const [loggedIns,setIoggedIns] = useState(loggedIn);
-    
+    const [loggedIns, setIoggedIns] = useState(loggedIn);
+
     // Fetch the waiting list
     async function getWaitingList() {
         const res = await fetch(`${apiUrl}/api/waitinglist/getwaitinglist`, {
@@ -22,17 +21,10 @@ const WaitingList = () => {
 
         const data = await res.json();
 
-        // Compare new data with current waiting list to find new names
-        const newNamesList = {};
-        for (const specialityId in data) {
-            const currentList = waitingList[specialityId] || [];
-            const newList = data[specialityId] || [];
-            const currentIds = new Set(currentList.map(p => p.patient_id));
-            newNamesList[specialityId] = newList.filter(p => !currentIds.has(p.patient_id));
-        }
+
 
         setWaitingList(data);
-        setNewNames(newNamesList);
+
     }
 
     // Fetch specialities
@@ -60,19 +52,20 @@ const WaitingList = () => {
     //         getWaitingList();
     //     }
     // });
+
     useEffect(() => {
         // Function to fetch data after a delay of 5 seconds
-        const timeoutId = setTimeout(() => {
+        const timeoutId = setInterval(() => {
             if (startDay) {
                 getStartDay();
                 getWaitingList();
             }
-        }, 5000);  // 5000 milliseconds = 5 seconds
-    
+        }, 10000);  // 5000 milliseconds = 5 seconds
+
         // Cleanup timeout if the component unmounts or dependencies change
-        return () => clearTimeout(timeoutId);
-    });  // Add relevant dependencies if needed
-    
+        return () => clearInterval(timeoutId);
+    }, [startDay, token]);  // Add relevant dependencies if needed
+
     useEffect(() => {
         getSpecialities();
         getWaitingList();
@@ -83,23 +76,23 @@ const WaitingList = () => {
 
     return (
         <div className='w-full min-h-screen mx-auto'>
-             
 
-            <table className="table-auto my-7 text-center border-collapse border border-gray-300">
+
+            <table className="block lg:table overflow-x-auto whitespace-nowrap min-w-full w-full  text-lg my-7 text-center border-collapse border border-gray-300">
                 <thead>
                     <tr>
                         {specialities.map((speciality) => (
-                            <th key={speciality.id} className='font-droid-arabic-kufi border-2 bg-blue-300'>
-                                <span className='mb-2 w-full font-black'>{speciality.name}</span>
-                                <div className='flex flex-row w-full'>
-                                    <p className='basis-1/3'>ID</p>
-                                    <p className='basis-2/3'>الاسم الكامل</p>
+                            <th key={speciality.id} className='font-droid-arabic-kufi border-2 min-w-50 max-w-100 bg-blue-300'>
+                                <span className='mb-4  font-black text-orange-700 text-xl'>{speciality.name}</span>
+                                <div className='flex flex-row  mt-4'>
+                                    <p className='basis-1/3 '>ID</p>
+                                    <p className='basis-2/3 '>الاسم الكامل</p>
                                 </div>
                             </th>
                         ))}
                     </tr>
                 </thead>
-                <tbody>
+                <tbody className='w-full'>
                     {Array.from({ length: maxRows }).map((_, rowIndex) => (
                         <tr key={rowIndex} className={`${rowIndex % 2 === 0 ? 'bg-gray-100' : 'bg-white'}`}>
                             {specialities.map((speciality) => {
@@ -114,10 +107,14 @@ const WaitingList = () => {
                                             >
                                                 <div className='w-1/3'>{patient.patient_id}</div>
                                                 <div className={patient.name.includes('خاصة') ? 'text-red-500 font-droid-arabic-kufi' : 'font-droid-arabic-kufi'}>
-                                                
-                                                    {patient.name}
-                                                    <br />
+
                                                     {patient.lastName}
+                                                    <span>   </span>
+
+                                                    {patient.name}
+                                                    {/* <br /> */}
+
+
                                                 </div>
                                             </div>
                                         ) : (

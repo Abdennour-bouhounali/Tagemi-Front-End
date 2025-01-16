@@ -21,7 +21,7 @@ const About = () => {
   return (
     <>
       {/* About Section */}
-      <div className=" px-4 sm:px-6 md:px-10 flex flex-col items-center text-center mt-24">
+      <div className=" px-4 sm:px-6 md:px-10 bg-gradient-to-b from-white to-[#DAE0F5] flex flex-col items-center text-center mt-24">
         <h1 className="text-3xl sm:text-4xl font-bold mb-4 font-droid-arabic-kufi text-[#E03A6F]">
           {language === 'en' ? 'About Us' : 'من نحن'}
         </h1>
@@ -31,7 +31,7 @@ const About = () => {
             : 'مؤسسة تــجــمــي ، خيرية إنسانية غايتنا المساهمة في تحقيق تنمية انسانية بجوانبها الإجتماعية، الإقتصادية، التربوية و العلمية لجزائر مزدهرة و رائدة تأسست بتاريخ 15/07/2018 و هي امتداد لنشاط جمعية تجمي التي تأسست بتاريخ : 29 ماي 2006 و هي جمعية ذات طابع إنساني اجتماعي، الكائن مقرها بساحة السوق، بلدية العطف ولاية غرداية.'}
         </p>
       </div>
-
+  
       {/* Our Goals Section */}
       <div className="flex flex-col lg:flex-row mt-10 lg:mt-20 px-4 sm:px-6 lg:px-10 gap-10">
         <div className="lg:basis-1/2">
@@ -45,25 +45,15 @@ const About = () => {
           </ul>
         </div>
         <div className="lg:basis-1/2 flex justify-center">
-          <div className="relative w-full pb-[56.25%] h-0 rounded-lg shadow-lg">
-            <iframe
-              src="https://www.youtube.com/embed/Bc9DI4uzg2Q?si=m0cfxB4yaRS_w2Y6"
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              className="absolute top-0 left-0 w-full h-full rounded-lg"
-            ></iframe>
-          </div>
-
+          <img src="/child.jpg" alt="Child" className="w-full sm:w-3/4 lg:w-full h-auto" />
         </div>
       </div>
-
+  
       {/* Our Objectives Section */}
       <div className="flex flex-col lg:flex-row mt-10 lg:mt-20 px-4 sm:px-6 lg:px-10 gap-10">
-        {/* <div className="lg:basis-1/2 flex justify-center">
+        <div className="lg:basis-1/2 flex justify-center">
           <img src="/medical.JPG" alt="Medical" className="w-full sm:w-3/4 lg:w-full h-auto" />
-        </div> */}
+        </div>
         <div className="lg:basis-1/2">
           <h1 className="text-3xl sm:text-4xl font-bold text-center lg:text-left font-droid-arabic-kufi text-[#E03A6F] my-5">
             {language === 'en' ? 'Our Objectives' : 'أهدافنا'}
@@ -76,7 +66,7 @@ const About = () => {
           </ul>
         </div>
       </div>
-
+  
       {/* Activities Section */}
       <div className="text-center mt-10 lg:mt-20">
         <h1 className="text-3xl sm:text-4xl font-bold font-droid-arabic-kufi text-[#E03A6F] my-5">
@@ -103,32 +93,32 @@ const About = () => {
           </Link>
         ))}
       </div>
-
+  
       <Footer types={types} />
     </>
   );
-
+  
 };
 
 export default About;
 
 
 
-// {types.map((type) => (
-//   <Link
-//     to={`/activities/showByActivitiesType/${type.id}`}
-//     className=" relative group"
-//     key={type.id}
-//   >
-//     <img
-//       src={'http://127.0.0.1:8000/' + type.image_url}
-//       className="card__image w-full h-auto transition-transform duration-500 ease-in-out transform group-hover:scale-105"
-//       alt=""
-//     />
-//     <div className="absolute m-0 w-full inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 opacity-0 transition-opacity duration-500 ease-in-out group-hover:opacity-100">
-//     <h2 className="text-3xl font-bold font-droid-arabic-kufi text-center text-white ">{type.name}</h2>
+  // {types.map((type) => (
+  //   <Link
+  //     to={`/activities/showByActivitiesType/${type.id}`}
+  //     className=" relative group"
+  //     key={type.id}
+  //   >
+  //     <img
+  //       src={'http://127.0.0.1:8000/' + type.image_url}
+  //       className="card__image w-full h-auto transition-transform duration-500 ease-in-out transform group-hover:scale-105"
+  //       alt=""
+  //     />
+  //     <div className="absolute m-0 w-full inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 opacity-0 transition-opacity duration-500 ease-in-out group-hover:opacity-100">
+  //     <h2 className="text-3xl font-bold font-droid-arabic-kufi text-center text-white ">{type.name}</h2>
 
-//     </div>
-//       {/* <h3 className="font-droid-arabic-kufi text-[#E03A6F] text-2xl text-center mt-5">تعرف على الأنشطة</h3> */}
-//   </Link>
-// ))}
+  //     </div>
+  //       {/* <h3 className="font-droid-arabic-kufi text-[#E03A6F] text-2xl text-center mt-5">تعرف على الأنشطة</h3> */}
+  //   </Link>
+  // ))}

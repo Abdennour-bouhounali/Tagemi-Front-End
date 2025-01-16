@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../../../Context/AppContext"
 import { useTranslation } from "react-i18next";
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = import.meta.env.VITE_API_URL;
 
 
 export default function Settings() {
@@ -9,6 +9,7 @@ export default function Settings() {
   const { t } = useTranslation();
   const { token, startDay, setStartDay, displayAuth, setDisplayAuth } = useContext(AppContext);
   const [message, setMessage] = useState(null);
+
   const [formData, setFormData] = useState({
     link: '',
   });
@@ -88,7 +89,7 @@ export default function Settings() {
 
   const changeStatisticsLink = async (e) => {
     e.preventDefault();
-    
+
     try {
       const res = await fetch(`${apiUrl}/api/changeStatisticsLink`, {
         method: 'POST',
@@ -122,6 +123,26 @@ export default function Settings() {
     });
   };
 
+
+  async function handleDeleteDuplicates(e) {
+    e.preventDefault();
+    const res = await fetch(`${apiUrl}/api/appointment/delete-duplicates`, {
+      method: 'post',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      }
+    })
+    const data = await res.json();
+    // console.log(data);
+    if (res.ok) {
+      setMessage(data['message']);
+    }
+    setTimeout(() => {
+      setMessage(null);
+    }, 2000);
+  }
+
   return (
     <div className="container min-h-screen" >
       <h4 className="mb-6 text-xl font-bold text-black">
@@ -152,7 +173,7 @@ export default function Settings() {
           </tr>
         </thead>
         <tbody>
-          <tr>
+          {/* <tr>
             <th> Delete all appiotments & Witing lists </th>
             <th>
               <button
@@ -161,8 +182,19 @@ export default function Settings() {
                 className="text-red-700 mx-3 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
               >Delete</button>
             </th>
-          </tr>
+          </tr> */}
+          <tr>
+            <th>Delete Duplicates </th>
+            <th>
+              <button onClick={handleDeleteDuplicates}
+                className="text-green-700 mx-3 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
 
+              >
+                Delete Duplicate Appointments
+              </button>
+
+            </th>
+          </tr>
           <tr>
             <th> Download Appoitments In Excel </th>
             <th>
@@ -225,7 +257,7 @@ export default function Settings() {
           <tr>
             <th> أضف رابط  "المزيد من الإحصائيات" </th>
             <th>
-              <form onSubmit={changeStatisticsLink} className="flex"> 
+              <form onSubmit={changeStatisticsLink} className="flex">
                 <input
                   type="text"
                   name="link"
@@ -233,8 +265,8 @@ export default function Settings() {
                   className=""
                   onChange={handleChange}
                 />
-                <button type="submit" 
-                className="text-green-700 mx-3 text-nowrap hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                <button type="submit"
+                  className="text-green-700 mx-3 text-nowrap hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
 
                 >أضف الرابط</button>
               </form>
