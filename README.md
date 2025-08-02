@@ -1,3 +1,6 @@
+
+🖥️** Frontend/README.md (React + Tailwind CSS)******
+
 # Visit Day Management App – Frontend
 
 This is the frontend of the Visit Day Management Platform, built using **React.js** and **Tailwind CSS**. The app provides an interface for managing medical visits, allowing patients to register and reserve a visit, and enabling admins and doctors to manage appointments, attendance, and more.
