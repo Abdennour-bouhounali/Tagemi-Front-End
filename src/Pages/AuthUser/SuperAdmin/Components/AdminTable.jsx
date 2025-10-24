@@ -8,6 +8,7 @@ const AdminTable = ({ admins, specialities, roles }) => {
         <tr>
           <th>المهمة</th>
           <th>الإسم</th>
+          <th>رقم الهاتف</th>
           <th>الإيمايل</th>
           <th>التخصص</th>
         </tr>
@@ -27,6 +28,7 @@ const AdminTable = ({ admins, specialities, roles }) => {
 
             </td>
             <td>{admin.name}</td>
+            <td>{admin.phone}</td>
             <td>{admin.email}</td>
             <td>{admin.specialty.name ? admin.specialty.name : 'No Speciality'}</td>
           </tr>

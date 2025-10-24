@@ -8,7 +8,6 @@ return (
 <nav className="mt-4 space-y-2 block ">
             {/* <Link to="/specialCase" className="block font-medium px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">Special Case</Link> */}
 
-            <Link to="/AllAppointments" className="block font-medium font-droid-arabic-kufi py-2 px-4 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">جميع المواعيد</Link>
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={toggleDropdown}
@@ -21,7 +20,6 @@ return (
               </button>
               {isOpen && (
                 <ul className="absolute left-0 top-full w-48 bg-white shadow-md rounded py-2 z-50">
-
                   {specialities
                     .filter(specialitie => specialitie.id !== 6)
                     .map((speciality) => (
@@ -38,10 +36,11 @@ return (
               )}
             </div>
             <Link to="/settings" className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">إعدادات عامة</Link>
-            <Link to="/users" className="block px-4 font-medium font-droid-arabic-kufi  py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300"> تسيير الأعضاء</Link>
-            <Link to="/speciality" className="block font-medium font-droid-arabic-kufi  px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">تسيير التخصصات </Link>
-            <Link to="/Statitistics" className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">إحصائيت</Link>
+
             <Link to="/rules" className="block font-medium px-4 font-droid-arabic-kufi  py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">التحكم في الضوابط </Link>
+                <Link to="/contacts" className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >الإتصالات</Link>
+        <Link to="/voulenteers" className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >المتطوعون</Link>
+
             <div className="relative group">
                   <button className="block font-medium px-4 font-droid-arabic-kufi  py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">
                        التحكم في محتوى الموقع

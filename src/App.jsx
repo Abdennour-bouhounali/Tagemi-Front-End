@@ -38,6 +38,8 @@ import RedirectToAppointment from './RedirectToAppointment';
 import Tagemi from './Pages/Tagemi';
 import NotFound from './Pages/NotFound';
 import NotAuthenticated from './Pages/NotAuthenticated';
+import EventsManagement from './Pages/AuthUser/SuperAdmin/EventsManagement';
+import AddMultipleAppointments from './Pages/AuthUser/SuperAdmin/AddMultipleApp';
 
 export default function App() {
 
@@ -94,6 +96,8 @@ export default function App() {
           <Route path="/rules" element={Superadmin ? <ManageRules /> : <NotAuthenticated />} />
 
           <Route path="/GeneralWaitingList" element={user ? <WaitingList /> : <NotAuthenticated />} />
+          <Route path="/manageEvents" element={Superadmin ? <EventsManagement /> : <NotAuthenticated />} />
+          <Route path="/AddMultipleAppointments" element={SpecialAdmin ? <AddMultipleAppointments /> : <NotAuthenticated />} />
 
           <Route path="/types" element={Superadmin || SpecialAdmin ? <TypesPage /> : <NotAuthenticated />} />
           <Route path="/activities" element={Superadmin ? <ActivitiesPage /> : <NotAuthenticated />} />

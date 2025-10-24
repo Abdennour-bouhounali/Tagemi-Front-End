@@ -172,15 +172,15 @@ export default function AdminLayout() {
                         </svg>
                       </button>
                     )}
-                    <Link to="/" className="text-[#2F3645] hover:text-[#131842] font-droid-arabic-kufi text-lg mr-8 font-bold">
+                    {/* <Link to="/" className="text-[#2F3645] hover:text-[#131842] font-droid-arabic-kufi text-lg mr-8 font-bold">
                       الصفحة الرئيسية
-                    </Link>
-                  </div>
+                    </Link> */}
+                     </div>
 
                 </div>
 
                 <div className="hidden md:flex space-x-6 items-center">
-
+               
                   {user && user.role_id == 2 && <GuestNavBar />
                   }
 
@@ -204,7 +204,6 @@ export default function AdminLayout() {
                   {user ? (
                     <>
 
-                      <button className="block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" onClick={handlelogout}>خروج</button>
                     </>
                   ) : (
                     <div className="space-x-4">
@@ -230,7 +229,6 @@ export default function AdminLayout() {
                   <div className="space-y-2 block text-nowrap ">
                     <GuestNavBar />
                     <AuthNavBar user={user} specialities={specialities} />
-
                   </div>
                 </div>
               )}

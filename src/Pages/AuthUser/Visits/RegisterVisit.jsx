@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../Context/AppContext';
 import logo from './tagemi_logo.png';
 import { useTranslation } from 'react-i18next';
+import BirthdayInput from '../SuperAdmin/Components/BirthdayInput';
 const apiUrl = import.meta.env.VITE_API_URL;
 const RegisterVisit = ({ setSpecialities, specialities }) => {
   const { token } = useContext(AppContext);
@@ -17,6 +18,19 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [isArabic, setIsArabic] = useState(false);
   const [validationMessage, setValidationMessage] = useState(""); // Track validation message
+  const [Event, setEvent] = useState(null);
+
+  async function getEvent() {
+      const res = await fetch(`${apiUrl}/api/currentEvent`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setEvent(data["event"]);
+    }
+  
+    useEffect(() => {
+      getEvent();
+    }, []);
 
 
   const [formData, setFormData] = useState({
@@ -45,7 +59,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     const res = await fetch(`${apiUrl}/api/specialty`);
     const data = await res.json();
     setSpecialities(data['specialties']);
-    const openSpecialities = data['specialties'].filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed');
+    const openSpecialities = data['specialties'].filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed'&& specialty.is_active == 1);
     setOpenSpecialitiesCount(openSpecialities.length);
   }
 
@@ -107,16 +121,10 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     setFormData({ ...formData, specialties: updatedSpecialties });
   };
 
+const handleSubmit = async (event) => {
+  event.preventDefault();
 
-  const handleSubmit = async (event) => {
-
-    event.preventDefault();
-
-    formData.specialties.forEach((specialty, index) => {
-      console.log(`Specialty ${index + 1} ID:`, specialty.specialty_id);
-    });
-
-
+  try {
     const res = await fetch(`${apiUrl}/api/appointment`, {
       method: 'POST',
       headers: {
@@ -124,11 +132,16 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
       },
       body: JSON.stringify(formData),
     });
+
     const data = await res.json();
-    console.log(res);
+    console.log("Response:", data);
+
+    // Always show the confirmation box
     setConfirmAfter(true);
+
+    // ✅ Success case
     if (res.ok) {
-      setAppointments(data['appointments']);
+      setAppointments(data['appointments'] || []);
       setMinTime(data['minTime']);
       getSpecialities();
 
@@ -139,15 +152,23 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
         residence: '',
         diseases: '',
         phone: '',
-        sex: '', // TinyInt for sex (0 or 1)
+        sex: '',
         specialties: [{ specialty_id: '' }],
       });
-      setMessage(data['message']);
-      setWaiting(data['waitinglist_message']);
+
+      setMessage(data['message'] || "تم إرسال البيانات بنجاح.");
+      setWaiting(data['waitinglist_message'] || '');
+    } 
+    // ❌ Error case (like no current event)
+    else {
+      setMessage(data['message'] || "حدث خطأ أثناء إرسال الطلب.");
+      setAppointments([]);
     }
-
-
-  };
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    setMessage("حدث خطأ في الاتصال بالخادم.");
+  }
+};
 
   const isFormValid = formData.name && formData.birthday && formData.residence && formData.sex && formData.specialties.every(specialty => specialty.specialty_id);
 
@@ -259,8 +280,8 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
               <div className="flex items-center justify-center mb-4 sm:mb-8">
                 <div className="text-center">
                   <img src={logo} alt="Appointment Form" className="h-44 w-auto mb-4 mx-auto" />
-                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645]"> مركب الفلك وهران</h1>
-                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645] mb-3">الفحوصات الطبية 17 جانفي 2025</h1>
+                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645]">{Event.name}</h1>
+                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645] my-3">{Event.date} | {Event.place}</h1>
                   <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أحجز موعدا مع الطبيب</h1>
                 </div>
               </div>
@@ -296,15 +317,9 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
                   <p className="text-red-500 text-sm mt-1 font-droid-arabic-kufi">{validationMessage}</p>
                 )}
                 {/* Birthday Field */}
-                <label htmlFor="birthday" className="block text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد :</label>
-                <input
-                  type="date"
-                  id="birthday"
-                  name="birthday"
+                <BirthdayInput
                   value={formData.birthday}
-                  onChange={handleChangeData}
-                  className="mt-1 block  text-black px-5 rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  required
+                  onChange={(date) => setFormData({ ...formData, birthday: date })}
                 />
 
                 {/* Residence Field */}
@@ -398,7 +413,7 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
                           <option value="" className='text-red-600 font-droid-arabic-kufi' dir="rtl">إختر تخصصا</option> {/* Ensure RTL for this option */}
                           {specialities
-                            .filter(specialty => (specialty.id !== 6 && specialty.Flag !== 'Closed'))
+                            .filter(specialty => (specialty.id !== 6 && specialty.Flag !== 'Closed' && specialty.is_active == 1))
                             .map(specialty => (
                               <option className='font-droid-arabic-kufi' dir="rtl" key={specialty.id} value={specialty.id}>
                                 {specialty.name == 'طب الأسنان' ? 'طب الأسنان ( فحص و استشارة)' : specialty.name}

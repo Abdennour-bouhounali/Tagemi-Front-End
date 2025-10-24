@@ -1,6 +1,32 @@
-import { Link } from "react-router-dom";
+import React, { useContext, useRef, useEffect, useState } from "react";
+import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { AppContext } from "../../Context/AppContext";
 
 const AuthNavBar = ({ user, specialities, dropdownRef, toggleDropdown, isOpen }) => {
+  const { token, setToken } = useContext(AppContext);
+    async function handlelogout(e) {
+      e.preventDefault();
+      let headers = new Headers();
+  
+      headers.append('Content-Type', 'application/json');
+      headers.append('Accept', 'application/json');
+      headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+      headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+      headers.append('Authorization', `Bearer ${token}`);
+      const res = await fetch(`${apiUrl}/api/logout`, {
+  
+        method: "post",
+        headers: headers,
+      });
+  
+      if (res.ok) {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem("token");
+        navigate("/");
+      }
+    }
+  
   return (
 
     <nav className="ml-4 space-y-2 font-droid-arabic-kufi text-nowrap ">
@@ -16,9 +42,14 @@ const AuthNavBar = ({ user, specialities, dropdownRef, toggleDropdown, isOpen })
       )}
 
       {user && (user.role_id == 1) && (<>
-        <Link to="/contacts" className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >الإتصالات</Link>
-        <Link to="/voulenteers" className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >المتطوعون</Link>
 
+      <Link to="/AllAppointments" className="block font-medium font-droid-arabic-kufi py-2 px-4 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">جميع المواعيد</Link>
+      <Link to="/AddMultipleAppointments" className="block px-4 font-medium font-droid-arabic-kufi  py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">إضافة مواعيد متعددة</Link>
+      <Link to="/users" className="block px-4 font-medium font-droid-arabic-kufi  py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300"> تسيير الأعضاء</Link>
+      <Link to="/speciality" className="block font-medium font-droid-arabic-kufi  px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">تسيير التخصصات </Link>
+      <Link to="/Statitistics" className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">إحصائيات</Link>
+      <Link to="/manageEvents" className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">تسيير الفعاليات</Link>
+      <button className="block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" onClick={handlelogout}>خروج</button>
 
       </>
       )}

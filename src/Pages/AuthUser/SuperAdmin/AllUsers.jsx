@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../../../Context/AppContext"
 import AdminTable from './Components/AdminTable';
 import UserTable from "./Components/UserTable";
+import Addadmin from "./Components/Addadmin";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function AllUsers() {
@@ -31,6 +32,10 @@ export default function AllUsers() {
   }, []);
   return (
     <div className="flex-grow container min-h-screen text-nowrap ">
+        <h4 className="mb-6 text-xl font-bold text-black font-droid-arabic-kufi mt-4">
+        إضافة أدمين     </h4>
+      <Addadmin specialities={specialities} roles={roles} />
+
       <h4 className="mb-6 text-xl font-bold text-black font-droid-arabic-kufi mt-4">
         كل من لديه مهمة      </h4>
       <AdminTable admins={admins} specialities={specialities} roles={roles} />

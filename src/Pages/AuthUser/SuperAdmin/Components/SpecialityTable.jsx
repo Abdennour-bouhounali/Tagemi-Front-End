@@ -6,23 +6,26 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const SpecialityTable = ({ specialities, getSpecialites }) => {
   const { token } = useContext(AppContext);
   const navigate = useNavigate();
-  async function handleDelete(e, specialityId) {
-    e.preventDefault();
 
-    // console.log(specialityId);
-    const res = await fetch(`${apiUrl}/api/specialty/${specialityId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      }
-    })
-    const data = await res.json();
-    if (res.ok) {
-      getSpecialites();
-    }
-    // console.log(data);
+  async function handleActivate(e, specialityId) {
+  e.preventDefault();
+
+  const res = await fetch(`${apiUrl}/api/specialty/${specialityId}/activate`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await res.json();
+  if (res.ok) {
+    getSpecialites(); // refresh table
+  } else {
+    console.error(data.message);
   }
+}
+
 
   return (
     <table className="table-auto py-4  text-center">
@@ -49,13 +52,22 @@ const SpecialityTable = ({ specialities, getSpecialites }) => {
               ))}
             </td>
             <td className="border px-4 py-2 items-center">
-              <button
-                onClick={(e) => handleDelete(e, speciality.id)}
+              {
+                speciality.is_active == 0  ? ( <button
+                onClick={(e) => handleActivate(e, speciality.id)}
+                type="button"
+                className="text-green-700 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2"
+              >
+                Activate
+              </button>) : (<button
+                onClick={(e) => handleActivate(e, speciality.id)}
                 type="button"
                 className="text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
               >
-                Delete
-              </button>
+                Disactivate
+              </button>) 
+              }
+              
             </td>
           </tr>
         ))}

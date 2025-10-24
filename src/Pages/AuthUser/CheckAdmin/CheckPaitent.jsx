@@ -74,6 +74,66 @@ const CheckPatient = () => {
             console.error("Error marking complete:", error);
         }
     }
+    
+    async function handleAlterSpeciality(e, id) {
+        e.preventDefault();
+        try {
+            await fetch(`${apiUrl}/api/waitinglist/alterSpeciality/${id}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            getWaitingListBySpeciality(specialityId);
+        } catch (error) {
+            console.error("Error marking Change Speciality:", error);
+        }
+    }
+
+    async function handleDilatation(e, appointmentId) {
+        e.preventDefault();
+        try {
+            await fetch(`${apiUrl}/api/waitinglist/Dilatation/${appointmentId}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            getWaitingListBySpeciality(specialityId);
+        } catch (error) {
+            console.error("Error marking Dilatation:", error);
+        }
+    }
+
+    async function handleFinishedDilatation(e, appointmentId) {
+        e.preventDefault();
+        try {
+            await fetch(`${apiUrl}/api/waitinglist/FinishedDilatation/${appointmentId}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            getWaitingListBySpeciality(specialityId);
+        } catch (error) {
+            console.error("Error marking Finished Dilatation:", error);
+        }
+    }
+
+    
+async function handleCommingsoon(e, appointmentId, position) {
+  e.preventDefault();
+  try {
+    await fetch(`${apiUrl}/api/waitinglist/Commingsoon/${appointmentId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ position }), // ✅ send position
+    });
+    getWaitingListBySpeciality(specialityId);
+  } catch (error) {
+    console.error("Error marking Comingsoon:", error);
+  }
+}
+
+
 
     const openCommentModal = (appointmentId) => {
         setSelectedAppointment(appointmentId);
@@ -171,45 +231,87 @@ const CheckPatient = () => {
                 <tbody>
                     {filteredAppointments.map((appointment) => (
                         <React.Fragment key={appointment.id}>
-                            <tr onClick={() => toggleRow(appointment.id)} className="border-t-4">
+                           <tr
+                                onClick={() => toggleRow(appointment.id)}
+                                className={`border-t-4 ${
+                                    appointment.status === 'Dilatation' ? 'bg-green-100' : ''
+                                }  ${
+                                    appointment.status === 'Commingsoon' ? 'bg-yellow-100' : ''
+                                }`}
+                                >
                                 <td>{appointment.patient_id}</td>
                                 <td>{appointment.name}</td>
                                 <td>{appointment.lastName}</td>
                                 <td>{appointment.birthday}</td>
                                 <td>{appointment.orderList}</td>
+
                                 {(user.role_id == 1 || user.role_id == 6) && (
                                     <td>{appointment.comment}</td>
                                 )}
 
                                 <td>
                                     {(user.role_id == 1 || user.role_id == 4) && (
-                                        <>
-                                            <button
-                                                onClick={(e) => handleAbsent(e, appointment.id)}
-                                                className="text-red-700 mx-3 hover:text-white border font-droid-arabic-kufi border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
-                                            >
-                                                غائب
-                                            </button>
-                                            <button
-                                                onClick={(e) => handleComplete(e, appointment.id)}
-                                                className="text-green-700 mx-3 hover:text-white border font-droid-arabic-kufi border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
-                                            >
-                                                إجتاز
-                                            </button>
-                                        </>
+                                    <>{specialityId == 52 && <>
+                                        {appointment.status === 'Dilatation' ? (
+                                        <button
+                                            onClick={(e) => handleFinishedDilatation(e, appointment.id)}
+                                            className="text-blue-700 mx-3 hover:text-white border font-droid-arabic-kufi border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        >
+                                            Fin Dilatation
+                                        </button>
+                                        ) : (
+                                        <button
+                                            onClick={(e) => handleDilatation(e, appointment.id)}
+                                            className="text-orange-700 mx-3 hover:text-white border font-droid-arabic-kufi border-orange-700 hover:bg-orange-800 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        >
+                                            Dilatation
+                                        </button>
+                                        )}</>}
+
+                                        {appointment.status !== 'Commingsoon' && (
+                                        <button
+                                        onClick={(e) => handleCommingsoon(e, appointment.id, appointment.orderList + 1)} // example: move to next position
+                                        className="text-yellow-700 mx-3 hover:text-white border font-droid-arabic-kufi border-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        >
+                                        إنزال
+                                        </button>) }
+                                        <button
+                                        onClick={(e) => handleAlterSpeciality(e, appointment.id)}
+                                        className="text-amber-300 mx-3 hover:text-white border font-droid-arabic-kufi border-amber-700 hover:bg-amber-800 focus:ring-4 focus:outline-none focus:ring-amber-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        >
+                                        تبديل التخصص
+                                        </button>
+
+                                        {appointment.status == 'Commingsoon' && (
+                                        
+                                        <button
+                                        onClick={(e) => handleAbsent(e, appointment.id)}
+                                        className="text-red-700 mx-3 hover:text-white border font-droid-arabic-kufi border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        >
+                                        غائب
+                                        </button>)}
+
+                                        <button
+                                        onClick={(e) => handleComplete(e, appointment.id)}
+                                        className="text-green-700 mx-3 hover:text-white border font-droid-arabic-kufi border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                        >
+                                        إجتاز
+                                        </button>
+                                    </>
                                     )}
 
                                     {(user.role_id == 1 || user.role_id == 6) && (
-                                        <button
-                                            onClick={() => openCommentModal(appointment.id)}
-                                            type="button"
-                                            className="text-blue-700 mx-3 hover:text-white border font-droid-arabic-kufi border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2"
-                                        >
-                                            أضف ملاحظة                                        </button>
+                                    <button
+                                        onClick={() => openCommentModal(appointment.id)}
+                                        type="button"
+                                        className="text-blue-700 mx-3 hover:text-white border font-droid-arabic-kufi border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2"
+                                    >
+                                        أضف ملاحظة
+                                    </button>
                                     )}
-
                                 </td>
                             </tr>
+
                         </React.Fragment>
                     ))}
                 </tbody>

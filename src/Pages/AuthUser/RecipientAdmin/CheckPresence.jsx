@@ -25,6 +25,20 @@ const CheckPresence = () => {
     const [pdfTemplate, setPdfTemplate] = useState(null);
     const [customFont, setCustomFont] = useState(null);
     const [customFontBold, setCustomFontBold] = useState(null);
+    const [Event, setEvent] = useState(null);
+
+    async function getEvent() {
+        const res = await fetch(`${apiUrl}/api/currentEvent`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setEvent(data["event"]);
+        console.log(Event);
+        }
+    
+        useEffect(() => {
+        getEvent();
+        }, []);
 
     const { user } = useContext(AppContext);
     const [FormData, setFormData] = useState({
@@ -71,9 +85,8 @@ const CheckPresence = () => {
 
         const data = await res.json();
 
-        setAppointments(data['appoitments']);
+        setAppointments(data['appointments']);
         console.log(data);
-        console.log("Hi")
 
     }
     async function getstartDay() {
@@ -210,7 +223,7 @@ const CheckPresence = () => {
     }
 
 
-    const printPDF = async (data) => {
+    const printPDF = async (data,Event) => {
         console.log(data);
         if (!pdfTemplate || !customFont || !customFontBold) {
             console.error('Assets not loaded');
@@ -221,13 +234,18 @@ const CheckPresence = () => {
         const pdfDoc = await PDFDocument.load(await pdfTemplate.save());
         const pages = pdfDoc.getPages();
         const firstPage = pages[0];
+        const eventDate = new Date(Event.date);
+        const formattedDate = Event.date.split('-').reverse().join('-'); // "28-11-2025"
+
+        // Reverse each character so pdf-lib draws it correctly
+        const pdfDate = formattedDate.split('').reverse().join(''); // "5202-11-82"
 
         // Add text to the PDF using the pre-loaded fonts
         firstPage.drawText(`${data[0].name}`, { x: 400, y: 160, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`${data[0].lastName}`, { x: 400, y: 130, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`${data[0].birthday}`, { x: 400, y: 100, size: 13, font: customFont, color: rgb(0, 0, 0) });
-        firstPage.drawText("الفحوصات الطبية 71 جانفي 5202", { x: 360, y: 338, size: 15, font: customFontBold, color: rgb(0, 0, 0) });
-        firstPage.drawText("مركب الفلك وهران", { x: 360, y: 317, size: 13, font: customFont, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${Event.name}`, { x: 360, y: 338, size: 15, font: customFontBold, color: rgb(0, 0, 0) });
+        firstPage.drawText(`${Event.place} | ${pdfDate}`, { x: 360, y: 317, size: 13, font: customFont, color: rgb(0, 0, 0) });
 
         firstPage.drawText(`TAJ_${data[0].patient_id}`, { x: 400, y: 190, size: 13, font: customFont, color: rgb(0, 0, 0) });
         firstPage.drawText(`${data[0].specialty.name}`, { x: 130, y: 348, size: 13, font: customFont, color: rgb(0, 0, 0) });
@@ -316,8 +334,11 @@ const CheckPresence = () => {
 
                                 </td>
                                 <td className='text-center'>
-                                    <span className={displayAppointments[patientId][0].status === 'Present' ? 'text-green-800' : displayAppointments[patientId][0].status === 'Completed' ? 'text-yellow-400' : 'text-yellow-800'}>
-                                        {displayAppointments[patientId][0].status}
+                                    <span className={displayAppointments[patientId][0].status === 'Present' ? 'text-green-800' : displayAppointments[patientId][0].status === 'Completed' ? 'text-yellow-400' : displayAppointments[patientId][0].status  ==='Commingsoon' ? 'text-green-800' : 'text-amber-700'}>
+                                      
+                                                <span>
+                                                {displayAppointments[patientId][0].status === 'Commingsoon' ? 'Present' : displayAppointments[patientId][0].status}
+                                            </span>
                                     </span>
                                 </td>
                                 <td className=' text-center mx-auto'>
@@ -394,7 +415,7 @@ const CheckPresence = () => {
                                     {/* <button className="button" onClick={() => generatePDF(`card-${patientId}`)}> */}
                                     {/* Generate Card PDF */}
                                     {/* </button> */}
-                                    <button onClick={() => printPDF(displayAppointments[patientId])}>Print PDF</button>
+                                    <button onClick={() => printPDF(displayAppointments[patientId],Event)}>Print PDF</button>
 
                                 </td>
                             </tr>
@@ -406,9 +427,13 @@ const CheckPresence = () => {
                                         <td>{appointment.specialty.name}</td>
                                         <td>{appointment.time}</td>
                                         <td className='text-center'>
-                                            <span className={appointment.status === 'Present' ? 'text-green-800' : appointment.status === 'Completed' ? 'text-yellow-400' : 'text-yellow-800'}>
-                                                {appointment.status}
+                                            <span className={appointment.status === 'Present' ? 'text-green-800' : appointment.status === 'Completed' ? 'text-yellow-400' : 'text-green-800'}>
+                                                
+                                                <span>
+                                                {appointment.status === 'Commingsoon' ? 'Present' : appointment.status}
                                             </span>
+                                            </span>
+                                             
 
                                         </td>
                                         <td></td>
