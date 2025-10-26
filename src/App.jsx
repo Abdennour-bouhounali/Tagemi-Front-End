@@ -81,54 +81,64 @@ export default function App() {
 
   return <LanguageProvider>
     <BrowserRouter>
+    
 
 
       <Routes>
+
+        {user ? (
+            /* -------- Admin / Authenticated layout -------- */
         <Route path="/" element={<AdminLayout />}>
-
-          <Route path="/users" element={Superadmin ? <AllUsers /> : <NotAuthenticated />} />
-          <Route path="/speciality" element={Superadmin ? <ManageSpeciality /> : <NotAuthenticated />} />
-          <Route path="/AllAppointments" element={RecipientAdmin || Superadmin || SpecialAdmin ? <CheckPresence /> : <NotAuthenticated />} />
-          <Route path="/settings" element={Superadmin ? <Settings /> : <NotAuthenticated />} />
-          <Route path="/WaitingList/:specialityId" element={CheckAdmin ? <CheckPaitent /> : <NotAuthenticated />} />
-          <Route path="/SpecialCase" element={SpecialAdmin ? <CheckPresence /> : <NotAuthenticated />} />
-          <Route path="/Statitistics" element={Superadmin ? <VisitsStatistics /> : <NotAuthenticated />} />
-          <Route path="/rules" element={Superadmin ? <ManageRules /> : <NotAuthenticated />} />
-
-          <Route path="/GeneralWaitingList" element={user ? <WaitingList /> : <NotAuthenticated />} />
-          <Route path="/manageEvents" element={Superadmin ? <EventsManagement /> : <NotAuthenticated />} />
-          <Route path="/AddMultipleAppointments" element={SpecialAdmin ? <AddMultipleAppointments /> : <NotAuthenticated />} />
-
-          <Route path="/types" element={Superadmin || SpecialAdmin ? <TypesPage /> : <NotAuthenticated />} />
-          <Route path="/activities" element={Superadmin ? <ActivitiesPage /> : <NotAuthenticated />} />
-          <Route path="/contacts" element={Superadmin ? <Messages /> : <NotAuthenticated />} />
-          <Route path="/sponsors" element={Superadmin ? <SponsorsPage /> : <NotAuthenticated />} />
-          <Route path="/future-projects" element={Superadmin ? <FutureProjectsPage /> : <NotAuthenticated />} />
-          <Route path="/blogs" element={Superadmin ? <BlogsPage /> : <NotAuthenticated />} />
-
-          <Route path="/voulenteers" element={Superadmin ? <SuperAdminVolunteers /> : <NotAuthenticated />} />
+              <Route path="/users" element={Superadmin ? <AllUsers /> : <NotAuthenticated />} />
+              <Route path="/speciality" element={Superadmin ? <ManageSpeciality /> : <NotAuthenticated />} />
+              <Route path="/AllAppointments" element={RecipientAdmin || Superadmin || SpecialAdmin ? <CheckPresence /> : <NotAuthenticated />} />
+              <Route path="/settings" element={Superadmin ? <Settings /> : <NotAuthenticated />} />
+              <Route path="/WaitingList/:specialityId" element={CheckAdmin ? <CheckPaitent /> : <NotAuthenticated />} />
+              <Route path="/SpecialCase" element={SpecialAdmin ? <SpecialCase /> : <NotAuthenticated />} />
+              <Route path="/Statitistics" element={Superadmin ? <VisitsStatistics /> : <NotAuthenticated />} />
+              <Route path="/rules" element={Superadmin ? <ManageRules /> : <NotAuthenticated />} />
+              <Route path="/GeneralWaitingList" element={<WaitingList />} />
+              <Route path="/manageEvents" element={Superadmin ? <EventsManagement /> : <NotAuthenticated />} />
+              <Route path="/AddMultipleAppointments" element={SpecialAdmin ? <AddMultipleAppointments /> : <NotAuthenticated />} />
+              <Route path="/contacts" element={Superadmin ? <Messages /> : <NotAuthenticated />} />
+              <Route path="/voulenteers" element={Superadmin ? <SuperAdminVolunteers /> : <NotAuthenticated />} />
+              <Route path="*" element={<NotFound />} />
+                  <Route
+                path="/appointment"
+                element={<RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />
+                }
+              />
 
 
         </Route>
+         ) : (
+            /* -------- Guest / Unauthenticated layout -------- */
 
         <Route path='/' element={<GuestLayout />}>
-          <Route index element={<RedirectToAppointment><Home /></RedirectToAppointment>} />
-          <Route path="/appointment" element={<RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />} />
+              <Route index element={<RedirectToAppointment><Home /></RedirectToAppointment>} />
+              <Route
+                path="/appointment"
+                element={
+                  user
+                    ? <Navigate to="/AllAppointments" replace />
+                    : <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />
+                }
+              />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="*" element={<NotFound />} />
           {/* <Route path="/tagemi" element={<Tagemi />} /> */}
           {/* <Route path="/about" element={<RedirectToAppointment><About /></RedirectToAppointment>} /> */}
           {/* <Route path="/contact" element={<RedirectToAppointment><Contact /></RedirectToAppointment>} />
           <Route path="/volunteer" element={<RedirectToAppointment><VolunteerForm /></RedirectToAppointment>} />
           <Route path='/activities/activity1' element={<RedirectToAppointment><Activities /></RedirectToAppointment>} />
           <Route path="/activities/showByActivitiesType/:TypeId" element={<RedirectToAppointment><Activities /></RedirectToAppointment>} /> */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
+  
           {/* <Route path="/login" element={user ? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} /> : <RedirectToAppointment><Login /></RedirectToAppointment>} />
           <Route path="/register" element={user ? <RegisterVisit specialities={specialities} setSpecialities={setSpecialities} /> : <RedirectToAppointment><Register /></RedirectToAppointment>} /> */}
           {/* <Route path='/actvities/:Actvityid' element={<RedirectToAppointment><ActivityDetails /></RedirectToAppointment>} />
           <Route path="/futureProjects" element={<RedirectToAppointment><FuturProjects /></RedirectToAppointment>} />
           <Route path="/future-prjects/:Projectid" element={<RedirectToAppointment><ProjectDetails /></RedirectToAppointment>} /> */}
-          <Route path="*" element={<NotFound />} />
         </Route>
 
 
@@ -136,9 +146,10 @@ export default function App() {
 
 
 
-      </Routes>
+              )}
 
-    </BrowserRouter>
-  </LanguageProvider>
+        </Routes>
+      </BrowserRouter>
+    </LanguageProvider>
 }
 

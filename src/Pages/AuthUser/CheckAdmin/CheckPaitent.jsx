@@ -192,7 +192,7 @@ async function handleCommingsoon(e, appointmentId, position) {
     }
 
     return (
-        <div className="md:container md:mx-auto min-w-full min-h-screen mb-5 text-nowrap">
+                <div className="overflow-x-auto w-full px-4 sm:px-6 lg:px-8">
 
             <h1 className="font-droid-arabic-kufi my-4 mx-auto text-2xl font-black text-[#131842]">{speciality}</h1>
             {message && (
@@ -213,8 +213,9 @@ async function handleCommingsoon(e, appointmentId, position) {
                 onChange={handleChange}
                 className="search-bar my-4 font-droid-arabic-kufi"
             />
-            <table className="table-auto my-7 block lg:table overflow-x-auto whitespace-nowrap min-w-[800px] w-full text-center font-droid-arabic-kufi">
-                <thead>
+                <div className="overflow-x-auto w-full px-4 sm:px-6 lg:px-8">
+  <div className="inline-block min-w-full shadow-lg rounded-2xl bg-white border border-gray-200">
+    <table className="min-w-full text-center border-collapse">                  <thead>
                     <tr>
                         <th>ID</th>
                         <th>الإسم</th>
@@ -316,7 +317,7 @@ async function handleCommingsoon(e, appointmentId, position) {
                     ))}
                 </tbody>
             </table>
-
+</div></div>
             {isModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-full h-[90%] overflow-auto">

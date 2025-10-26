@@ -3,7 +3,9 @@ import { AppContext } from '../../../Context/AppContext';
 import logo from './tagemi_logo.png';
 import { useTranslation } from 'react-i18next';
 import BirthdayInput from '../SuperAdmin/Components/BirthdayInput';
+
 const apiUrl = import.meta.env.VITE_API_URL;
+
 const RegisterVisit = ({ setSpecialities, specialities }) => {
   const { token } = useContext(AppContext);
   const { t } = useTranslation();
@@ -13,25 +15,12 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
   const [minTime, setMinTime] = useState(0);
   const [openSpecialitiesCount, setOpenSpecialitiesCount] = useState(0);
   const [rules, setRules] = useState([]);
-  const [confirm, setConfirm] = useState(false)
-  const [confirmafter, setConfirmAfter] = useState(false)
+  const [confirm, setConfirm] = useState(false);
+  const [confirmafter, setConfirmAfter] = useState(false);
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [isArabic, setIsArabic] = useState(false);
-  const [validationMessage, setValidationMessage] = useState(""); // Track validation message
-  const [Event, setEvent] = useState(null);
-
-  async function getEvent() {
-      const res = await fetch(`${apiUrl}/api/currentEvent`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setEvent(data["event"]);
-    }
-  
-    useEffect(() => {
-      getEvent();
-    }, []);
-
+  const [validationMessage, setValidationMessage] = useState('');
+  const [Event, setEvent] = useState(undefined); // undefined = loading, null = no event, object = event exists
 
   const [formData, setFormData] = useState({
     name: '',
@@ -40,9 +29,30 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     residence: '',
     diseases: '',
     phone: '',
-    sex: '', // TinyInt for sex (0 or 1)
+    sex: '',
     specialties: [{ specialty_id: '' }],
   });
+
+  // ✅ Improved getEvent with 404 handling
+  async function getEvent() {
+    try {
+      const res = await fetch(`${apiUrl}/api/currentEvent`);
+      if (res.status === 404) {
+        setEvent(null);
+        return;
+      }
+      if (!res.ok) throw new Error('Server error');
+      const data = await res.json();
+      setEvent(data['event']);
+    } catch (error) {
+      console.error('Error fetching event:', error);
+      setEvent(null);
+    }
+  }
+
+  useEffect(() => {
+    getEvent();
+  }, []);
 
   useEffect(() => {
     getSpecialities();
@@ -59,7 +69,9 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     const res = await fetch(`${apiUrl}/api/specialty`);
     const data = await res.json();
     setSpecialities(data['specialties']);
-    const openSpecialities = data['specialties'].filter(specialty => specialty.id !== 6 && specialty.Flag !== 'Closed'&& specialty.is_active == 1);
+    const openSpecialities = data['specialties'].filter(
+      (s) => s.id !== 6 && s.Flag !== 'Closed' && s.is_active === 1
+    );
     setOpenSpecialitiesCount(openSpecialities.length);
   }
 
@@ -72,39 +84,6 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
     }
   };
 
-  const handleChangeData = (e) => {
-    const { name, value } = e.target;
-
-    const arabicRegex = /^[\u0621-\u064A\u0660-\u0669\s]*$/;
-
-    // If the name is 'name' or 'lastName', we validate Arabic input
-    if (name === 'name' || name === 'lastName') {
-      if (arabicRegex.test(value)) {
-        // Input is valid (Arabic)
-        setFormData({
-          ...formData,
-          [name]: value,
-        });
-        setIsArabic(true);
-        setValidationMessage("");  // Clear validation message
-      } else {
-        // Input is invalid (non-Arabic)
-        setIsArabic(false);
-        setValidationMessage("يرجى إدخال أحرف عربية فقط");
-      }
-    } else {
-      // For other fields, just update form data
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: value,
-      }));
-      setIsArabic(true); // Assuming other fields are valid
-      setValidationMessage(""); // Clear validation message
-    }
-  };
-
-
-
   const handleRemoveSpecialty = () => {
     if (formData.specialties.length > 1) {
       setFormData({
@@ -116,362 +95,426 @@ const RegisterVisit = ({ setSpecialities, specialities }) => {
 
   const handleChange = (index, event) => {
     const updatedSpecialties = formData.specialties.map((specialty, i) =>
-      index === i ? { ...specialty, [event.target.name]: event.target.value } : specialty
+      index === i
+        ? { ...specialty, [event.target.name]: event.target.value }
+        : specialty
     );
     setFormData({ ...formData, specialties: updatedSpecialties });
   };
 
-const handleSubmit = async (event) => {
-  event.preventDefault();
+  const handleChangeData = (e) => {
+    const { name, value } = e.target;
+    const arabicRegex = /^[\u0621-\u064A\u0660-\u0669\s]*$/;
 
-  try {
-    const res = await fetch(`${apiUrl}/api/appointment`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    });
-
-    const data = await res.json();
-    console.log("Response:", data);
-
-    // Always show the confirmation box
-    setConfirmAfter(true);
-
-    // ✅ Success case
-    if (res.ok) {
-      setAppointments(data['appointments'] || []);
-      setMinTime(data['minTime']);
-      getSpecialities();
-
-      setFormData({
-        name: '',
-        lastName: '',
-        birthday: '',
-        residence: '',
-        diseases: '',
-        phone: '',
-        sex: '',
-        specialties: [{ specialty_id: '' }],
-      });
-
-      setMessage(data['message'] || "تم إرسال البيانات بنجاح.");
-      setWaiting(data['waitinglist_message'] || '');
-    } 
-    // ❌ Error case (like no current event)
-    else {
-      setMessage(data['message'] || "حدث خطأ أثناء إرسال الطلب.");
-      setAppointments([]);
+    if (name === 'name' || name === 'lastName') {
+      if (arabicRegex.test(value)) {
+        setFormData({ ...formData, [name]: value });
+        setIsArabic(true);
+        setValidationMessage('');
+      } else {
+        setIsArabic(false);
+        setValidationMessage('يرجى إدخال أحرف عربية فقط');
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      setIsArabic(true);
+      setValidationMessage('');
     }
-  } catch (error) {
-    console.error("Error submitting form:", error);
-    setMessage("حدث خطأ في الاتصال بالخادم.");
-  }
-};
+  };
 
-  const isFormValid = formData.name && formData.birthday && formData.residence && formData.sex && formData.specialties.every(specialty => specialty.specialty_id);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const res = await fetch(`${apiUrl}/api/appointment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      setConfirmAfter(true);
+
+      if (res.ok) {
+        setAppointments(data['appointments'] || []);
+        setMinTime(data['minTime']);
+        getSpecialities();
+        setFormData({
+          name: '',
+          lastName: '',
+          birthday: '',
+          residence: '',
+          diseases: '',
+          phone: '',
+          sex: '',
+          specialties: [{ specialty_id: '' }],
+        });
+        setMessage(data['message'] || 'تم إرسال البيانات بنجاح.');
+        setWaiting(data['waitinglist_message'] || '');
+      } else {
+        setMessage(data['message'] || 'حدث خطأ أثناء إرسال الطلب.');
+        setAppointments([]);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setMessage('حدث خطأ في الاتصال بالخادم.');
+    }
+  };
+
+  const isFormValid =
+    formData.name &&
+    formData.birthday &&
+    formData.residence &&
+    formData.sex &&
+    formData.specialties.every((s) => s.specialty_id);
 
   return (
-    <div className="relative md:static bg-slate-100 w-screen h-screen">
-      {!confirm && (
-        <div className="rules w-full max-w-[600px] h-auto bg-white  shadow-lg rounded-lg p-4 sm:p-2 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" dir="rtl">
-          <h1 className="text-2xl font-semibold mb-4 sm:mb-6 text-[#131842] text-center font-droid-arabic-kufi">
-            ضوابط نظام الفحوصات الطبية
-          </h1>
-          <ul className="list-disc list-inside mb-4 sm:mb-6 px-4 space-y-2 text-gray-800">
-            {rules.map(rule => (
-
-              <li key={rule.id} className={`font-bold font-droid-arabic-kufi  ${rule.id == 1 ? 'text-red-500' : ''}`}>
-                {rule.rule}
-              </li>
-            ))}
-          </ul>
-          <div className="flex items-center px-4 text-center mb-4">
-            <input
-              type="checkbox"
-              id="acceptRules"
-              className="h-4 w-4 sm:h-5 sm:w-5 text-3xl sm:text-lg font-bold font-droid-arabic-kufi  text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              onChange={(e) => setAcceptedRules(e.target.checked)}
-            />
-            <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-lg font-droid-arabic-kufi">
-              أوافق على الضوابط
-            </label>
-          </div>
-          <div className="text-center">
-
-            <button
-              onClick={() => setConfirm(true)}
-              className="text-white bg-blue-600 w-1/2 mx-auto focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
-              disabled={!acceptedRules}
-            >
-              تأكيد
-            </button>
-          </div>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      {/* Show loading while waiting for event */}
+      {Event === undefined ? (
+        <div className="text-center text-gray-500 font-droid-arabic-kufi">
+          جاري التحميل...
         </div>
-
-      )}
-
-
-      {confirm && (
-        <div className="p-2 text-l  h-fit text-white bg-opacity-50 rounded-xl container mx-auto">
-          <div className=" mx-auto bg-opacity-95   py-10">
-
-            {/* <div className="p-2 text-lg sm:text-2xl min-w-[300px] sm:min-w-[500px] h-fit text-white bg-opacity-50 rounded-xl "> */}
-            {/* <div className="min-w-[250px] sm:min-w-[578px] mx-auto bg-opacity-95 bg-[#EEEDEB] px-4 sm:px-8 py-6 sm:py-10 "> */}
-            {/* Picture and Title */}
-
-
-            {/* Success Message */}
-            {(message && confirmafter) && (
-              <div className="flex flex-col  items-center text-center max-w-[700px] container p-3 sm:p-4 mb-4 text-lg sm:text-lg text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" role="alert">
-                <span className="sr-only font-droid-arabic-kufi">ملاحظة</span>
-
-                {/* Close Button */}
-                {/* <button
-                  onClick={() => setConfirmAfter(false)}
-                  className="absolute top-2 right-2 text-[#2F3645] bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+      ) : Event === null ? (
+        // ✅ Show this when no event exists
+        <div
+          className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md text-center"
+          dir="rtl"
+        >
+          <img
+            src={logo}
+            alt="Logo"
+            className="h-24 mx-auto mb-4 opacity-80"
+          />
+          <h2 className="text-2xl font-bold text-[#131842] font-droid-arabic-kufi mb-2">
+            🚫 لا يوجد حدث حالي
+          </h2>
+          <p className="text-gray-600 font-droid-arabic-kufi mb-4">
+            لا توجد حالياً فعاليات طبية مفتوحة للحجز.
+            <br />
+            يرجى العودة لاحقاً أو متابعة صفحتنا الرسمية لمعرفة مواعيد الأحداث
+            القادمة.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-[#2F3645] hover:bg-[#131842] text-white px-6 py-3 rounded-lg font-droid-arabic-kufi transition"
+          >
+            تحديث الصفحة 🔄
+          </button>
+        </div>
+      ) : (
+        // ✅ Event exists → keep your normal behavior
+        <>
+          {!confirm && (
+            <div
+              className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+              dir="rtl"
+            >
+              <h1 className="text-center text-2xl font-bold text-[#131842] font-droid-arabic-kufi mb-4">
+                ضوابط نظام الفحوصات الطبية
+              </h1>
+              <ul className="list-disc list-inside mb-4 text-gray-700 space-y-2">
+                {rules.map((rule) => (
+                  <li
+                    key={rule.id}
+                    className={`font-droid-arabic-kufi font-bold ${
+                      rule.id === 1 ? 'text-red-500' : ''
+                    }`}
+                  >
+                    {rule.rule}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  id="acceptRules"
+                  className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                  onChange={(e) => setAcceptedRules(e.target.checked)}
+                />
+                <label
+                  htmlFor="acceptRules"
+                  className="mr-2 text-gray-700 font-droid-arabic-kufi"
                 >
-                  ×
-                </button> */}
+                  أوافق على الضوابط
+                </label>
+              </div>
+              <button
+                disabled={!acceptedRules}
+                onClick={() => setConfirm(true)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-droid-arabic-kufi"
+              >
+                تأكيد
+              </button>
+            </div>
+          )}
 
-                <div>
-                  {waiting && waiting.length > 0 && (
-                    <>
-                      <span className="font-medium font-droid-arabic-kufi">
-                        أنت في قائمة الإنتظار في هذه التخصصات : {waiting}
-                      </span>
-                      <br />
-                    </>
+          {confirm && (
+            <div
+              className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg mx-auto"
+              dir="rtl"
+            >
+              {confirmafter && message && (
+                <div className="bg-[#EEEDEB] border border-green-300 p-4 rounded-lg text-center mb-6">
+                  {waiting && (
+                    <p className="font-droid-arabic-kufi font-medium mb-2">
+                      أنت في قائمة الإنتظار في هذه التخصصات: {waiting}
+                    </p>
+                  )}
+                  <p className="font-droid-arabic-kufi font-black text-red-500 mb-2">
+                    {message}
+                  </p>
+                  <p className="font-droid-arabic-kufi font-bold text-red-500 mb-2">
+                    بالنسبة للنساء يجب الحضور بمحرم
+                  </p>
+                  <button
+                    onClick={() => setConfirmAfter(false)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg font-droid-arabic-kufi"
+                  >
+                    تأكيد
+                  </button>
+                </div>
+              )}
+
+              {!confirmafter && (
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="text-center mb-4">
+                    <img
+                      src={logo}
+                      alt="Logo"
+                      className="h-24 mx-auto mb-2"
+                    />
+                    <h1 className="text-xl md:text-2xl font-extrabold font-droid-arabic-kufi text-[#2F3645]">
+                      {Event?.name}
+                    </h1>
+                    <p className="text-gray-600 font-droid-arabic-kufi">
+                      {Event?.date} | {Event?.place}
+                    </p>
+                    <p className="font-droid-arabic-kufi mt-2">
+                      أحجز موعدا مع الطبيب
+                    </p>
+                  </div>
+
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChangeData}
+                    placeholder="الإسم"
+                    required
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 font-droid-arabic-kufi"
+                  />
+                  {!isArabic && formData.name && (
+                    <p className="text-red-500 text-sm font-droid-arabic-kufi">
+                      {validationMessage}
+                    </p>
                   )}
 
-                  {message && message.length > 0 && (
-                    <>
-                      <span className='font-droid-arabic-kufi my-4 text-xl'>نسأل الله الشفاء لكل مرضى المسلمين</span>
-                      <br />
-                      <br />
-                      {/* <span className=' font-black font-droid-arabic-kufi'>   نرجوا القدوم ساعة قبل   </span>    <span className='text-red-600 font-black font-droid-arabic-kufi'>{message}</span> */}
-                      <span className='font-droid-arabic-kufi font-black text-red-500'>{message}</span>
-                      <br />
-                      <br />
-                      <span className="text-lg text-red-500 font-bold my-4 font-droid-arabic-kufi">
-                        بالنسبة للنساء يجب الحضور بمحرم                      </span>
-                      <br />
-                      <br />
-                      <span className="font-extrabold font-droid-arabic-kufi my-4">إحجز لشخص آخر</span>
-                      <br />
-                      <br />
-                    </>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChangeData}
+                    placeholder="اللقب"
+                    required
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 font-droid-arabic-kufi"
+                  />
+                  {!isArabic && formData.lastName && (
+                    <p className="text-red-500 text-sm font-droid-arabic-kufi">
+                      {validationMessage}
+                    </p>
                   )}
-                </div>
-                <button
-                  onClick={() => setConfirmAfter(false)}
-                  className="text-white bg-blue-600 w-1/2 mx-auto focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
-                >
-                  تأكيد
-                </button>
-              </div>
 
-            )}
+                  <BirthdayInput
+                    value={formData.birthday}
+                    onChange={(date) =>
+                      setFormData({ ...formData, birthday: date })
+                    }
+                  />
 
-            {/* Appointment Form */}
-            {/* <form onSubmit={handleSubmit} className="space-y-4 text-lg"> */}
-            <div className={`flex justify-center flex-col tetx-center max-w-[700px] mx-auto px-1 py-5 bg-[#EEEDEB] ${confirmafter ? 'hidden' : ''}`}>
-              <div className="flex items-center justify-center mb-4 sm:mb-8">
-                <div className="text-center">
-                  <img src={logo} alt="Appointment Form" className="h-44 w-auto mb-4 mx-auto" />
-                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645]">{Event.name}</h1>
-                  <h1 className="md:text-2xl text-lg font-extrabold font-droid-arabic-kufi text-[#2F3645] my-3">{Event.date} | {Event.place}</h1>
-                  <h1 className="md:text-2xl text-sm font-bold font-droid-arabic-kufi text-[#2F3645]">أحجز موعدا مع الطبيب</h1>
-                </div>
-              </div>
+<select
+  name="residence"
+  value={formData.residence}
+  onChange={handleChangeData}
+  required
+  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 font-droid-arabic-kufi"
+>
+  {/* ---- TAWAT local options ---- */}
+  {Event?.type === 'TAWAT' && (
+    <>
+      <option value="">قصر الإنتماء</option>
+      <option value="Tajnint">تجنينت</option>
+      <option value="Bonora">آت بونور</option>
+      <option value="Taghardait">تغردايت</option>
+      <option value="Yazgan">آت يزجن</option>
+      <option value="Mlichat">آت مليشت</option>
+      <option value="Karara">إقرارن</option>
+      <option value="Berian">آت برقان</option>
+      <option value="Warjlan">وارجلان</option>
+    </>
+  )}
 
-              <form onSubmit={handleSubmit} className="space-y-4 md:text-lg max-w-[600px] mx-auto  sm:text-lg ">
-
-                {/* Name Field */}
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChangeData}
-                  className="mt-1 block min-w-[320px] rounded-md sm:w-80 font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="الإسم"
-                  required
-                />{!isArabic && formData.name && (
-                  <p className="text-red-500 font-droid-arabic-kufi text-sm mt-1">{validationMessage}</p>
-                )}
-
-                {/* Last Name Field */}
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChangeData}
-                  className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="اللقب"
-                  required
-                />
-                {!isArabic && formData.name && (
-                  <p className="text-red-500 text-sm mt-1 font-droid-arabic-kufi">{validationMessage}</p>
-                )}
-                {/* Birthday Field */}
-                <BirthdayInput
-                  value={formData.birthday}
-                  onChange={(date) => setFormData({ ...formData, birthday: date })}
-                />
-
-                {/* Residence Field */}
-                {/* <label htmlFor="residence" className="block text-gray-700 font-droid-arabic-kufi">الإقامة :</label> */}
-
-                <select
-                  id="residence"
-                  name="residence"
-                  value={formData.residence}
-                  onChange={handleChangeData}
-                  className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  required
-                >
-                  <option value="">قصر الإنتماء</option>
-                  <option value="tajnint">تجنينت</option>
-                  <option value="bonora">آت بونور</option>
-                  <option value="taghardait">تغردايت</option>
-                  <option value="yazgan">آت يزجن</option>
-                  <option value="mlichat">آت مليشت</option>
-                  <option value="karara">إقرارن</option>
-                  <option value="berian">آت برقان</option>
-                  <option value="warjlan">وارجلان</option>
-                </select>
-
-
-                {/* Diseases Field */}
-                {/* <label htmlFor="diseases" className="block text-gray-700 font-droid-arabic-kufi">الأمراض :</label> */}
-                <input
-                  type="text"
-                  id="diseases"
-                  name="diseases"
-                  value={formData.diseases}
-                  onChange={handleChangeData}
-                  className="mt-1 block  rounded-md text-black font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
-
-                />
-
-                {/* Phone Field */}
-                {/* <label htmlFor="phone" className="block text-gray-700 font-droid-arabic-kufi">رقم الهاتف :</label> */}
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChangeData}
-                  className="mt-1 block rtl text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  placeholder="أدخل رقم هاتف الواتساب"
-                  required
-                  dir="rtl" // This ensures RTL text direction for the placeholder and user input
-                />
-
-
-                {/* Sex Field */}
-                {/* <label htmlFor="sex" className="block text-gray-700 font-droid-arabic-kufi">الجنس :</label> */}
-                <select
-                  id="sex"
-                  name="sex"
-                  value={formData.sex}
-                  onChange={handleChangeData}
-                  className="mt-1 block  text-black rounded-md font-droid-arabic-kufi border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  required
-                >
-                  <option value="">اختر الجنس</option>
-                  <option value="0">ذكر</option>
-                  <option value="1">أنثى</option>
-                </select>
-
-
-                {formData.specialties.map((specialty, index) => (
-                  <div key={index} className="block sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 items-end">
-                    <div className="mx-auto">
-                      {index === formData.specialties.length - 1 && formData.specialties.length > 1 && (
-
-
-                        <span className='mr-0 text-red-600 font-droid-arabic-kufi'>حسب توفر الوقت</span>
-
-                      )}
-                      {/* <label htmlFor={`specialty_id_${index}`} className="block text-gray-700 font-droid-arabic-kufi">إختر التخصص</label> */}
-                      <div className="relative w-1/2">
-
-                        <select
-                          id={`specialty_id_${index}`}
-                          required
-                          name="specialty_id"
-                          value={specialty.specialty_id}
-                          onChange={(event) => handleChange(index, event)}
-                          dir="rtl" // This ensures the entire select dropdown is RTL
-                          className="block mt-2 appearance-none text-black font-normal font-droid-arabic-kufi text-lg w-auto bg-[#EEEDEB] border border-[#2F3645] hover:border-[#131842]  py-2 pl-5 pr-1 rounded-md shadow-sm focus:outline-none focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        >
-
-                          <option value="" className='text-red-600 font-droid-arabic-kufi' dir="rtl">إختر تخصصا</option> {/* Ensure RTL for this option */}
-                          {specialities
-                            .filter(specialty => (specialty.id !== 6 && specialty.Flag !== 'Closed' && specialty.is_active == 1))
-                            .map(specialty => (
-                              <option className='font-droid-arabic-kufi' dir="rtl" key={specialty.id} value={specialty.id}>
-                                {specialty.name == 'طب الأسنان' ? 'طب الأسنان ( فحص و استشارة)' : specialty.name}
-                              </option> // Ensure RTL for each option
-                            ))}
-                        </select>
-
-                      </div>
+  {/* ---- National event: 58 wilayas ---- */}
+  {Event?.type === 'National' && (
+    <>
+      <option value="">اختر ولايتك</option>
+      <option value="Adrar">أدرار - 01</option>
+      <option value="Chlef">الشلف - 02</option>
+      <option value="Laghouat">الأغواط - 03</option>
+      <option value="Oum El Bouaghi">أم البواقي - 04</option>
+      <option value="Batna">باتنة - 05</option>
+      <option value="Béjaïa">بجاية - 06</option>
+      <option value="Biskra">بسكرة - 07</option>
+      <option value="Béchar">بشار - 08</option>
+      <option value="Blida">البليدة - 09</option>
+      <option value="Bouira">البويرة - 10</option>
+      <option value="Tamanrasset">تمنراست - 11</option>
+      <option value="Tébessa">تبسة - 12</option>
+      <option value="Tlemcen">تلمسان - 13</option>
+      <option value="Tiaret">تيارت - 14</option>
+      <option value="Tizi Ouzou">تيزي وزو - 15</option>
+      <option value="Alger">الجزائر - 16</option>
+      <option value="Djelfa">الجلفة - 17</option>
+      <option value="Jijel">جيجل - 18</option>
+      <option value="Sétif">سطيف - 19</option>
+      <option value="Saïda">سعيدة - 20</option>
+      <option value="Skikda">سكيكدة - 21</option>
+      <option value="Sidi Bel Abbès">سيدي بلعباس - 22</option>
+      <option value="Annaba">عنابة - 23</option>
+      <option value="Guelma">قالمة - 24</option>
+      <option value="Constantine">قسنطينة - 25</option>
+      <option value="Médéa">المدية - 26</option>
+      <option value="Mostaganem">مستغانم - 27</option>
+      <option value="M'Sila">المسيلة - 28</option>
+      <option value="Mascara">معسكر - 29</option>
+      <option value="Ouargla">ورقلة - 30</option>
+      <option value="Oran">وهران - 31</option>
+      <option value="El Bayadh">البيض - 32</option>
+      <option value="Illizi">إليزي - 33</option>
+      <option value="Bordj Bou Arreridj">برج بوعريريج - 34</option>
+      <option value="Boumerdès">بومرداس - 35</option>
+      <option value="El Tarf">الطارف - 36</option>
+      <option value="Tindouf">تندوف - 37</option>
+      <option value="Tissemsilt">تيسمسيلت - 38</option>
+      <option value="El Oued">الوادي - 39</option>
+      <option value="Khenchela">خنشلة - 40</option>
+      <option value="Souk Ahras">سوق أهراس - 41</option>
+      <option value="Tipaza">تيبازة - 42</option>
+      <option value="Mila">ميلة - 43</option>
+      <option value="Aïn Defla">عين الدفلى - 44</option>
+      <option value="Naâma">النعامة - 45</option>
+      <option value="Aïn Témouchent">عين تموشنت - 46</option>
+      <option value="Ghardaïa">غرداية - 47</option>
+      <option value="Relizane">غليزان - 48</option>
+      <option value="Timimoun">تيميمون - 49</option>
+      <option value="Bordj Badji Mokhtar">برج باجي مختار - 50</option>
+      <option value="Ouled Djellal">أولاد جلال - 51</option>
+      <option value="Béni Abbès">بني عباس - 52</option>
+      <option value="In Salah">عين صالح - 53</option>
+      <option value="In Guezzam">عين قزّام - 54</option>
+      <option value="Touggourt">توقرت - 55</option>
+      <option value="Djanet">جانت - 56</option>
+      <option value="El M'Ghair">المغير - 57</option>
+      <option value="El Meniaa">المنيعة - 58</option>
+    </>
+  )}
+</select>
 
 
 
+                  <input
+                    type="text"
+                    name="diseases"
+                    value={formData.diseases}
+                    onChange={handleChangeData}
+                    placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 font-droid-arabic-kufi"
+                  />
 
-                      {index === formData.specialties.length - 1 && (
-                        <div className="flex w-full mt-3">
-                          {formData.specialties.length < 2 && openSpecialitiesCount > 1 && (
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChangeData}
+                    placeholder="أدخل رقم هاتف الواتساب"
+                    required
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 font-droid-arabic-kufi"
+                    dir="rtl"
+                  />
+
+                  <select
+                    name="sex"
+                    value={formData.sex}
+                    onChange={handleChangeData}
+                    required
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 font-droid-arabic-kufi"
+                  >
+                    <option value="">اختر الجنس</option>
+                    <option value="0">ذكر</option>
+                    <option value="1">أنثى</option>
+                  </select>
+
+                  {formData.specialties.map((specialty, index) => (
+                    <div key={index} className="flex flex-col space-y-2">
+                      <select
+                        name="specialty_id"
+                        value={specialty.specialty_id}
+                        onChange={(e) => handleChange(index, e)}
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 font-droid-arabic-kufi"
+                      >
+                        <option value="">إختر تخصصا</option>
+                        {specialities
+                          .filter(
+                            (s) =>
+                              s.id !== 6 &&
+                              s.Flag !== 'Closed' &&
+                              s.is_active === 1
+                          )
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name === 'طب الأسنان'
+                                ? 'طب الأسنان ( فحص و استشارة)'
+                                : s.name}
+                            </option>
+                          ))}
+                      </select>
+                      <div className="flex space-x-2 justify-end">
+                        {formData.specialties.length < 2 &&
+                          openSpecialitiesCount > 1 && (
                             <button
                               type="button"
                               onClick={handleAddSpecialty}
-                              className="bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded font-droid-arabic-kufi"
+                              className="bg-green-500 hover:bg-green-700 text-white px-4 py-2 rounded font-droid-arabic-kufi"
                             >
                               أضف تخصص آخر
                             </button>
                           )}
-                          {formData.specialties.length > 1 && (
-                            <div className='flex w-full flex-row'>
-
-                              <button
-                                type="button"
-                                onClick={handleRemoveSpecialty}
-                                className="bg-red-500  hover:bg-red-700 text-white py-2 px-4 rounded font-droid-arabic-kufi"
-                              >
-                                إزالة التخصص
-                              </button>
-
-                            </div>
-                          )}
-                        </div>
-                      )}
-
+                        {formData.specialties.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveSpecialty}
+                            className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded font-droid-arabic-kufi"
+                          >
+                            إزالة التخصص
+                          </button>
+                        )}
+                      </div>
                     </div>
+                  ))}
 
-
-                  </div>
-                ))}
-
-                <div className="flex items-center justify-center">
                   <button
                     type="submit"
-                    // disabled={!isFormValid}
-                    className="text-white bg-[#2F3645] hover:bg-[#131842] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center font-droid-arabic-kufi"
+                    className="w-full bg-[#2F3645] hover:bg-[#131842] text-white py-3 rounded-lg font-droid-arabic-kufi"
                   >
                     إحجز موعدك
                   </button>
-                </div>
-              </form>
+                </form>
+
+
+              )}
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -138,136 +138,146 @@ const AddMultipleAppointments = () => {
   };
 
   return (
-    <div className="container mx-auto py-10 px-4">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-droid-arabic-kufi font-bold">إضافة عدة مواعيد</h2>
-      </div>
+<div className="w-full max-w-7xl bg-white rounded-2xl shadow-lg p-8 mb-10">
+  <div className="text-center mb-8">
+    <h2 className="text-3xl font-bold font-droid-arabic-kufi text-blue-900">
+      إضافة عدة مواعيد
+    </h2>
+    {Event && (
+      <p className="mt-2 text-gray-600 font-droid-arabic-kufi">
+        الحدث الحالي: <span className="font-semibold">{Event.name}</span>
+      </p>
+    )}
+  </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Select Specialty at top */}
-        <div className="mb-6">
-          <label className="block mb-2 font-bold">اختر التخصص لجميع المواعيد:</label>
+  <form onSubmit={handleSubmit} className="space-y-6">
+    {/* Select Specialty */}
+    <div className="mb-6">
+      <label className="block mb-2 font-semibold text-gray-700 font-droid-arabic-kufi">
+        اختر التخصص لجميع المواعيد:
+      </label>
+      <select
+        value={selectedSpecialty}
+        onChange={(e) => setSelectedSpecialty(e.target.value)}
+        className="p-3 h-12 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-300 focus:outline-none"
+        required
+      >
+        <option value="">اختر تخصصاً</option>
+        {specialities.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {appointments.map((app, idx) => (
+      <div
+        key={idx}
+        className="p-6 bg-blue-50 rounded-xl shadow-inner border border-blue-100 hover:shadow-lg transition"
+      >
+        <h3 className="font-bold text-xl mb-4 text-blue-800">موعد #{idx + 1}</h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+          <input
+            type="text"
+            placeholder="الإسم"
+            value={app.name}
+            onChange={(e) => handleChange(idx, "name", e.target.value)}
+            className="p-3 h-12 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            required
+          />
+          <input
+            type="text"
+            placeholder="اللقب"
+            value={app.lastName}
+            onChange={(e) => handleChange(idx, "lastName", e.target.value)}
+            className="p-3 h-12 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            required
+          />
           <select
-            value={selectedSpecialty}
-            onChange={(e) => setSelectedSpecialty(e.target.value)}
-            className="p-2 h-10 border rounded w-full"
+            value={app.residence}
+            onChange={(e) => handleChange(idx, "residence", e.target.value)}
+            className="p-3 h-12 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-200 focus:outline-none"
             required
           >
-            <option value="">اختر تخصصاً</option>
-            {specialities.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
+            <option value="">قصر الإنتماء</option>
+            <option value="tajnint">تجنينت</option>
+            <option value="bonora">آت بونور</option>
+            <option value="taghardait">تغردايت</option>
+            <option value="yazgan">آت يزجن</option>
+            <option value="mlichat">آت مليشت</option>
+            <option value="karara">إقرارن</option>
+            <option value="berian">آت برقان</option>
+            <option value="warjlan">وارجلان</option>
           </select>
+          <BirthdayInput
+            value={app.birthday}
+            onChange={(date) => handleChange(idx, "birthday", date)}
+          />
         </div>
 
-        {appointments.map((app, idx) => (
-          <div
-            key={idx}
-            className="p-6 bg-white rounded-lg shadow-lg border border-gray-200 space-y-4 hover:shadow-xl transition"
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <input
+            type="tel"
+            placeholder="رقم الهاتف"
+            value={app.phone}
+            onChange={(e) => handleChange(idx, "phone", e.target.value)}
+            className="p-3 h-12 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            required
+          />
+          <select
+            value={app.sex}
+            onChange={(e) => handleChange(idx, "sex", e.target.value)}
+            className="p-3 h-12 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            required
           >
-            <h3 className="font-bold text-xl mb-4">موعد #{idx + 1}</h3>
+            <option value="">اختر الجنس</option>
+            <option value="0">ذكر</option>
+            <option value="1">أنثى</option>
+          </select>
+          <input
+            type="text"
+            placeholder="الأمراض"
+            value={app.diseases}
+            onChange={(e) => handleChange(idx, "diseases", e.target.value)}
+            className="p-3 h-12 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-200 focus:outline-none"
+          />
+          <div /> {/* Placeholder for grid alignment */}
+        </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <input
-                type="text"
-                placeholder="الإسم"
-                value={app.name}
-                onChange={(e) => handleChange(idx, "name", e.target.value)}
-                className="p-2 h-10 border rounded w-full"
-                required
-              />
-              <input
-                type="text"
-                placeholder="اللقب"
-                value={app.lastName}
-                onChange={(e) => handleChange(idx, "lastName", e.target.value)}
-                className="p-2 h-10 border rounded w-full"
-                required
-              />
-              <select
-                value={app.residence}
-                onChange={(e) => handleChange(idx, "residence", e.target.value)}
-                className="p-2 h-10 border rounded w-full"
-                required
-              >
-                <option value="">قصر الإنتماء</option>
-                <option value="tajnint">تجنينت</option>
-                <option value="bonora">آت بونور</option>
-                <option value="taghardait">تغردايت</option>
-                <option value="yazgan">آت يزجن</option>
-                <option value="mlichat">آت مليشت</option>
-                <option value="karara">إقرارن</option>
-                <option value="berian">آت برقان</option>
-                <option value="warjlan">وارجلان</option>
-              </select>
-              <BirthdayInput
-                value={app.birthday}
-                onChange={(date) => handleChange(idx, "birthday", date)}
-                />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <input
-                type="tel"
-                placeholder="رقم الهاتف"
-                value={app.phone}
-                onChange={(e) => handleChange(idx, "phone", e.target.value)}
-                className="p-2 h-10 border rounded w-full"
-                required
-              />
-              <select
-                value={app.sex}
-                onChange={(e) => handleChange(idx, "sex", e.target.value)}
-                className="p-2 h-10 border rounded w-full"
-                required
-              >
-                <option value="">اختر الجنس</option>
-                <option value="0">ذكر</option>
-                <option value="1">أنثى</option>
-              </select>
-              <input
-                type="text"
-                placeholder="الأمراض"
-                value={app.diseases}
-                onChange={(e) => handleChange(idx, "diseases", e.target.value)}
-                className="p-2 h-10 border rounded w-full"
-              />
-              <div /> {/* empty placeholder for grid alignment */}
-            </div>
-
-            {appointments.length > 1 && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => removeForm(idx)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition"
-                >
-                  إزالة
-                </button>
-              </div>
-            )}
+        {appointments.length > 1 && (
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              onClick={() => removeForm(idx)}
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
+            >
+              إزالة
+            </button>
           </div>
-        ))}
+        )}
+      </div>
+    ))}
 
-        <div className="flex flex-col sm:flex-row justify-between gap-4 mt-6">
-          <button
-            type="button"
-            onClick={addForm}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded transition"
-          >
-            + إضافة نموذج
-          </button>
-          <button
-            type="submit"
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded transition"
-          >
-            إرسال جميع المواعيد
-          </button>
-        </div>
-      </form>
+    <div className="flex flex-col sm:flex-row justify-between gap-4 mt-6">
+      <button
+        type="button"
+        onClick={addForm}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-droid-arabic-kufi"
+      >
+        + إضافة نموذج
+      </button>
+      <button
+        type="submit"
+        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition font-droid-arabic-kufi"
+      >
+        إرسال جميع المواعيد
+      </button>
     </div>
+  </form>
+</div>
+
   );
 };
 

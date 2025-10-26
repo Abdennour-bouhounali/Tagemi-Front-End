@@ -29,7 +29,9 @@ const VisitsStatistics = () => {
     return (
         <div className='flex-grow container min-h-screen font-droid-arabic-kufi'>
             {/* Specialty Statistics Table */}
-            <table className="table-auto my-7 text-center">
+                <div className="overflow-x-auto w-full px-4 sm:px-6 lg:px-8">
+  <div className="inline-block min-w-full shadow-lg rounded-2xl bg-white border border-gray-200">
+    <table className="min-w-full text-center border-collapse">  
                 <thead>
                     <tr>
                         <th>التخصصص</th>
@@ -61,7 +63,7 @@ const VisitsStatistics = () => {
                         <td className="border px-4 py-2 font-bold">{totals.totalWaiting_list}</td>
                     </tr>
                 </tbody>
-            </table>
+            </table> </div></div>
 
             {/* Additional Statistics */}
             <div className="mt-5">

@@ -30,7 +30,9 @@ const UserTable = ({ users, specialities, roles }) => {
   }
 
   return (
-    <table className="table-auto">
+    <div className="overflow-x-auto w-full px-4 sm:px-6 lg:px-8">
+  <div className="inline-block min-w-full shadow-lg rounded-2xl bg-white border border-gray-200">
+    <table className="min-w-full text-center border-collapse">  
       <thead>
         <tr>
           <th>Name</th>
@@ -73,7 +75,7 @@ const UserTable = ({ users, specialities, roles }) => {
             </tr>
           ))}
       </tbody>
-    </table>
+    </table></div></div>
   );
 };
 

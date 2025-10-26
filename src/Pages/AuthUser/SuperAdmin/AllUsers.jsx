@@ -12,39 +12,48 @@ export default function AllUsers() {
   const [roles, setRoles] = useState([]);
 
   const { token } = useContext(AppContext);
+
   async function getUsers() {
     const res = await fetch(`${apiUrl}/api/role`, {
-      headers: {
-
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
     setAdmins(data['admins']);
     setUsers(data['users']);
     setSpecialities(data['specialities']);
     setRoles(data['roles']);
-
-    // console.log(data);
   }
+
   useEffect(() => {
     getUsers();
   }, []);
+
   return (
-    <div className="flex-grow container min-h-screen text-nowrap ">
-        <h4 className="mb-6 text-xl font-bold text-black font-droid-arabic-kufi mt-4">
-        إضافة أدمين     </h4>
-      <Addadmin specialities={specialities} roles={roles} />
+    <div className="flex-grow w-full max-w-7xl mx-auto py-10 space-y-10">
 
-      <h4 className="mb-6 text-xl font-bold text-black font-droid-arabic-kufi mt-4">
-        كل من لديه مهمة      </h4>
-      <AdminTable admins={admins} specialities={specialities} roles={roles} />
+      {/* Add Admin Section */}
+      <section className="bg-white rounded-2xl shadow-lg p-6">
+        <h4 className="mb-6 text-2xl font-bold text-blue-900 font-droid-arabic-kufi">
+          إضافة أدمين
+        </h4>
+        <Addadmin specialities={specialities} roles={roles} />
+      </section>
 
-      <hr />
-      <h4 className="mb-6 text-xl font-bold text-black font-droid-arabic-kufi">
-        كل المستعملين
-      </h4>
-      <UserTable users={users} specialities={specialities} roles={roles} />
-    </div>)
+      {/* Admin Table Section */}
+      <section className="bg-white rounded-2xl shadow-lg p-6">
+        <h4 className="mb-6 text-2xl font-bold text-blue-900 font-droid-arabic-kufi">
+          كل من لديه مهمة
+        </h4>
+        <AdminTable admins={admins} specialities={specialities} roles={roles} />
+      </section>
 
+      {/* Users Table Section */}
+      <section className="bg-white rounded-2xl shadow-lg p-6">
+        <h4 className="mb-6 text-2xl font-bold text-blue-900 font-droid-arabic-kufi">
+          كل المستعملين
+        </h4>
+        <UserTable users={users} specialities={specialities} roles={roles} />
+      </section>
+    </div>
+  );
 }

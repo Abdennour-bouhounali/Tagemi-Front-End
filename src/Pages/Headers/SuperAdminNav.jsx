@@ -1,67 +1,126 @@
 import { Link } from "react-router-dom";
-const apiUrl = import.meta.env.VITE_API_URL; 
-const SuperAdminNav = ({user,specialities,dropdownRef,toggleDropdown,isOpen}) => {
-return (
-    
+import { Users, Settings, FileText, ChevronDown, Phone, UserPlus, FolderOpen, Layers, Award, Target, Newspaper } from "lucide-react";
 
+const SuperAdminNav = ({ user, specialities, dropdownRef, toggleDropdown, isOpen }) => {
+  
+  return (
+    <nav className="p-4 space-y-1 h-full overflow-y-auto">
+      {/* Section Header */}
+      <div className="mb-4 pb-4 border-b border-gray-200">
+        <h3 className="text-sm font-semibold text-gray-500 px-3 mb-2 font-droid-arabic-kufi">إدارة النظام</h3>
+      </div>
 
-<nav className="mt-4 space-y-2 block ">
-            {/* <Link to="/specialCase" className="block font-medium px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">Special Case</Link> */}
+      {/* Waiting Lists Dropdown */}
+      <div>
+        <button
+          onClick={toggleDropdown}
+          className="w-full flex items-center justify-between px-4 py-3 text-[#2F3645] hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Users className="w-5 h-5" />
+            <span className="font-medium font-droid-arabic-kufi">لوائح الإنتظار</span>
+          </div>
+          <ChevronDown className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {isOpen && (
+          <div className="mt-2 space-y-1 pr-4">
+            {specialities
+              .filter(s => s.id !== 6)
+              .map((speciality) => (
+                <Link
+                  key={speciality.id}
+                  to={`/WaitingList/${speciality.id}`}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors font-droid-arabic-kufi"
+                >
+                  {speciality.name}
+                </Link>
+              ))}
+          </div>
+        )}
+      </div>
 
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={toggleDropdown}
-                className=" text-[#2F3645] font-droid-arabic-kufi font-medium py-2 px-4 rounded-full inline-flex items-center bg-[#EEEDEB] hover:bg-[#131842] hover:text-white transition duration-300"
-              >
-                <span className="font-droid-arabic-kufi"> لوائح الإنتظار</span>
-                <svg className="fill-current h-4 w-4 ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                  <path d="M10 12l-6-6h12z" />
-                </svg>
-              </button>
-              {isOpen && (
-                <ul className="absolute left-0 top-full w-48 bg-white shadow-md rounded py-2 z-50">
-                  {specialities
-                    .filter(specialitie => specialitie.id !== 6)
-                    .map((speciality) => (
-                      <li key={speciality.id}>
-                        <Link
-                          to={`/WaitingList/${speciality.id}`}
-                          className="block px-4 py-2 text-[#2F3645] hover:bg-gray-100"
-                        >
-                          {speciality.name}
-                        </Link>
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </div>
-            <Link to="/settings" className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">إعدادات عامة</Link>
+      {/* Settings Links */}
+      <Link 
+        to="/settings" 
+        className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+      >
+        <Settings className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        <span className="font-medium font-droid-arabic-kufi">إعدادات عامة</span>
+      </Link>
 
-            <Link to="/rules" className="block font-medium px-4 font-droid-arabic-kufi  py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">التحكم في الضوابط </Link>
-                <Link to="/contacts" className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >الإتصالات</Link>
-        <Link to="/voulenteers" className="block px-5 py-2 text-[#2F3645] font-droid-arabic-kufi hover:text-[#131842]  transition duration-300" >المتطوعون</Link>
+      <Link 
+        to="/rules" 
+        className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+      >
+        <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        <span className="font-medium font-droid-arabic-kufi">التحكم في الضوابط</span>
+      </Link>
 
-            <div className="relative group">
-                  <button className="block font-medium px-4 font-droid-arabic-kufi  py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">
-                       التحكم في محتوى الموقع
-                  </button>
-                  <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <ul>
-                      <li><Link className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" to="/types">مجالات الأنشطة</Link></li>
-                        <li><Link className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" to="/activities">الأنشطة</Link></li>
-                        <li><Link className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" to="/sponsors">الداعمون</Link></li>
-                        <li><Link className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" to="/future-projects">مشاريع مستقبلية</Link></li>
-                        <li><Link className="block font-medium font-droid-arabic-kufi px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" to="/blogs">مقالات</Link></li>
+      <Link 
+        to="/contacts" 
+        className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+      >
+        <Phone className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        <span className="font-medium font-droid-arabic-kufi">الإتصالات</span>
+      </Link>
 
-                      </ul>
-                  </div>
-            </div>
+      <Link 
+        to="/voulenteers" 
+        className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+      >
+        <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        <span className="font-medium font-droid-arabic-kufi">المتطوعون</span>
+      </Link>
 
+      {/* Content Management Section */}
+      <div className="pt-4 border-t border-gray-200 mt-4">
+        <div className="px-3 mb-2">
+          <h3 className="text-xs font-semibold text-gray-500 font-droid-arabic-kufi">التحكم في محتوى الموقع</h3>
+        </div>
+        <div className="space-y-1">
+          <Link 
+            to="/types" 
+            className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+          >
+            <Layers className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-medium text-sm font-droid-arabic-kufi">مجالات الأنشطة</span>
+          </Link>
 
-          </nav>
-    
-    
-    );
+          <Link 
+            to="/activities" 
+            className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+          >
+            <FolderOpen className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-medium text-sm font-droid-arabic-kufi">الأنشطة</span>
+          </Link>
+
+          <Link 
+            to="/sponsors" 
+            className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+          >
+            <Award className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-medium text-sm font-droid-arabic-kufi">الداعمون</span>
+          </Link>
+
+          <Link 
+            to="/future-projects" 
+            className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+          >
+            <Target className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-medium text-sm font-droid-arabic-kufi">مشاريع مستقبلية</span>
+          </Link>
+
+          <Link 
+            to="/blogs" 
+            className="flex items-center gap-3 px-4 py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-lg transition-all duration-200 group"
+          >
+            <Newspaper className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-medium text-sm font-droid-arabic-kufi">مقالات</span>
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
 };
 
 export default SuperAdminNav;
