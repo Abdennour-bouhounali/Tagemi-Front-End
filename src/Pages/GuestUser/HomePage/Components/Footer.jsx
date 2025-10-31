@@ -1,133 +1,196 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../../../Context/LanguageContext';
-import { FaFacebook, FaYoutube, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaFacebook, FaYoutube, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaHeart, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
 
 const Footer = ({ types }) => {
     const { language } = useLanguage();
-    const [isDropdownOpen, setDropdownOpen] = useState(false);
+    const isRTL = language === 'ar';
 
-    const toggleDropdown = () => {
-        setDropdownOpen((prev) => !prev);
-    };
+    const quickLinks = [
+        { to: '/', labelEn: 'Home', labelAr: 'الصفحة الرئيسية' },
+        { to: '/about', labelEn: 'About Us', labelAr: 'من نحن' },
+        { to: '/volunteer', labelEn: 'Volunteer With Us', labelAr: 'تطوع معنا' },
+        { to: '/contact', labelEn: 'Contact Us', labelAr: 'تواصل معنا' },
+    ];
 
     return (
-        <footer className="bg-gray-900 text-white py-8">
-            <div className="max-w-screen-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col space-y-8 lg:space-y-0 lg:flex-row lg:justify-between">
-                    {/* Left Section */}
-                    <div className="text-center lg:text-left">
-                        <h2 className="text-2xl font-bold font-droid-arabic-kufi">
-                            {language === 'en'
-                                ? 'Tagemi Foundation For Human Development'
-                                : 'مؤسسة تجمي للتنمية الإنسانية'}
-                        </h2>
-                        <p className="mt-2 text-gray-400 font-droid-arabic-kufi">
-                            {language === 'en'
-                                ? 'Working Together For Eternal Life'
-                                : 'لنعمل سويا من أجل حياة أبدية'}
-                        </p>
-                    </div>
+        <footer className="bg-[#1e293b] text-white relative overflow-hidden">
+            {/* Subtle background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-800/50 via-transparent to-slate-900/50 pointer-events-none"></div>
 
-                    {/* Middle Section */}
-                    <div className="flex flex-col lg:flex-row lg:space-x-16">
-                        {/* Activity Links */}
-                        <ul
-                            className={`space-y-4 mb-8 lg:mb-0 lg:space-y-0 lg:space-x-6 lg:flex ${
-                                language === 'en' ? 'text-left' : 'text-right'
-                            }`}
-                        >
-                            {types.map((type) => (
-                                <li key={type.id}>
-                                    <Link
-                                        to={`/activities/showByActivitiesType/${type.id}`}
-                                        className="text-white hover:underline font-droid-arabic-kufi"
-                                    >
-                                        {language === 'en' ? type.name_en : type.name_ar}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-
-                        {/* General Links */}
-                        <ul
-                            className={`space-y-4 lg:space-y-0 lg:space-x-6 lg:flex ${
-                                language === 'en' ? 'text-left' : 'text-right'
-                            }`}
-                        >
-                            <li>
-                                <Link to="/" className="text-white hover:underline font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Home' : 'الصفحة الرئيسية'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/futureProjects" className="text-white hover:underline font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Future Projects' : 'مشاريع مستقبلية'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/volunteer" className="text-white hover:underline font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Volunteer With Us' : 'تطوع معنا'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/about" className="text-white hover:underline font-droid-arabic-kufi">
-                                    {language === 'en' ? 'About' : 'من نحن'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/contact" className="text-white hover:underline font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Contact Us' : 'تواصل معنا'}
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Right Section */}
-                    <div className="flex flex-col items-center lg:items-end space-y-4">
-                        {/* Social Links */}
-                        <div className="flex space-x-4">
-                            <a
-                                href="https://www.facebook.com/p/%D8%AC%D9%85%D8%B9%D9%8A%D8%A9-%D8%AA%D8%AC%D9%85%D9%91%D9%8A-Association-TAGEMI-100070312232969/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Facebook"
-                            >
-                                <FaFacebook className="text-2xl hover:text-blue-600" />
-                            </a>
-                            <a
-                                href="https://youtube.com/@tagemifondation?si=GW33IrHgq3_rE_Ws"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="YouTube"
-                            >
-                                <FaYoutube className="text-2xl hover:text-red-600" />
-                            </a>
-                        </div>
-
-                        {/* Contact Information */}
-                        <div className="flex items-center space-x-2">
-                            <FaPhoneAlt />
-                            <span className="font-droid-arabic-kufi">+213550645465</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <FaEnvelope />
-                            <span className="font-droid-arabic-kufi">tagem.ass@gmail.com</span>
-                        </div>
-                        <div className="flex items-center space-x-2 text-center">
-                            <FaMapMarkerAlt />
-                            <span className="font-droid-arabic-kufi">
+            <div className="relative z-10">
+                {/* Main Footer Content */}
+                <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
+                    <div className={`grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        
+                        {/* Column 1: About Section - Right in Arabic, Left in English */}
+                        <div className={`space-y-6 ${isRTL ? 'md:order-3' : 'md:order-1'}`}>
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-bold font-droid-arabic-kufi text-blue-400 mb-3">
+                                    {language === 'en' ? 'Tagemi Foundation' : 'مؤسسة تجمي'}
+                                </h2>
+                                <div className={`w-16 h-1 bg-blue-500 rounded-full ${isRTL ? 'mr-0' : 'ml-0'}`}></div>
+                            </div>
+                            
+                            <p className="text-gray-300 font-droid-arabic-kufi leading-relaxed text-base">
                                 {language === 'en'
-                                    ? 'El Atteuf, Ghardaia, Algeria'
-                                    : 'الجزائر, ساحة السوق بلدبة العطف، ولاية غرداية'}
-                            </span>
+                                    ? 'Working together for human development and eternal life'
+                                    : 'لنعمل سويا من أجل حياة أبدية'}
+                            </p>
+                            
+                            {/* Social Links */}
+                            <div className="pt-2">
+                                <h3 className="text-sm font-semibold font-droid-arabic-kufi text-gray-400 mb-4">
+                                    {language === 'en' ? 'Follow Us' : 'تابعنا'}
+                                </h3>
+                                <div className={`flex ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'} gap-4`}>
+                                    <a 
+                                        href="https://www.facebook.com/p/%D8%AC%D9%85%D8%B9%D9%8A%D8%A9-%D8%AA%D8%AC%D9%85%D9%91%D9%8A-Association-TAGEMI-100070312232969/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label="Facebook"
+                                        className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center hover:bg-blue-600 transition-all duration-300 transform hover:scale-110 hover:shadow-lg hover:shadow-blue-600/30"
+                                    >
+                                        <FaFacebook className="text-xl" />
+                                    </a>
+                                    
+                                    <a  
+                                        href="https://youtube.com/@tagemifondation?si=GW33IrHgq3_rE_Ws"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label="YouTube"
+                                        className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center hover:bg-red-600 transition-all duration-300 transform hover:scale-110 hover:shadow-lg hover:shadow-red-600/30"
+                                    >
+                                        <FaYoutube className="text-xl" />
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Column 2: Quick Links - Center */}
+                        <div className={`space-y-6 ${isRTL ? 'md:order-2' : 'md:order-2'}`}>
+                            <div>
+                                <h3 className="text-xl md:text-2xl font-bold font-droid-arabic-kufi text-white mb-3">
+                                    {language === 'en' ? 'Quick Links' : 'روابط سريعة'}
+                                </h3>
+                                <div className={`w-16 h-1 bg-blue-500 rounded-full ${isRTL ? 'mr-0' : 'ml-0'}`}></div>
+                            </div>
+                            
+                            <ul className="space-y-4">
+                                {quickLinks.map((link, index) => (
+                                    <li key={index}>
+                                        <Link 
+                                            to={link.to}
+                                            className={`group flex items-center ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'} gap-3 text-gray-300 hover:text-blue-400 font-droid-arabic-kufi transition-all duration-300 text-base`}
+                                        >
+                                            {isRTL ? (
+                                                <FaChevronLeft className="text-xs text-blue-500 transform transition-transform duration-300 group-hover:-translate-x-1" />
+                                            ) : (
+                                                <FaChevronRight className="text-xs text-blue-500 transform transition-transform duration-300 group-hover:translate-x-1" />
+                                            )}
+                                            <span>
+                                                {language === 'en' ? link.labelEn : link.labelAr}
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Column 3: Contact Section - Left in Arabic, Right in English */}
+                        <div className={`space-y-6 ${isRTL ? 'md:order-1' : 'md:order-3'}`}>
+                            <div>
+                                <h3 className="text-xl md:text-2xl font-bold font-droid-arabic-kufi text-white mb-3">
+                                    {language === 'en' ? 'Contact Us' : 'تواصل معنا'}
+                                </h3>
+                                <div className={`w-16 h-1 bg-blue-500 rounded-full ${isRTL ? 'mr-0' : 'ml-0'}`}></div>
+                            </div>
+                            
+                            <div className="space-y-5">
+                                {/* Phone */}
+                                <a 
+                                    href="tel:+213550645465" 
+                                    className={`group flex items-start ${isRTL ? 'flex-row-reverse' : ''} gap-4 text-gray-300 hover:text-blue-400 transition-all duration-300`}
+                                >
+                                    <div className="flex-shrink-0">
+                                        <FaPhoneAlt className="text-blue-400 text-lg" />
+                                    </div>
+                                    <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">
+                                            {language === 'en' ? 'Call Us' : 'اتصل بنا'}
+                                        </p>
+                                        <p className="font-droid-arabic-kufi text-sm leading-relaxed" dir="ltr">
+                                            029 254 300<br/>
+                                            05 49 88 54 59
+                                        </p>
+                                    </div>
+                                </a>
+
+                                {/* Email */}
+                                <a 
+                                    href="mailto:tagem.ass@gmail.com" 
+                                    className={`group flex items-start ${isRTL ? 'flex-row-reverse' : ''} gap-4 text-gray-300 hover:text-blue-400 transition-all duration-300`}
+                                >
+                                    <div className="flex-shrink-0">
+                                        <FaEnvelope className="text-purple-400 text-lg" />
+                                    </div>
+                                    <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">
+                                            {language === 'en' ? 'Email Us' : 'راسلنا'}
+                                        </p>
+                                        <p className="font-droid-arabic-kufi text-sm break-all" dir="ltr">
+                                            tagem.ass@gmail.com
+                                        </p>
+                                    </div>
+                                </a>
+
+                                {/* Address */}
+                                <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''} gap-4 text-gray-300`}>
+                                    <div className="flex-shrink-0">
+                                        <FaMapMarkerAlt className="text-pink-400 text-lg" />
+                                    </div>
+                                    <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">
+                                            {language === 'en' ? 'Visit Us' : 'زرنا'}
+                                        </p>
+                                        <p className="font-droid-arabic-kufi text-sm leading-relaxed">
+                                            {language === 'en'
+                                                ? 'Market Square, El Atteuf Municipality, Ghardaia Province, Algeria'
+                                                : 'ساحة السوق بلدية العطف، ولاية غرداية، الجزائر'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Divider */}
+                <div className="border-t border-slate-700"></div>
+
                 {/* Footer Bottom */}
-                <div className="text-center text-gray-400 mt-8">
-                    <p>&copy; {new Date().getFullYear()} All rights reserved</p>
+                <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-6">
+                    <div className={`flex flex-col md:flex-row ${isRTL ? 'md:flex-row-reverse' : ''} justify-between items-center gap-4 text-sm`}>
+                        <p className="text-gray-400 font-droid-arabic-kufi flex items-center gap-2">
+                            {language === 'en' ? (
+                                <>
+                                    Made with 
+                                    <FaHeart className="text-red-500 animate-pulse" /> 
+                                    by Tagemi Foundation
+                                </>
+                            ) : (
+                                <>
+                                    صنع بـ 
+                                    <FaHeart className="text-red-500 animate-pulse" /> 
+                                    من مؤسسة تجمي
+                                </>
+                            )}
+                        </p>
+                        <p className="text-gray-400 font-droid-arabic-kufi">
+                            © {new Date().getFullYear()} {language === 'en' ? 'All rights reserved' : 'جميع الحقوق محفوظة'}
+                        </p>
+                    </div>
                 </div>
             </div>
         </footer>

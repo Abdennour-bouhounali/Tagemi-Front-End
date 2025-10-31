@@ -1,208 +1,494 @@
-import React, { useContext, useEffect, useState, useRef } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../Context/AppContext";
-import 'flag-icons/css/flag-icons.min.css'; // Import flag-icons CSS
+import 'flag-icons/css/flag-icons.min.css';
 import LanguageSelector from "../../LanguageSelector";
 import { useLanguage } from "../../Context/LanguageContext";
+import { 
+    Menu, 
+    X, 
+    Calendar, 
+    LogOut, 
+    ChevronDown,
+    User as UserIcon,
+    Home as HomeIcon,
+    Phone,
+    Info,
+    Heart
+} from 'lucide-react';
+
 const apiUrl = import.meta.env.VITE_API_URL;
+
 const GuestNavBar = ({ user, types }) => {
-    const onlyAdmins = false;
     const [isNavOpen, setIsNavOpen] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const navigate = useNavigate();
 
-    const { token, setToken, startDay, setStartDay } = useContext(AppContext);
-    const [displayAuth, setDisplayAuth] = useState(0);
-    const { setUser } = useContext(AppContext);
-
+    const { token, setToken, setUser } = useContext(AppContext);
     const { language } = useLanguage();
 
+    // Check if user is super admin
+    const isSuperAdmin = user?.role_id === 1;
 
     const toggleNav = () => {
         setIsNavOpen(!isNavOpen);
     };
-    async function getdisplayAuth() {
-        const res = await fetch(`${apiUrl}/api/getdisplayAuth`);
-        const data = await res.json();
-        setDisplayAuth(data);
-    }
-    async function handlelogout(e) {
-        e.preventDefault();
-
-        const res = await fetch(`${apiUrl}/api/logout`, {
-            method: "post",
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-
-        if (res.ok) {
-            setUser(null);
-            setToken(null);
-            localStorage.removeItem("token");
-            navigate("/");
-        }
-    }
-    const [isOpen, setIsOpen] = useState(false);
 
     const toggleDropdown = () => {
-        setIsOpen((prev) => !prev); // Toggle dropdown visibility
+        setIsDropdownOpen(!isDropdownOpen);
     };
+
+    const closeNav = () => {
+        setIsNavOpen(false);
+        setIsDropdownOpen(false);
+    };
+
+    // Handle scroll effect
     useEffect(() => {
-        getdisplayAuth();
-    }, [])
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+    
+    async function handleLogout(e) {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${apiUrl}/api/logout`, {
+                method: "post",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (res.ok) {
+                setUser(null);
+                setToken(null);
+                localStorage.removeItem("token");
+                navigate("/");
+            }
+        } catch (error) {
+            console.error('Error logging out:', error);
+        }
+    }
+
+    // Close nav when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (isNavOpen && !e.target.closest('nav')) {
+                closeNav();
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isNavOpen]);
+
+    // Prevent body scroll when mobile menu is open
+    useEffect(() => {
+        if (isNavOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isNavOpen]);
+
     return (
-        <header className=''>
-            <nav className='max-w-screen-2xl flex flex-wrap items-center justify-between mx-auto py-2 '>
-                {/* <Link to="/">
-                    <img src="/tagemi_logo.png" className="w-[12rem] h-auto" alt="" />
-                </Link> */}
+        <header className={`sticky top-0 z-50 bg-white transition-all duration-300 ${
+            scrolled ? 'shadow-lg' : 'shadow-md'
+        }`}>
+            <nav className='max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8'>
+                <div className='flex items-center justify-between h-14 sm:h-16 md:h-18 lg:h-20'>
+                    {/* Logo */}
+                    <Link 
+                        to={user ? "/home" : "/"} 
+                        className="flex-shrink-0 mx-3 transform transition-transform hover:scale-105 duration-200"
+                    >
+                        <img 
+                            src="/tagemi_logo.png" 
+                            className="h-8 sm:h-10 md:h-11 lg:h-12 w-auto" 
+                            alt="TAGEMI Logo" 
+                        />
+                    </Link>
 
+                    {/* Mobile menu button */}
+                    <button
+                        onClick={toggleNav}
+                        type="button"
+                        className="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-700 hover:text-[#E03A6F] hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#E03A6F] transition-all duration-200"
+                        aria-controls="mobile-menu"
+                        aria-expanded={isNavOpen}
+                        aria-label="Toggle navigation menu"
+                    >
+                        {isNavOpen ? (
+                            <X className="h-6 w-6" strokeWidth={2.5} />
+                        ) : (
+                            <Menu className="h-6 w-6" strokeWidth={2.5} />
+                        )}
+                    </button>
 
-                <button
-                    onClick={toggleNav}
-                    type="button"
-                    className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg custom:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-                    aria-controls="navbar-default"
-                    aria-expanded={isNavOpen}
-                >
-                    <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
-                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 1h15M1 7h15M1 13h15" />
-                    </svg>
-                </button>
+                    {/* Desktop Navigation */}
+                    <div className="hidden lg:flex lg:items-center lg:gap-1 xl:gap-2">
+                        {/* Main Navigation Links */}
+                        <NavLink to={user ? "/home" : "/"} language={language}>
+                            <HomeIcon className="w-4 h-4 lg:inline hidden" />
+                            <span>{language === 'en' ? 'Home' : 'الرئيسية'}</span>
+                        </NavLink>
 
-                <div
-                    className={`w-full custom:block mx-auto custom:w-auto ${isNavOpen ? 'block' : 'hidden'}`}
-                    id="navbar-default"
-                >
-                    <ul className='font-medium flex flex-col p-4 custom:p-0 mt-4 border border-gray-100 rounded-lg custom:flex-row custom:space-x-4 rtl:space-x-reverse custom:mt-0 custom:border-0 custom:bg-white'>
-                        {onlyAdmins ? (
-                            <>
-                                <li>
-                                    <Link to="/" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
+                        <NavLink to="/volunteer" language={language}>
+                            <Heart className="w-4 h-4 lg:inline hidden" />
+                            <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
+                        </NavLink>
 
-                                    >
-                                        {language === 'en' ? 'Home' : 'الصفحة الرئيسية'}
+                        <NavLink to="/about" language={language}>
+                            <Info className="w-4 h-4 lg:inline hidden" />
+                            <span>{language === 'en' ? 'About' : 'من نحن'}</span>
+                        </NavLink>
 
+                        <NavLink to="/contact" language={language}>
+                            <Phone className="w-4 h-4 lg:inline hidden" />
+                            <span>{language === 'en' ? 'Contact' : 'اتصل'}</span>
+                        </NavLink>
 
-                                    </Link>
-                                </li>
-                                <li className="relative group">
-                                    {/* Button to toggle dropdown */}
-                                    <button
-                                        onClick={toggleDropdown}
-                                        className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi"
-                                    >
-                                        {language === 'en' ? 'Foundation Activities' : 'أنشطة المؤسسة'}
-                                    </button>
+                        {/* Manage Events Link - Only for Super Admin */}
+                        {isSuperAdmin && (
+                            <NavLink to="admin/manage-events" language={language}>
+                                <Calendar className="w-4 h-4 lg:inline hidden" />
+                                <span>{language === 'en' ? 'Manage' : 'إدارة'}</span>
+                            </NavLink>
+                        )}
 
-                                    {/* Dropdown Menu */}
-                                    <div
-                                        className={`absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-100 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                                    >
-                                        <ul>
-                                            {types.map((type) => (
-                                                <li key={type.id}>
-                                                    <Link
-                                                        to={`/activities/showByActivitiesType/${type.id}`}
-                                                        className="block px-4 py-2 text-gray-900 hover:bg-gray-100"
-                                                        onClick={() => setIsOpen(false)} // Close dropdown on link click
-                                                    >
-                                                        {language === 'en' ? type.name_en : type.name_ar}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </li>
-                                <li>
-                                    <Link to="/futureProjects" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Futur Projects' : ' مشاريع مستقبلية'}
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/volunteer" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
+                        {/* Divider */}
+                        <div className="h-8 w-px bg-gray-300 mx-2"></div>
 
-                                        {language === 'en' ? 'Voulenteer With Us' : 'تطوع معنا'}
+                        {/* Language Selector */}
+                        <div className="flex-shrink-0">
+                            <LanguageSelector />
+                        </div>
 
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/about" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'About' : 'من نحن'}
-
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/contact" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Contact Us' : 'تواصل معنا '}
-
-                                    </Link>
-                                </li>
-                            </>
-                        ) : ''
-                        }
-
+                        {/* User Actions */}
                         {user ? (
-                            <>
-                                <li><button className="max-w-32 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" onClick={handlelogout}>
-                                    {language === 'en' ? ' Log Out' : ' خروج '}
-
-                                </button></li>
-                                <li>
-                                <Link to="/GeneralWaitingList"  className="max-w-48 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300" >قائمة الإنتظار الكبيرة</Link>
-
-                                </li>
-                                
-                            </>
-                        ) : displayAuth ? (
-                            <>
-                                <li><Link to="/login" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">     {language === 'en' ? ' Log In ' : ' دخول '}
-                                </Link></li>
-                                <li><Link to="/register" className="block py-2 px-0 text-gray-900 rounded hover:bg-gray-100 custom:hover:bg-transparent custom:border-0 custom:hover:text-blue-700 custom:p-0 font-droid-arabic-kufi">  {language === 'en' ? ' Register ' : ' تسجيل'} </Link></li>
-                            </>
-                        ) : ''}
-                        
-                        {user && (
-                            <li>
-                                <Link to="/appointment" className="max-w-32 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">{language === 'en' ? 'Make An Appointment' : 'إحجز موعدا'} </Link>
-                            </li>
+                            <UserMenu user={user} language={language} handleLogout={handleLogout} />
+                        ) : (
+                            <AuthLinks language={language} />
                         )}
+                    </div>
+                </div>
 
-                        {user && user.role_id == 1 && (
-                            <li>
-                                <Link to="/settings" className="max-w-44 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">{language === 'en' ? 'Admin Panel' : 'لوحة التحكم'}</Link>
-                            </li>
-                        )}
+                {/* Mobile Navigation Overlay */}
+                {isNavOpen && (
+                    <div 
+                        className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
+                        onClick={closeNav}
+                    ></div>
+                )}
 
-                        {user && user.role_id == 3 && (
-                            <li>
-                                <Link to="/AllAppointments" className="max-w-44 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300"> جميع المواعيد</Link>
-                            </li>
-                        )}
-                        {user && user.role_id == 4 && (
-                            <li>
-                                <Link to={`WaitingList/${user.specialty_id}`} className="max-w-48 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300i"> قائمة إنتظار التخصص</Link>
-                            </li>
-                        )}
+                {/* Mobile Navigation Drawer */}
+                <div className={`lg:hidden fixed top-0 ${language === 'ar' ? 'left-0' : 'right-0'} bottom-0 w-[85%] max-w-sm bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+                    isNavOpen ? 'translate-x-0' : (language === 'ar' ? '-translate-x-full' : 'translate-x-full')
+                }`}>
+                    <div className="flex flex-col h-full">
+                        {/* Mobile Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                            <img 
+                                src="/tagemi_logo.png" 
+                                className="h-8 w-auto" 
+                                alt="TAGEMI Logo" 
+                            />
+                            <button
+                                onClick={closeNav}
+                                className="p-2 rounded-lg text-gray-700 hover:text-[#E03A6F] hover:bg-gray-100 transition-colors"
+                                aria-label="Close menu"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
 
-                        {user && user.role_id == 5 && (
-                            <li>
-                                <Link to="/AllAppointments" className="max-w-42 block px-4 py-2 font-medium font-droid-arabic-kufi mx-4 mt-2 text-[#2F3645] hover:bg-[#131842] hover:text-white  rounded-full transition duration-300">جميع المواعيد </Link>
-                            </li>
-                        )}
-                        {onlyAdmins ? (
-                            <li>
-                                <LanguageSelector />
+                        {/* Mobile Navigation Content */}
+                        <div className="flex-1 overflow-y-auto py-4 px-3">
+                            <div className="space-y-2">
+                                <MobileNavLink to={user ? "/home" : "/"} language={language} onClick={closeNav}>
+                                    <HomeIcon className="w-5 h-5" />
+                                    <span>{language === 'en' ? 'Home' : 'الرئيسية'}</span>
+                                </MobileNavLink>
 
-                            </li>
+                                <MobileNavLink to="/volunteer" language={language} onClick={closeNav}>
+                                    <Heart className="w-5 h-5" />
+                                    <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
+                                </MobileNavLink>
 
-                        ) : ''}
+                                <MobileNavLink to="/about" language={language} onClick={closeNav}>
+                                    <Info className="w-5 h-5" />
+                                    <span>{language === 'en' ? 'About' : 'من نحن'}</span>
+                                </MobileNavLink>
 
-                    </ul>
+                                <MobileNavLink to="/contact" language={language} onClick={closeNav}>
+                                    <Phone className="w-5 h-5" />
+                                    <span>{language === 'en' ? 'Contact' : 'اتصل'}</span>
+                                </MobileNavLink>
+
+                                {/* Manage Events Link - Only for Super Admin */}
+                                {isSuperAdmin && (
+                                    <MobileNavLink to="/admin/manage-events" language={language} onClick={closeNav}>
+                                        <Calendar className="w-5 h-5" />
+                                        <span>{language === 'en' ? 'Manage Events' : 'إدارة الفعاليات'}</span>
+                                    </MobileNavLink>
+                                )}
+                            </div>
+
+                            {/* Language Selector in Mobile */}
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 px-3 font-droid-arabic-kufi">
+                                    {language === 'en' ? 'Language' : 'اللغة'}
+                                </p>
+                                <div className="px-3">
+                                    <LanguageSelector />
+                                </div>
+                            </div>
+
+                            {/* Mobile User Actions */}
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                                {user ? (
+                                    <MobileUserMenu 
+                                        user={user} 
+                                        language={language} 
+                                        handleLogout={handleLogout} 
+                                        onClick={closeNav} 
+                                    />
+                                ) : (
+                                    <MobileAuthLinks language={language} onClick={closeNav} />
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </nav>
+
+            <style jsx>{`
+                @keyframes fade-in {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                .animate-fade-in {
+                    animation: fade-in 0.2s ease-out;
+                }
+            `}</style>
         </header>
     );
 };
+
+// Desktop Nav Link Component
+const NavLink = ({ to, children }) => (
+    <Link
+        to={to}
+        className="group flex items-center gap-2 px-3 py-2 text-sm xl:text-base text-gray-700 hover:text-[#E03A6F] font-droid-arabic-kufi transition-all duration-200 rounded-lg hover:bg-gray-50 whitespace-nowrap"
+    >
+        {children}
+    </Link>
+);
+
+// Mobile Nav Link Component
+const MobileNavLink = ({ to, children, onClick }) => (
+    <Link
+        to={to}
+        className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 rounded-xl font-droid-arabic-kufi transition-all duration-200 group"
+        onClick={onClick}
+    >
+        {children}
+    </Link>
+);
+
+// Desktop User Menu Component
+const UserMenu = ({ user, language, handleLogout }) => {
+    const navigate = useNavigate();
+    const specialties = user?.specialties || [];
+
+    const handleSpecialtyChange = (e) => {
+        const specialtyId = e.target.value;
+        if (specialtyId) {
+            navigate(`/admin/event-waiting-lists/${user.event_id}/${specialtyId}`);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-2">
+            {/* All Appointments Button - Role 3 */}
+            {user.role_id === 3 && (
+                <Link
+                    to={`/admin/big-list-waiting/${user.event_id}`}
+                    className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
+                >
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                    <span className="relative flex items-center gap-1.5 xl:gap-2">
+                        <Calendar className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+                        <span className="hidden xl:inline">{language === 'en' ? 'Appointments' : 'المواعيد'}</span>
+                        <span className="xl:hidden">{language === 'en' ? 'Appt' : 'مواعيد'}</span>
+                    </span>
+                </Link>
+            )}
+
+            {/* Waiting List Dropdown - Role 4 */}
+            {user.role_id === 4 && specialties.length > 0 && (
+                <div className="relative group">
+                    <select
+                        onChange={handleSpecialtyChange}
+                        className="appearance-none px-3 xl:px-4 py-2 pr-8 xl:pr-10 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#E03A6F] focus:ring-offset-2 border-none"
+                        defaultValue=""
+                    >
+                        <option value="" disabled className="bg-white text-gray-900">
+                            {language === 'en' ? '📋 List' : '📋 قائمة'}
+                        </option>
+                        {specialties
+                            .filter((specialty) => specialty.id !== 6)
+                            .map((specialty) => (
+                                <option 
+                                    key={specialty.id} 
+                                    value={specialty.id}
+                                    className="bg-white text-gray-900 py-2"
+                                >
+                                    {specialty.name}
+                                </option>
+                            ))}
+                    </select>
+                    <div className="absolute right-2 xl:right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <ChevronDown className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-white" />
+                    </div>
+                </div>
+            )}
+
+            {/* Logout Button */}
+            <button
+                onClick={handleLogout}
+                className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
+            >
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                <span className="relative flex items-center gap-1.5 xl:gap-2">
+                    <LogOut className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+                    <span className="hidden xl:inline">{language === 'en' ? 'Logout' : 'خروج'}</span>
+                </span>
+            </button>
+        </div>
+    );
+};
+
+// Mobile User Menu Component
+const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
+    const navigate = useNavigate();
+    const specialties = user?.specialties || [];
+
+    const handleSpecialtyChange = (e) => {
+        const specialtyId = e.target.value;
+        if (specialtyId) {
+            navigate(`/admin/event-waiting-lists/${user.event_id}/${specialtyId}`);
+            onClick();
+        }
+    };
+
+    return (
+        <div className="space-y-3 px-3">
+            {/* All Appointments Button - Role 3 */}
+            {user.role_id === 3 && user.event_id && (
+                <Link
+                    to={`/admin/big-list-waiting/${user.event_id}`}
+                    className="group relative flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95 transform font-droid-arabic-kufi overflow-hidden"
+                    onClick={onClick}
+                >
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-active:translate-x-full transition-transform duration-500"></span>
+                    <Calendar className="w-5 h-5 relative" />
+                    <span className="relative">{language === 'en' ? 'All Appointments' : 'جميع المواعيد'}</span>
+                </Link>
+            )}
+
+            {/* Waiting List Dropdown - Role 4 */}
+            {user.role_id === 4 && specialties.length > 0 && (
+                <div className="relative">
+                    <select
+                        onChange={handleSpecialtyChange}
+                        className="appearance-none w-full px-4 py-3.5 pr-10 text-base font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-xl font-droid-arabic-kufi cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#E03A6F] focus:ring-offset-2 border-none transition-all duration-200"
+                        defaultValue=""
+                    >
+                        <option value="" disabled className="bg-white text-gray-900">
+                            {language === 'en' ? '📋 Waiting List' : '📋 قائمة الانتظار'}
+                        </option>
+                        {specialties
+                            .filter((specialty) => specialty.id !== 6)
+                            .map((specialty) => (
+                                <option 
+                                    key={specialty.id} 
+                                    value={specialty.id}
+                                    className="bg-white text-gray-900 py-2"
+                                >
+                                    {specialty.name}
+                                </option>
+                            ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <ChevronDown className="w-5 h-5 text-white" />
+                    </div>
+                </div>
+            )}
+
+            {/* Logout Button */}
+            <button
+                onClick={(e) => {
+                    handleLogout(e);
+                    onClick();
+                }}
+                className="group relative w-full flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95 transform font-droid-arabic-kufi overflow-hidden"
+            >
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-active:translate-x-full transition-transform duration-500"></span>
+                <LogOut className="w-5 h-5 relative" />
+                <span className="relative">{language === 'en' ? 'Log Out' : 'خروج'}</span>
+            </button>
+        </div>
+    );
+};
+
+// Desktop Auth Links Component
+const AuthLinks = ({ language }) => (
+    <div className="flex items-center gap-2">
+        <Link
+            to="/login"
+            className="px-3 xl:px-4 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-[#E03A6F] font-droid-arabic-kufi transition-colors rounded-lg hover:bg-gray-50"
+        >
+            {language === 'en' ? 'Login' : 'دخول'}
+        </Link>
+        {/* <Link
+            to="/register"
+            className="px-3 xl:px-4 py-2 text-xs xl:text-sm font-medium text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] hover:shadow-lg rounded-full transition-all duration-200 font-droid-arabic-kufi hover:scale-105 transform"
+        >
+            {language === 'en' ? 'Register' : 'تسجيل'}
+        </Link> */}
+    </div>
+);
+
+// Mobile Auth Links Component
+const MobileAuthLinks = ({ language, onClick }) => (
+    <div className="space-y-3 px-3">
+        <Link
+            to="/login"
+            className="flex items-center justify-center gap-2 px-4 py-3.5 text-base font-medium text-gray-700 border-2 border-gray-300 hover:border-[#E03A6F] hover:text-[#E03A6F] rounded-xl font-droid-arabic-kufi transition-all duration-200"
+            onClick={onClick}
+        >
+            <UserIcon className="w-5 h-5" />
+            <span>{language === 'en' ? 'Log In' : 'دخول'}</span>
+        </Link>
+        {/* <Link
+            to="/register"
+            className="flex items-center justify-center gap-2 px-4 py-3.5 text-base font-medium text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] rounded-xl font-droid-arabic-kufi transition-all duration-200 hover:shadow-lg active:scale-95 transform"
+            onClick={onClick}
+        >
+            <UserIcon className="w-5 h-5" />
+            <span>{language === 'en' ? 'Register' : 'تسجيل'}</span>
+        </Link> */}
+    </div>
+);
 
 export default GuestNavBar;

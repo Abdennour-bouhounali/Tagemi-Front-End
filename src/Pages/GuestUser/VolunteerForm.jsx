@@ -1,11 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLanguage } from "../../Context/LanguageContext";
 import Footer from './HomePage/Components/Footer';
+import { Input, Select, Textarea, FormGroup } from '../Common/FormInputs';
+import {
+    User,
+    Calendar,
+    Phone,
+    Mail,
+    MapPin,
+    Briefcase,
+    Award,
+    Heart,
+    Target,
+    Users,
+    CheckCircle,
+    Loader,
+    Home,
+    XCircle
+} from 'lucide-react';
+import algeriaLocations from '../../data/algeria_locations.json';
 
 const apiUrl = import.meta.env.VITE_API_URL; 
+
 const VolunteerForm = () => {
-    const { language } = useLanguage(); // Destructure language from useLanguage
+    const { language } = useLanguage();
     const [types, setTypes] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [messageType, setMessageType] = useState(''); // 'success' or 'error'
+    const [availableCities, setAvailableCities] = useState([]);
 
     const [formData, setFormData] = useState({
         full_name: '',
@@ -29,28 +52,44 @@ const VolunteerForm = () => {
             ...formData,
             [name]: value
         });
-
-        if (name === 'city') {
-            setFormData({
-                ...formData,
-                state: '',
-                city: value
-            });
-        }
     };
 
+    // NEW: Handle state change
+    const handleStateChange = useCallback((e) => {
+        const stateName = e.target.value;
+        setFormData(prev => ({ 
+            ...prev, 
+            state: stateName, 
+            city: '' // Reset city when state changes
+        }));
+        
+        // Find the selected wilaya and set its communes
+        const selectedWilaya = algeriaLocations.algeria_locations.find(
+            loc => loc.name_ar === stateName
+        );
+        
+        if (selectedWilaya) {
+            setAvailableCities(selectedWilaya.communes);
+        } else {
+            setAvailableCities([]);
+        }
+    }, []);
 
-  async function getTypes() {
-    const res = await fetch(`${apiUrl}/api/types`);
-    const data = await res.json();
-    setTypes(data);
-  } 
-  useEffect(() => {
-    getTypes();
-  }, []);
+    async function getTypes() {
+        const res = await fetch(`${apiUrl}/api/types`);
+        const data = await res.json();
+        setTypes(data);
+    } 
+
+    useEffect(() => {
+        getTypes();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setMessage('');
+        
         try {
             const response = await fetch(`${apiUrl}/api/volunteers`, {
                 method: 'POST',
@@ -61,10 +100,10 @@ const VolunteerForm = () => {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                // console.log(data);
+                setMessageType('success');
                 setMessage(language === 'en' ? 'Form submitted successfully!' : 'تم إرسال النموذج بنجاح!');
 
+                // Reset form
                 setFormData({
                     full_name: '',
                     date_of_birth: '',
@@ -81,189 +120,340 @@ const VolunteerForm = () => {
                     reasons_for_volunteering: ''
                 });
 
+                // Reset cities
+                setAvailableCities([]);
+
+                // Scroll to top to see success message
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
                 setTimeout(() => {
-                    setMessage(null);
+                    setMessage('');
                 }, 5000);
             } else {
+                setMessageType('error');
                 setMessage(language === 'en' ? 'Error submitting form' : 'خطأ في إرسال النموذج');
             }
         } catch (error) {
             console.error('Error:', error);
+            setMessageType('error');
             setMessage(language === 'en' ? 'Error submitting form' : 'خطأ في إرسال النموذج');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const [message, setMessage] = useState('');
-
-    const wilayas = [
-        { value: 'أدرار 01', label: language === 'en' ? 'Adrar 01' : 'أدرار 01' },
-        { value: 'الشلف 02', label: language === 'en' ? 'Chlef 02' : 'الشلف 02' },
-        { value: 'الأغواط 03', label: language === 'en' ? 'Laghouat 03' : 'الأغواط 03' },
-        { value: 'أم البواقي 04', label: language === 'en' ? 'Oum El Bouaghi 04' : 'أم البواقي 04' },
-        { value: 'باتنة 05', label: language === 'en' ? 'Batna 05' : 'باتنة 05' },
-        { value: 'بجاية 06', label: language === 'en' ? 'Bejaia 06' : 'بجاية 06' },
-        { value: 'بسكرة 07', label: language === 'en' ? 'Biskra 07' : 'بسكرة 07' },
-        { value: 'بشار 08', label: language === 'en' ? 'Bechar 08' : 'بشار 08' },
-        { value: 'البليدة 09', label: language === 'en' ? 'Blida 09' : 'البليدة 09' },
-        { value: 'البويرة 10', label: language === 'en' ? 'Bouira 10' : 'البويرة 10' },
-        { value: 'تمنراست 11', label: language === 'en' ? 'Tamanrasset 11' : 'تمنراست 11' },
-        { value: 'تبسة 12', label: language === 'en' ? 'Tebessa 12' : 'تبسة 12' },
-        { value: 'تلمسان 13', label: language === 'en' ? 'Tlemcen 13' : 'تلمسان 13' },
-        { value: 'تيارت 14', label: language === 'en' ? 'Tiaret 14' : 'تيارت 14' },
-        { value: 'تيزي وزو 15', label: language === 'en' ? 'Tizi Ouzou 15' : 'تيزي وزو 15' },
-        { value: 'الجزائر العاصمة 16', label: language === 'en' ? 'Algiers 16' : 'الجزائر العاصمة 16' },
-        { value: 'الجلفة 17', label: language === 'en' ? 'Djelfa 17' : 'الجلفة 17' },
-        { value: 'جيجل 18', label: language === 'en' ? 'Jijel 18' : 'جيجل 18' },
-        { value: 'سطيف 19', label: language === 'en' ? 'Setif 19' : 'سطيف 19' },
-        { value: 'سعيدة 20', label: language === 'en' ? 'Saida 20' : 'سعيدة 20' },
-        { value: 'سكيكدة 21', label: language === 'en' ? 'Skikda 21' : 'سكيكدة 21' },
-        { value: 'سيدي بلعباس 22', label: language === 'en' ? 'Sidi Bel Abbes 22' : 'سيدي بلعباس 22' },
-        { value: 'عنابة 23', label: language === 'en' ? 'Annaba 23' : 'عنابة 23' },
-        { value: 'قالمة 24', label: language === 'en' ? 'Guelma 24' : 'قالمة 24' },
-        { value: 'قسنطينة 25', label: language === 'en' ? 'Constantine 25' : 'قسنطينة 25' },
-        { value: 'المدية 26', label: language === 'en' ? 'Medea 26' : 'المدية 26' },
-        { value: 'مستغانم 27', label: language === 'en' ? 'Mostaganem 27' : 'مستغانم 27' },
-        { value: 'المسيلة 28', label: language === 'en' ? "M'Sila 28" : 'المسيلة 28' },
-        { value: 'معسكر 29', label: language === 'en' ? 'Mascara 29' : 'معسكر 29' },
-        { value: 'ورقلة 30', label: language === 'en' ? 'Ouargla 30' : 'ورقلة 30' },
-        { value: 'وهران 31', label: language === 'en' ? 'Oran 31' : 'وهران 31' },
-        { value: 'البيض 32', label: language === 'en' ? 'El Bayadh 32' : 'البيض 32' },
-        { value: 'إليزي 33', label: language === 'en' ? 'Illizi 33' : 'إليزي 33' },
-        { value: 'برج بوعريريج 34', label: language === 'en' ? 'Bordj Bou Arreridj 34' : 'برج بوعريريج 34' },
-        { value: 'بومرداس 35', label: language === 'en' ? 'Boumerdes 35' : 'بومرداس 35' },
-        { value: 'الطارف 36', label: language === 'en' ? 'El Tarf 36' : 'الطارف 36' },
-        { value: 'تندوف 37', label: language === 'en' ? 'Tindouf 37' : 'تندوف 37' },
-        { value: 'تيسمسيلت 38', label: language === 'en' ? 'Tissemsilt 38' : 'تيسمسيلت 38' },
-        { value: 'الوادي 39', label: language === 'en' ? 'El Oued 39' : 'الوادي 39' },
-        { value: 'خنشلة 40', label: language === 'en' ? 'Khenchela 40' : 'خنشلة 40' },
-        { value: 'سوق أهراس 41', label: language === 'en' ? 'Souk Ahras 41' : 'سوق أهراس 41' },
-        { value: 'تيبازة 42', label: language === 'en' ? 'Tipaza 42' : 'تيبازة 42' },
-        { value: 'ميلة 43', label: language === 'en' ? 'Mila 43' : 'ميلة 43' },
-        { value: 'عين الدفلى 44', label: language === 'en' ? 'Aïn Defla 44' : 'عين الدفلى 44' },
-        { value: 'النعامة 45', label: language === 'en' ? 'Naama 45' : 'النعامة 45' },
-        { value: 'عين تموشنت 46', label: language === 'en' ? 'Aïn Témouchent 46' : 'عين تموشنت 46' },
-        { value: 'غرداية 47', label: language === 'en' ? 'Ghardaia 47' : 'غرداية 47' },
-        { value: 'غليزان 48', label: language === 'en' ? 'Guelma 48' : 'غليزان 48' },
-        { value: 'تيميمون 49', label: language === 'en' ? 'Timimoun 49' : 'تيميمون 49' },
-        { value: 'برج باجي مختار 50', label: language === 'en' ? 'Bordj Badji Mokhtar 50' : 'برج باجي مختار 50' },
-        { value: 'أولاد جلال 51', label: language === 'en' ? 'Oulad Djellal 51' : 'أولاد جلال 51' },
-        { value: 'بني عباس 52', label: language === 'en' ? 'Beni Abbès 52' : 'بني عباس 52' },
-        { value: 'عين صالح 53', label: language === 'en' ? 'Aïn Salah 53' : 'عين صالح 53' },
-        { value: 'عين قزام 54', label: language === 'en' ? 'Aïn Guezzam 54' : 'عين قزام 54' },
-        { value: 'تقرت 55', label: language === 'en' ? 'Tugurt 55' : 'تقرت 55' },
-        { value: 'جانت 56', label: language === 'en' ? 'Djanet 56' : 'جانت 56' },
-        { value: 'المغير 57', label: language === 'en' ? 'El M’Ghair 57' : 'المغير 57' },
-        { value: 'المنيعة 58', label: language === 'en' ? 'El Menia 58' : 'المنيعة 58' }
+    const genderOptions = [
+        { value: 'Male', label: language === 'en' ? 'Male' : 'ذكر' },
+        { value: 'Female', label: language === 'en' ? 'Female' : 'أنثى' }
     ];
-    
+
+    // Prepare state options
+    const stateOptions = algeriaLocations.algeria_locations.map(loc => ({
+        value: loc.name_ar,
+        label: language === 'en' 
+            ? `${loc.name_en} - ${loc.code}` 
+            : `${loc.name_ar} - ${loc.code}`
+    }));
+
+    // Prepare city options based on selected state
+    const cityOptions = availableCities.map(city => ({
+        value: city,
+        label: city
+    }));
     
     return (
         <>
-        <div className="min-h-screen px-10 block mx-auto py-12 bg-gradient-to-b from-white to-[#DAE0F5]">
-            {message && (
-                <div className="flex items-center p-4 mb-4 text-sm text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB]" role="alert">
-                    <svg className="flex-shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-                    </svg>
-                    <div>
-                        <span className="font-medium">{message}</span>
-                    </div>
-                </div>
-            )}
-            <h1 className="text-5xl font-bold mb-8 text-center text-[#101E58]">{language === 'en' ? 'Volunteer Form' : 'إستمارة المتطوعين'}</h1>
-            <p className="text-xl leading-relaxed mb-10 text-center text-[#E03A6F] font-droid-arabic-kufi">
-                {language === 'en' ? 'Let’s work together for a better future' : 'لنعمل سويا من أجل حياة أبدية'}
-            </p>        
-            <form className="space-y-6 w-full max-w-screen-lg mx-auto" onSubmit={handleSubmit}>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full sm:w-1/2 px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Full Name' : 'الاسم الكامل'}<span className="text-red-500">*</span></label>
-                        <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" required />
-                    </div>
-                    <div className="w-full sm:w-1/2 px-2">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Date of Birth' : 'تاريخ الميلاد'}<span className="text-red-500">*</span></label>
-                        <input type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" required />
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full sm:w-1/2 px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Gender' : 'الجنس'}<span className="text-red-500">*</span></label>
-                        <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" required>
-                            <option value="">{language === 'en' ? 'Select Gender' : 'اختر الجنس'}</option>
-                            <option value="Male">{language === 'en' ? 'Male' : 'ذكر'}</option>
-                            <option value="Female">{language === 'en' ? 'Female' : 'أنثى'}</option>
-                        </select>
-                    </div>
-                    <div className="w-full sm:w-1/2 px-2">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Phone Number' : 'رقم الهاتف'}<span className="text-red-500">*</span></label>
-                        <input type="tel" name="phone_number" value={formData.phone_number} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" required />
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full sm:w-1/2 px-2">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'City' : 'الولاية'}<span className="text-red-500">*</span></label>
-                        <select name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" required>
-                            <option value="">{language === 'en' ? 'Select City' : 'اختر الولاية'}</option>
-                            {wilayas.map((city, index) => (
-                                <option key={index} value={city.value}>{city.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="w-full sm:w-1/2 px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Commun' : 'البلدية'}<span className="text-red-500">*</span></label>
-                        <input type="text" name="state" value={formData.state} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" required />
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                <div className="w-full px-2">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Email' : ' الايمايل'}<span className="text-red-500">*</span></label>
-                        <input type="email" name="email_address" value={formData.email_address} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500" required />
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Relevant Skills' : 'المهارات ذات الصلة'}</label>
-                        <textarea name="relevant_skills" value={formData.relevant_skills} onChange={handleChange} rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Previous Volunteering Experience' : 'الخبرة السابقة في التطوع'}</label>
-                        <textarea name="previous_volunteering_experience" value={formData.previous_volunteering_experience} onChange={handleChange} rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Professional Background' : 'الخلفية المهنية'}</label>
-                        <textarea name="professional_background" value={formData.professional_background} onChange={handleChange} rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Areas of Interest' : 'مجالات الاهتمام'}</label>
-                        <textarea name="areas_of_interest" value={formData.areas_of_interest} onChange={handleChange} rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Preferred Types of Activities' : 'أنواع الأنشطة المفضلة'}</label>
-                        <textarea name="preferred_types_of_activities" value={formData.preferred_types_of_activities} onChange={handleChange} rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                <div className="flex flex-wrap -mx-2">
-                    <div className="w-full px-2 mb-4 sm:mb-0">
-                        <label className="block text-xl mb-2 text-gray-800">{language === 'en' ? 'Reasons for Volunteering' : 'أسباب التطوع'}</label>
-                        <textarea name="reasons_for_volunteering" value={formData.reasons_for_volunteering} onChange={handleChange} rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                <div className="flex justify-center">
-                    <button type="submit" className="w-full px-6 py-3 bg-[#E03A6F] text-white font-semibold text-lg rounded-lg shadow-lg hover:bg-[#BF2D56]">{language === 'en' ? 'Submit' : 'إرسال'}</button>
-                </div>
-            </form>
-        </div>
-       
-        <Footer types={types} />
+            <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-5xl mx-auto">
+                    {/* Success/Error Message */}
+                    {message && (
+                        <div className={`mb-8 animate-fade-in ${
+                            messageType === 'success' 
+                                ? 'bg-green-50 border-r-4 border-green-500' 
+                                : 'bg-red-50 border-r-4 border-red-500'
+                        } p-6 rounded-xl shadow-lg`}>
+                            <div className="flex items-center gap-4">
+                                {messageType === 'success' ? (
+                                    <div className="bg-green-100 p-3 rounded-full">
+                                        <CheckCircle className="w-8 h-8 text-green-600" />
+                                    </div>
+                                ) : (
+                                    <div className="bg-red-100 p-3 rounded-full">
+                                        <XCircle className="w-8 h-8 text-red-600" />
+                                    </div>
+                                )}
+                                <div>
+                                    <h3 className={`text-lg font-bold font-droid-arabic-kufi ${
+                                        messageType === 'success' ? 'text-green-800' : 'text-red-800'
+                                    }`}>
+                                        {messageType === 'success' 
+                                            ? (language === 'en' ? 'Success!' : 'نجح!') 
+                                            : (language === 'en' ? 'Error!' : 'خطأ!')
+                                        }
+                                    </h3>
+                                    <p className={`mt-1 font-droid-arabic-kufi ${
+                                        messageType === 'success' ? 'text-green-700' : 'text-red-700'
+                                    }`}>
+                                        {message}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
+                    {/* Header Section */}
+                    <div className="text-center mb-12 animate-fade-in-down">
+                        <div className="inline-block bg-gradient-to-r from-[#101E58] to-[#1a2d78] p-4 rounded-full mb-6">
+                            <Users className="w-12 h-12 text-white" />
+                        </div>
+                        <h1 className="text-5xl font-bold mb-4 gradient-text font-droid-arabic-kufi">
+                            {language === 'en' ? 'Volunteer Form' : 'إستمارة المتطوعين'}
+                        </h1>
+                        <p className="text-2xl text-[#E03A6F] font-semibold font-droid-arabic-kufi mb-2">
+                            {language === 'en' ? "Let's work together for a better future" : 'لنعمل سويا من أجل حياة أبدية'}
+                        </p>
+                        <p className="text-gray-600 max-w-2xl mx-auto font-droid-arabic-kufi">
+                            {language === 'en' 
+                                ? 'Join our community of volunteers and make a difference in the lives of others' 
+                                : 'انضم إلى مجتمع المتطوعين لدينا وأحدث فرقًا في حياة الآخرين'
+                            }
+                        </p>
+                    </div>
+
+                    {/* Form Container */}
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-100 animate-scale-in">
+                        <form onSubmit={handleSubmit} className="space-y-10">
+                            {/* Personal Information Section */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#101E58]/10">
+                                    <div className="bg-[#101E58]/10 p-2 rounded-lg">
+                                        <User className="w-6 h-6 text-[#101E58]" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-[#101E58] font-droid-arabic-kufi">
+                                        {language === 'en' ? 'Personal Information' : 'المعلومات الشخصية'}
+                                    </h2>
+                                </div>
+
+                                <FormGroup columns={2}>
+                                    <Input
+                                        icon={User}
+                                        label={language === 'en' ? 'Full Name' : 'الاسم الكامل'}
+                                        name="full_name"
+                                        type="text"
+                                        value={formData.full_name}
+                                        onChange={handleChange}
+                                        required
+                                    />
+
+                                    <Input
+                                        icon={Calendar}
+                                        label={language === 'en' ? 'Date of Birth' : 'تاريخ الميلاد'}
+                                        name="date_of_birth"
+                                        type="date"
+                                        value={formData.date_of_birth}
+                                        onChange={handleChange}
+                                        required
+                                    />
+
+                                    <Select
+                                        icon={User}
+                                        label={language === 'en' ? 'Gender' : 'الجنس'}
+                                        name="gender"
+                                        value={formData.gender}
+                                        onChange={handleChange}
+                                        placeholder={language === 'en' ? 'Select Gender' : 'اختر الجنس'}
+                                        options={genderOptions}
+                                        required
+                                    />
+
+                                    <Input
+                                        icon={Phone}
+                                        label={language === 'en' ? 'Phone Number' : 'رقم الهاتف'}
+                                        name="phone_number"
+                                        type="tel"
+                                        value={formData.phone_number}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </FormGroup>
+                            </div>
+
+                            {/* Contact Information Section */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#E03A6F]/10">
+                                    <div className="bg-[#E03A6F]/10 p-2 rounded-lg">
+                                        <MapPin className="w-6 h-6 text-[#E03A6F]" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-[#E03A6F] font-droid-arabic-kufi">
+                                        {language === 'en' ? 'Contact Information' : 'معلومات الاتصال'}
+                                    </h2>
+                                </div>
+
+                                <FormGroup columns={1}>
+                                    <Input
+                                        icon={Mail}
+                                        label={language === 'en' ? 'Email' : 'الايمايل'}
+                                        name="email_address"
+                                        type="email"
+                                        value={formData.email_address}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </FormGroup>
+
+                                <FormGroup columns={2} className="mt-4">
+                                    <Select
+                                        icon={MapPin}
+                                        label={language === 'en' ? 'State' : 'الولاية'}
+                                        name="state"
+                                        value={formData.state}
+                                        onChange={handleStateChange}
+                                        placeholder={language === 'en' ? 'Select State' : 'اختر الولاية'}
+                                        options={stateOptions}
+                                        required
+                                    />
+
+                                    <Select
+                                        icon={Home}
+                                        label={language === 'en' ? 'City/Commune' : 'البلدية'}
+                                        name="city"
+                                        value={formData.city}
+                                        onChange={handleChange}
+                                        placeholder={
+                                            formData.state 
+                                                ? (language === 'en' ? 'Select City' : 'اختر البلدية')
+                                                : (language === 'en' ? 'Select State First' : 'اختر الولاية أولاً')
+                                        }
+                                        options={cityOptions}
+                                        disabled={!formData.state || availableCities.length === 0}
+                                        required
+                                    />
+                                </FormGroup>
+                            </div>
+
+                            {/* Professional Background Section */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#101E58]/10">
+                                    <div className="bg-[#101E58]/10 p-2 rounded-lg">
+                                        <Briefcase className="w-6 h-6 text-[#101E58]" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-[#101E58] font-droid-arabic-kufi">
+                                        {language === 'en' ? 'Professional Information' : 'المعلومات المهنية'}
+                                    </h2>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Textarea
+                                        icon={Award}
+                                        label={language === 'en' ? 'Relevant Skills' : 'المهارات ذات الصلة'}
+                                        name="relevant_skills"
+                                        value={formData.relevant_skills}
+                                        onChange={handleChange}
+                                        rows={4}
+                                    />
+
+                                    <Textarea
+                                        icon={Users}
+                                        label={language === 'en' ? 'Previous Volunteering Experience' : 'الخبرة السابقة في التطوع'}
+                                        name="previous_volunteering_experience"
+                                        value={formData.previous_volunteering_experience}
+                                        onChange={handleChange}
+                                        rows={4}
+                                    />
+
+                                    <Textarea
+                                        icon={Briefcase}
+                                        label={language === 'en' ? 'Professional Background' : 'الخلفية المهنية'}
+                                        name="professional_background"
+                                        value={formData.professional_background}
+                                        onChange={handleChange}
+                                        rows={4}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Interests & Preferences Section */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#E03A6F]/10">
+                                    <div className="bg-[#E03A6F]/10 p-2 rounded-lg">
+                                        <Heart className="w-6 h-6 text-[#E03A6F]" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-[#E03A6F] font-droid-arabic-kufi">
+                                        {language === 'en' ? 'Interests & Preferences' : 'الاهتمامات والتفضيلات'}
+                                    </h2>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Textarea
+                                        icon={Target}
+                                        label={language === 'en' ? 'Areas of Interest' : 'مجالات الاهتمام'}
+                                        name="areas_of_interest"
+                                        value={formData.areas_of_interest}
+                                        onChange={handleChange}
+                                        rows={4}
+                                    />
+
+                                    <Textarea
+                                        icon={Award}
+                                        label={language === 'en' ? 'Preferred Types of Activities' : 'أنواع الأنشطة المفضلة'}
+                                        name="preferred_types_of_activities"
+                                        value={formData.preferred_types_of_activities}
+                                        onChange={handleChange}
+                                        rows={4}
+                                    />
+
+                                    <Textarea
+                                        icon={Heart}
+                                        label={language === 'en' ? 'Reasons for Volunteering' : 'أسباب التطوع'}
+                                        name="reasons_for_volunteering"
+                                        value={formData.reasons_for_volunteering}
+                                        onChange={handleChange}
+                                        rows={4}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="flex justify-center pt-6">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="group relative px-12 py-4 bg-gradient-to-r from-[#E03A6F] to-[#c8102e] text-white text-lg font-bold rounded-full transition-all duration-300 hover:shadow-2xl hover:scale-105 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-droid-arabic-kufi overflow-hidden"
+                                >
+                                    {/* Animated shine effect */}
+                                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                                    
+                                    <span className="relative flex items-center justify-center gap-3">
+                                        {loading ? (
+                                            <>
+                                                <Loader className="w-5 h-5 animate-spin" />
+                                                {language === 'en' ? 'Submitting...' : 'جاري الإرسال...'}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle className="w-5 h-5" />
+                                                {language === 'en' ? 'Submit' : 'إرسال'}
+                                            </>
+                                        )}
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Additional Info Section */}
+                    <div className="mt-12 text-center animate-fade-in">
+                        <p className="text-gray-600 font-droid-arabic-kufi">
+                            {language === 'en' 
+                                ? 'Thank you for your interest in volunteering with us!' 
+                                : 'شكراً لك على اهتمامك بالتطوع معنا!'
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+       
+            <Footer types={types} />
         </>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import {
   Calendar,
@@ -12,12 +12,13 @@ import {
   MoreHorizontal,
   Phone,
   UserPlus,
-  Layers,
-  Award,
-  Target,
-  Newspaper,
   ChevronDown,
+  Activity,
+  Home,
 } from "lucide-react";
+import { AppContext } from "../../Context/AppContext"; // Adjust path as needed
+
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const AuthNavBar = ({
   user,
@@ -32,26 +33,47 @@ const AuthNavBar = ({
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isWaitingListOpen, setIsWaitingListOpen] = useState(false);
   const [isGeneralMenuOpen, setIsGeneralMenuOpen] = useState(false);
+  const [isEventTrackingOpen, setIsEventTrackingOpen] = useState(false);
 
   // 💻 Desktop dropdowns
   const [isGeneralDesktopOpen, setIsGeneralDesktopOpen] = useState(false);
+  const [isEventTrackingDesktopOpen, setIsEventTrackingDesktopOpen] = useState(false);
+
+  // Events state
+  const [events, setEvents] = useState([]);
+  const { token } = useContext(AppContext);
+
+  // Fetch all events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/api/events`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setEvents(data.events || []);
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      }
+    };
+
+    if (token) {
+      fetchEvents();
+    }
+  }, [token]);
 
   const navItems = [
-    { icon: Calendar, text: "أحجز موعدا", href: "/appointment", roles: [1, 2, 3, 4, 5, 6] },
-    { icon: Users, text: "قائمة الإنتظار الكبيرة", href: "/GeneralWaitingList", roles: [1, 2, 3, 4, 5, 6] },
-    { icon: Calendar, text: "جميع المواعيد", href: "/AllAppointments", roles: [1, 3, 5] },
-    { icon: Plus, text: "إضافة مواعيد متعددة", href: "/AddMultipleAppointments", roles: [1] },
-    { icon: UserCog, text: "تسيير الأعضاء", href: "/users", roles: [1] },
-    { icon: FileText, text: "تسيير التخصصات", href: "/speciality", roles: [1] },
-    { icon: BarChart3, text: "إحصائيات", href: "/Statitistics", roles: [1] },
-    { icon: Calendar, text: "تسيير الفعاليات", href: "/manageEvents", roles: [1] },
+    { icon: Home, text: "الصفحة الرئيسية", href: "/home", roles: [1,2,3,4,5] },
+    { icon: Calendar, text: "تسيير الفعاليات", href: "/admin/manage-events", roles: [1] },
+    { icon: Plus, text: "إضافة مواعيد متعددة", href: "/admin/add-multiple-appointments", roles: [1] },
+    { icon: FileText, text: "تسيير التخصصات", href: "/admin/speciality", roles: [1] },
   ];
 
   const filteredItems = navItems.filter((item) => item.roles.includes(user?.role_id));
 
   // 🖥️ DESKTOP VERSION
   if (!mobile) {
-    const itemsToShow = user?.role_id === 1 ? filteredItems : filteredItems.slice(0,3);
+    const itemsToShow = user?.role_id === 1 ? filteredItems : filteredItems.slice(0, 3);
     return (
       <>
         {/* Regular visible links */}
@@ -65,6 +87,55 @@ const AuthNavBar = ({
             <span className="text-sm font-droid-arabic-kufi whitespace-nowrap">{item.text}</span>
           </Link>
         ))}
+
+        {/* متابعة الأحداث (Event Tracking) Dropdown */}
+        {user?.role_id === 1 && (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsEventTrackingDesktopOpen(!isEventTrackingDesktopOpen)}
+              className="flex items-center gap-2 px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium"
+            >
+              <Activity className="w-4 h-4" />
+              <span className="text-sm font-droid-arabic-kufi">متابعة الأحداث</span>
+              <ChevronDown
+                className={`w-3 h-3 transition-transform ${isEventTrackingDesktopOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {isEventTrackingDesktopOpen && (
+              <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-56 max-h-96 overflow-y-auto">
+                {events.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-500 font-droid-arabic-kufi text-center">
+                    لا توجد أحداث
+                  </div>
+                ) : (
+                  events.map((event) => (
+                    <Link
+                      key={event.id}
+                      to={`/admin/event-tracking/${event.id}`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi border-b border-gray-100 last:border-0"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{event.name}</span>
+                        {event.is_current && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            نشط
+                          </span>
+                          
+                        )}
+                        {event.is_archived && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                        مؤرشف
+                      </span>
+                    )}
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* إدارة عامة (General Management) Dropdown */}
         {user?.role_id === 1 && (
@@ -111,35 +182,7 @@ const AuthNavBar = ({
           </div>
         )}
 
-        {/* لوائح الإنتظار (Waiting List) Dropdown */}
-        {(user && [1, 4, 6].includes(user.role_id)) && (
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={toggleDropdown}
-              className="flex items-center gap-2 px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium"
-            >
-              <Users className="w-4 h-4" />
-              <span className="text-sm font-droid-arabic-kufi">لوائح الإنتظار</span>
-              <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-            </button>
-
-            {isOpen && (
-              <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-56">
-                {specialities
-                  .filter((s) => s.id !== 6)
-                  .map((speciality) => (
-                    <Link
-                      key={speciality.id}
-                      to={`/WaitingList/${speciality.id}`}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
-                    >
-                      {speciality.name}
-                    </Link>
-                  ))}
-              </div>
-            )}
-          </div>
-        )}
+     
       </>
     );
   }
@@ -193,10 +236,57 @@ const AuthNavBar = ({
         </div>
       )}
 
-   
+      {/* متابعة الأحداث (Event Tracking) Mobile */}
+      {user?.role_id === 1 && (
+        <div className="pt-2 mt-2">
+          <button
+            onClick={() => setIsEventTrackingOpen(!isEventTrackingOpen)}
+            className="w-full flex items-center justify-between px-4 py-3 text-[#2F3645] hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Activity className="w-5 h-5" />
+              <span className="font-medium text-sm font-droid-arabic-kufi">متابعة الأحداث</span>
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${isEventTrackingOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {isEventTrackingOpen && (
+            <div className="mt-1 flex flex-col space-y-1 bg-gray-50 rounded-lg p-2 max-h-60 overflow-y-auto">
+              {events.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-gray-500 font-droid-arabic-kufi text-center">
+                  لا توجد أحداث
+                </div>
+              ) : (
+                events.map((event) => (
+                  <Link
+                    key={event.id}
+                    to={`/admin/event-tracking/${event.id}`}
+                    className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+                  >
+                    <span>{event.name}</span>
+                    {event.is_active && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                        نشط
+                      </span>
+                    )}
+
+                    {event.is_archived && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                        مؤرشف
+                      </span>
+                    )}
+                  </Link>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* لوائح الإنتظار (Waiting List) */}
-      {(user && [1, 4, 6].includes(user.role_id)) && (
+      {/* {user && [1, 4, 6].includes(user.role_id) && (
         <div className="pt-2 mt-2 flex flex-col space-y-1">
           <button
             onClick={() => setIsWaitingListOpen(!isWaitingListOpen)}
@@ -227,10 +317,10 @@ const AuthNavBar = ({
             </div>
           )}
         </div>
-      )}
+      )} */}
 
-   {/* إدارة عامة (General Management) */}
-      {(user && user.role_id === 1) && (
+      {/* إدارة عامة (General Management) */}
+      {user && user.role_id === 1 && (
         <div className="pt-2 mt-2">
           <button
             onClick={() => setIsGeneralMenuOpen(!isGeneralMenuOpen)}
@@ -247,19 +337,31 @@ const AuthNavBar = ({
 
           {isGeneralMenuOpen && (
             <div className="mt-1 flex flex-col space-y-1 bg-gray-50 rounded-lg p-2">
-              <Link to="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi">
+              <Link
+                to="/settings"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+              >
                 <Settings className="w-4 h-4 flex-shrink-0" />
                 <span>إعدادات عامة</span>
               </Link>
-              <Link to="/rules" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi">
+              <Link
+                to="/rules"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+              >
                 <FileText className="w-4 h-4 flex-shrink-0" />
                 <span>التحكم في الضوابط</span>
               </Link>
-              <Link to="/contacts" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi">
+              <Link
+                to="/contacts"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+              >
                 <Phone className="w-4 h-4 flex-shrink-0" />
                 <span>الإتصالات</span>
               </Link>
-              <Link to="/voulenteers" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi">
+              <Link
+                to="/voulenteers"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+              >
                 <UserPlus className="w-4 h-4 flex-shrink-0" />
                 <span>المتطوعون</span>
               </Link>

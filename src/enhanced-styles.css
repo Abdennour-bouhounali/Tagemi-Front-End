@@ -1,0 +1,473 @@
+/* Custom animations and additional styles for RegisterVisit component */
+
+/* Import Arabic font */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
+/* Root variables for consistent theming */
+:root {
+  --primary-blue: #3B82F6;
+  --primary-purple: #8B5CF6;
+  --success-green: #10B981;
+  --warning-yellow: #F59E0B;
+  --error-red: #EF4444;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --gray-700: #374151;
+  --gray-800: #1F2937;
+}
+
+/* Custom font class */
+.font-droid-arabic-kufi {
+  font-family: 'Tajawal', 'Droid Arabic Kufi', sans-serif;
+}
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Animation utilities */
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-bounceIn {
+  animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Loading skeleton animation */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--gray-200) 0%,
+    var(--gray-100) 50%,
+    var(--gray-200) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Enhanced form inputs */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Smooth hover effects for buttons */
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Gradient backgrounds */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, var(--success-green) 0%, #059669 100%);
+}
+
+/* Card shadow effects */
+.card-shadow {
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-shadow:hover {
+  box-shadow: 
+    0 20px 35px -5px rgba(0, 0, 0, 0.15),
+    0 15px 15px -5px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+/* Progress bar enhancements */
+.progress-step {
+  position: relative;
+}
+
+.progress-step::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -100%;
+  width: 100%;
+  height: 2px;
+  background: var(--gray-200);
+  transform: translateY(-50%);
+}
+
+.progress-step.completed::after {
+  background: var(--success-green);
+}
+
+/* Tooltip styles */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background: var(--gray-800);
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover::before {
+  opacity: 1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+/* RTL specific adjustments */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .animate-slideIn {
+  animation: slideInRTL 0.3s ease-out;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] select,
+[dir="rtl"] textarea {
+  text-align: right;
+  padding-right: 12px;
+  padding-left: 48px; /* Space for icon on left */
+}
+
+[dir="rtl"] input::placeholder,
+[dir="rtl"] select::placeholder,
+[dir="rtl"] textarea::placeholder {
+  text-align: right;
+}
+
+/* Icon positioning for RTL */
+[dir="rtl"] .form-field-icon-left {
+  left: 12px;
+  right: auto;
+}
+
+@keyframes slideInRTL {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Event info cards */
+.event-info-card {
+  background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+  transition: all 0.3s ease;
+}
+
+.event-info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+}
+
+/* Appointment details in success modal */
+.appointment-detail-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.appointment-detail-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
+}
+
+/* Responsive design improvements */
+@media (max-width: 640px) {
+  .card-shadow {
+    box-shadow: 
+      0 4px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  button {
+    font-size: 14px;
+    padding: 12px 20px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* Accessibility improvements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
+}
+
+/* Disabled state improvements */
+.disabled,
+[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Notification styles */
+.notification-enter {
+  animation: slideIn 0.3s ease-out;
+}
+
+.notification-exit {
+  animation: slideOut 0.3s ease-out;
+}
+
+@keyframes slideOut {
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Enhanced form field states */
+.form-field-success {
+  border-color: var(--success-green) !important;
+}
+
+.form-field-error {
+  border-color: var(--error-red) !important;
+}
+
+.form-field-warning {
+  border-color: var(--warning-yellow) !important;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Custom checkbox styles */
+input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gray-300);
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--primary-blue);
+  border-color: var(--primary-blue);
+}
+
+input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Date picker enhancements */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.5);
+}
+
+/* Mobile touch enhancements */
+@media (hover: none) {
+  button:active {
+    transform: scale(0.98);
+  }
+  
+  .card-shadow:active {
+    transform: scale(0.99);
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gray-50: #1F2937;
+    --gray-100: #374151;
+    --gray-200: #4B5563;
+    --gray-700: #D1D5DB;
+    --gray-800: #F3F4F6;
+  }
+}
+
+/* Performance optimizations */
+.hardware-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

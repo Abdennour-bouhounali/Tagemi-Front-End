@@ -1,10 +1,37 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
-import { useParams } from 'react-router-dom';
-import { apiUrl } from '../../../Context/AppContext';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+    ArrowLeft,
+    Search,
+    UserCheck,
+    UserX,
+    Clock,
+    MessageSquare,
+    RefreshCw,
+    AlertCircle,
+    CheckCircle,
+    XCircle,
+    ChevronDown,
+    ChevronUp,
+    Calendar,
+    Phone,
+    MapPin,
+    Heart,
+    User,
+    Activity,
+    Filter
+} from 'lucide-react';
+import { Select, Input, Textarea } from '../../Common/FormInputs';
+
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const CheckPatient = () => {
-    const { specialityId } = useParams();
+    const { eventId, specialityId } = useParams();
+    const navigate = useNavigate();
+    const { user, token } = useContext(AppContext);
+    
+    const [event, setEvent] = useState(null);
     const [speciality, setSpeciality] = useState('');
     const [appointments, setAppointments] = useState([]);
     const [expandedRows, setExpandedRows] = useState({});
@@ -12,29 +39,51 @@ const CheckPatient = () => {
     const [comment, setComment] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
-    const [message, setMessage] = useState('');  // Add this state to manage the message
+    const [message, setMessage] = useState({ type: '', text: '' });
+    const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('all');
 
+    useEffect(() => {
+        if (eventId && specialityId) {
+            fetchEventDetails();
+            getWaitingListBySpeciality();
+        }
+    }, [eventId, specialityId]);
 
-    const { user, token } = useContext(AppContext);
-
-    async function getWaitingListBySpeciality(specialityId) {
+    const fetchEventDetails = async () => {
         try {
-            const res = await fetch(`${apiUrl}/api/waitinglist/GetWaitingListBySpeciality/${specialityId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+            const res = await fetch(`${apiUrl}/api/events/${eventId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                setEvent(data.event || data);
+            }
+        } catch (error) {
+            console.error("Error fetching event:", error);
+        }
+    };
+
+    const getWaitingListBySpeciality = async () => {
+        try {
+            setLoading(true);
+            const res = await fetch(`${apiUrl}/api/waitinglist/GetWaitingListBySpeciality/${eventId}/${specialityId}`, {
+                headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
             setAppointments(data.appointments || []);
             setSpeciality(data.speciality || '');
         } catch (error) {
             console.error("Error fetching waiting list:", error);
+            setMessage({ 
+                type: 'error', 
+                text: 'حدث خطأ أثناء تحميل قائمة الانتظار' 
+            });
+        } finally {
+            setLoading(false);
         }
-    }
-
-    useEffect(() => {
-        getWaitingListBySpeciality(specialityId);
-    }, [specialityId]);
+    };
 
     const toggleRow = (patientId) => {
         setExpandedRows((prev) => ({
@@ -43,97 +92,141 @@ const CheckPatient = () => {
         }));
     };
 
-    const filteredAppointments = appointments.filter((appointment) =>
-        appointment.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleSearchChange = (e) => setSearchTerm(e.target.value);
 
-    const handleChange = (e) => setSearchTerm(e.target.value);
+    const filteredAppointments = appointments.filter((appointment) => {
+        const matchesSearch = appointment.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            appointment.patient_id?.toString().includes(searchTerm) ||
+                            appointment.phone?.includes(searchTerm);
+        
+        const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
 
-    async function handleAbsent(e, appointmentId) {
+    const handleAbsent = async (e, appointmentId) => {
         e.preventDefault();
         try {
-            await fetch(`${apiUrl}/api/waitinglist/Absent/${appointmentId}`, {
+            const res = await fetch(`${apiUrl}/api/waitinglist/Absent/${appointmentId}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            getWaitingListBySpeciality(specialityId);
+            
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'تم تحديد المريض كغائب' });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                getWaitingListBySpeciality();
+            }
         } catch (error) {
             console.error("Error marking absent:", error);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء تحديث الحالة' });
         }
-    }
+    };
 
-    async function handleComplete(e, appointmentId) {
+    const handleComplete = async (e, appointmentId) => {
         e.preventDefault();
         try {
-            await fetch(`${apiUrl}/api/waitinglist/Complete/${appointmentId}`, {
+            const res = await fetch(`${apiUrl}/api/waitinglist/Complete/${appointmentId}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            getWaitingListBySpeciality(specialityId);
+            const data = await res.json();
+            
+            if (res.ok) {
+                setMessage({ 
+                    type: 'success', 
+                    text: data.message || 'تم إجتياز الفحص بنجاح' 
+                });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                getWaitingListBySpeciality();
+            }
         } catch (error) {
             console.error("Error marking complete:", error);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء تحديث الحالة' });
         }
-    }
-    
-    async function handleAlterSpeciality(e, id) {
-        e.preventDefault();
-        try {
-            await fetch(`${apiUrl}/api/waitinglist/alterSpeciality/${id}`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            getWaitingListBySpeciality(specialityId);
-        } catch (error) {
-            console.error("Error marking Change Speciality:", error);
-        }
-    }
+    };
 
-    async function handleDilatation(e, appointmentId) {
+    const handleAlterSpeciality = async (e, id) => {
         e.preventDefault();
         try {
-            await fetch(`${apiUrl}/api/waitinglist/Dilatation/${appointmentId}`, {
+            const res = await fetch(`${apiUrl}/api/waitinglist/alterSpeciality/${id}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            getWaitingListBySpeciality(specialityId);
+            const data = await res.json();
+            
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'تم تبديل التخصصات بنجاح' });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                getWaitingListBySpeciality();
+            }
+        } catch (error) {
+            console.error("Error changing specialty:", error);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء تبديل التخصص' });
+        }
+    };
+
+    const handleDilatation = async (e, appointmentId) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${apiUrl}/api/waitinglist/Dilatation/${appointmentId}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            
+            if (res.ok) {
+                setMessage({ type: 'info', text: 'تم وضع المريض في حالة التمدد' });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                getWaitingListBySpeciality();
+            }
         } catch (error) {
             console.error("Error marking Dilatation:", error);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء تحديث الحالة' });
         }
-    }
+    };
 
-    async function handleFinishedDilatation(e, appointmentId) {
+    const handleFinishedDilatation = async (e, appointmentId) => {
         e.preventDefault();
         try {
-            await fetch(`${apiUrl}/api/waitinglist/FinishedDilatation/${appointmentId}`, {
+            const res = await fetch(`${apiUrl}/api/waitinglist/FinishedDilatation/${appointmentId}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            getWaitingListBySpeciality(specialityId);
+            
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'تم إنهاء التمدد' });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                getWaitingListBySpeciality();
+            }
         } catch (error) {
             console.error("Error marking Finished Dilatation:", error);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء تحديث الحالة' });
         }
-    }
+    };
 
-    
-async function handleCommingsoon(e, appointmentId, position) {
-  e.preventDefault();
-  try {
-    await fetch(`${apiUrl}/api/waitinglist/Commingsoon/${appointmentId}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({ position }), // ✅ send position
-    });
-    getWaitingListBySpeciality(specialityId);
-  } catch (error) {
-    console.error("Error marking Comingsoon:", error);
-  }
-}
-
-
+    const handleCommingsoon = async (e, appointmentId, position) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${apiUrl}/api/waitinglist/Commingsoon/${appointmentId}`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({ position }),
+            });
+            
+            if (res.ok) {
+                setMessage({ type: 'info', text: 'تم إنزال المريض في القائمة' });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                getWaitingListBySpeciality();
+            }
+        } catch (error) {
+            console.error("Error marking Comingsoon:", error);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء تحديث الموضع' });
+        }
+    };
 
     const openCommentModal = (appointmentId) => {
         setSelectedAppointment(appointmentId);
@@ -146,220 +239,513 @@ async function handleCommingsoon(e, appointmentId, position) {
         setComment('');
     };
 
-    async function addComment(e) {
+    const addComment = async (e) => {
         e.preventDefault();
         try {
             const res = await fetch(`${apiUrl}/api/appointment/addComment`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     appointment_id: selectedAppointment,
-                    comment,
+                    comment: comment,
                 }),
             });
 
-            const data = await res.json();
-
-            if (res.ok && data.message === 'Comment added successfully') {
-                setMessage('تمت إضافة الملاحظة بنجاح');
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'تم إضافة الملاحظة بنجاح' });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
                 closeCommentModal();
-                getWaitingListBySpeciality(specialityId);
-
-                // Hide the message after 3 seconds
-                setTimeout(() => {
-                    setMessage('');
-                }, 3000);
-            } else {
-                setMessage('هناك خطأ في النظام ');
-
-                // Hide the message after 3 seconds
-                setTimeout(() => {
-                    setMessage('');
-                }, 3000);
+                getWaitingListBySpeciality();
             }
         } catch (error) {
             console.error("Error adding comment:", error);
-            setMessage('An error occurred while adding the comment.');
-
-            // Hide the message after 3 seconds
-            setTimeout(() => {
-                setMessage('');
-            }, 3000);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء إضافة الملاحظة' });
         }
+    };
+
+    const formatTime = (time) => {
+        if (!time) return 'غير محدد';
+        return time;
+    };
+
+    const getStatusBadge = (status) => {
+        const statusConfig = {
+            Present: { bg: 'bg-green-100', text: 'text-green-700', label: 'حاضر', icon: UserCheck },
+            Waiting: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'في الانتظار', icon: Clock },
+            Commingsoon: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'قادم قريباً', icon: Activity },
+            Dilatation: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'في التمدد', icon: Clock },
+            Absent: { bg: 'bg-red-100', text: 'text-red-700', label: 'غائب', icon: UserX },
+            Completed: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'مكتمل', icon: CheckCircle },
+        };
+
+        const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-700', label: status || 'غير معروف', icon: AlertCircle };
+        const Icon = config.icon;
+
+        return (
+            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-droid-arabic-kufi ${config.bg} ${config.text}`}>
+                <Icon className="w-3 h-3" />
+                {config.label}
+            </span>
+        );
+    };
+
+    // Check if specialty is eye (for dilatation buttons)
+    const isEyeSpecialty = speciality?.toLowerCase().includes('عيون') || 
+                             speciality?.toLowerCase().includes('eye');
+
+    // Statistics
+    const stats = {
+        total: appointments.length,
+        present: appointments.filter(a => a.status === 'Present').length,
+        waiting: appointments.filter(a => a.status === 'Waiting').length,
+        commingsoon: appointments.filter(a => a.status === 'Commingsoon').length,
+        dilatation: appointments.filter(a => a.status === 'Dilatation').length,
+        completed: appointments.filter(a => a.status === 'Completed').length,
+        absent: appointments.filter(a => a.status === 'Absent').length,
+    };
+
+    // Prepare status filter options
+    const statusOptions = [
+        { value: 'all', label: 'جميع الحالات' },
+        { value: 'Present', label: 'حاضر' },
+        { value: 'Waiting', label: 'في الانتظار' },
+        { value: 'Commingsoon', label: 'قادم قريباً' },
+        ...(isEyeSpecialty ? [{ value: 'Dilatation', label: 'في التمدد' }] : []),
+        { value: 'Completed', label: 'مكتمل' },
+        { value: 'Absent', label: 'غائب' },
+    ];
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600 font-droid-arabic-kufi">جاري التحميل...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
-                <div className="overflow-x-auto w-full px-4 sm:px-6 lg:px-8">
+    <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
+      <div className="w-full max-w-7xl mb-4">
+                {/* Header */}
+                <div className="mb-6">
+                    {user.role_id === 1 && 
+                    <Link
+                        to={`/admin/event-tracking/${eventId}`}
+                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-droid-arabic-kufi transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        العودة إلى متابعة الحدث
+                    </Link>
+                    }
+                    <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-indigo-100 p-3 rounded-lg">
+                                    <Activity className="w-8 h-8 text-indigo-600" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-1 font-droid-arabic-kufi">
+                                        قائمة الانتظار - {speciality}
+                                    </h1>
+                                    {event && (
+                                        <p className="text-gray-600 font-droid-arabic-kufi flex items-center gap-2">
+                                            <Calendar className="w-4 h-4" />
+                                            {event.name}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
 
-            <h1 className="font-droid-arabic-kufi my-4 mx-auto text-2xl font-black text-[#131842]">{speciality}</h1>
-            {message && (
-                <div className="flex items-center p-4 m-4 text-sm text-[#2F3645] border border-green-300 rounded-lg bg-[#EEEDEB]" role="alert">
-                    <svg className="flex-shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-                    </svg>
-                    <span className="sr-only">Info</span>
-                    <div>
-                        <span className="font-medium font-droid-arabic-kufi">{message}</span>
+                            <button
+                                onClick={getWaitingListBySpeciality}
+                                className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                تحديث
+                            </button>
+                        </div>
                     </div>
                 </div>
-            )}
-            <input
-                type="text"
-                placeholder="إبحث بالإسم"
-                value={searchTerm}
-                onChange={handleChange}
-                className="search-bar my-4 font-droid-arabic-kufi"
-            />
-                <div className="overflow-x-auto w-full px-4 sm:px-6 lg:px-8">
-  <div className="inline-block min-w-full shadow-lg rounded-2xl bg-white border border-gray-200">
-    <table className="min-w-full text-center border-collapse">                  <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>الإسم</th>
-                        <th>اللقب</th>
-                        <th>تاريخ الميلاد</th>
-                        <th>الترتيب</th>
-                        {(user.role_id == 1 || user.role_id == 6) && (
 
-                            <th>ملاحظات</th>
-                        )}
-                        <th>أمر</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredAppointments.map((appointment) => (
-                        <React.Fragment key={appointment.id}>
-                           <tr
-                                onClick={() => toggleRow(appointment.id)}
-                                className={`border-t-4 ${
-                                    appointment.status === 'Dilatation' ? 'bg-green-100' : ''
-                                }  ${
-                                    appointment.status === 'Commingsoon' ? 'bg-yellow-100' : ''
-                                }`}
-                                >
-                                <td>{appointment.patient_id}</td>
-                                <td>{appointment.name}</td>
-                                <td>{appointment.lastName}</td>
-                                <td>{appointment.birthday}</td>
-                                <td>{appointment.orderList}</td>
+                {/* Alert Messages */}
+                {message.text && (
+                    <div className={`mb-6 border-r-4 p-4 rounded-lg ${
+                        message.type === 'success' ? 'bg-green-50 border-green-500' :
+                        message.type === 'error' ? 'bg-red-50 border-red-500' :
+                        message.type === 'info' ? 'bg-blue-50 border-blue-500' :
+                        'bg-yellow-50 border-yellow-500'
+                    }`}>
+                        <div className="flex items-center gap-3">
+                            {message.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600" />}
+                            {message.type === 'error' && <XCircle className="w-5 h-5 text-red-600" />}
+                            {message.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-600" />}
+                            <p className={`font-droid-arabic-kufi ${
+                                message.type === 'success' ? 'text-green-700' :
+                                message.type === 'error' ? 'text-red-700' :
+                                message.type === 'info' ? 'text-blue-700' :
+                                'text-yellow-700'
+                            }`}>
+                                {message.text}
+                            </p>
+                        </div>
+                    </div>
+                )}
 
-                                {(user.role_id == 1 || user.role_id == 6) && (
-                                    <td>{appointment.comment}</td>
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+                    <div className="bg-white rounded-lg shadow p-4 border-r-4 border-blue-500">
+                        <p className="text-xs text-gray-600 font-droid-arabic-kufi mb-1">المجموع</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-r-4 border-green-500">
+                        <p className="text-xs text-gray-600 font-droid-arabic-kufi mb-1">حاضر</p>
+                        <p className="text-2xl font-bold text-green-600">{stats.present}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-r-4 border-blue-500">
+                        <p className="text-xs text-gray-600 font-droid-arabic-kufi mb-1">في الانتظار</p>
+                        <p className="text-2xl font-bold text-blue-600">{stats.waiting}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-r-4 border-yellow-500">
+                        <p className="text-xs text-gray-600 font-droid-arabic-kufi mb-1">قادم قريباً</p>
+                        <p className="text-2xl font-bold text-yellow-600">{stats.commingsoon}</p>
+                    </div>
+                    {isEyeSpecialty && (
+                        <div className="bg-white rounded-lg shadow p-4 border-r-4 border-orange-500">
+                            <p className="text-xs text-gray-600 font-droid-arabic-kufi mb-1">في التمدد</p>
+                            <p className="text-2xl font-bold text-orange-600">{stats.dilatation}</p>
+                        </div>
+                    )}
+                    <div className="bg-white rounded-lg shadow p-4 border-r-4 border-purple-500">
+                        <p className="text-xs text-gray-600 font-droid-arabic-kufi mb-1">مكتمل</p>
+                        <p className="text-2xl font-bold text-purple-600">{stats.completed}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-r-4 border-red-500">
+                        <p className="text-xs text-gray-600 font-droid-arabic-kufi mb-1">غائب</p>
+                        <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Filter className="w-5 h-5 text-gray-600" />
+                        <h3 className="text-lg font-bold text-gray-900 font-droid-arabic-kufi">
+                            البحث والتصفية
+                        </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Search Input */}
+                        <Input
+                            icon={Search}
+                            type="text"
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            placeholder="ابحث برقم المريض، الاسم، أو رقم الهاتف..."
+                        />
+
+                        {/* Status Filter */}
+                        <Select
+                            icon={Activity}
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            options={statusOptions}
+                        />
+                    </div>
+                </div>
+
+                {/* Appointments Table */}
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-center">
+                            <thead className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                                <tr>
+                                    <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">رقم المريض</th>
+                                    <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">الاسم الكامل</th>
+                                    <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">الحالة</th>
+                                    <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">الساعة</th>
+                                    <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">الترتيب</th>
+                                    {(user.role_id === 1 || user.role_id === 6) && (
+                                        <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">الملاحظات</th>
+                                    )}
+                                    <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">الإجراءات</th>
+                                    <th className="px-4 py-3 text-sm font-semibold font-droid-arabic-kufi">التفاصيل</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {filteredAppointments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="8" className="px-4 py-8 text-center">
+                                            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                            <p className="text-gray-500 font-droid-arabic-kufi">
+                                                {searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد مواعيد في قائمة الانتظار'}
+                                            </p>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredAppointments.map((appointment) => (
+                                        <React.Fragment key={appointment.id}>
+                                            <tr className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                    #{appointment.patient_id}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
+                                                    {appointment.full_name}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {getStatusBadge(appointment.status)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
+                                                    {appointment.is_special === 1 ? (
+                                                        <span className="text-red-500 font-bold font-droid-arabic-kufi">
+                                                            حالة خاصة
+                                                        </span>
+                                                    ) : (
+                                                        formatTime(appointment.hour?.time)
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`font-bold ${
+                                                        appointment.orderList === 0 ? 'text-red-500 text-lg' : ''
+                                                    }`}>
+                                                        {appointment.orderList}
+                                                    </span>
+                                                </td>
+
+                                                {(user.role_id === 1 || user.role_id === 6) && (
+                                                    <td className="px-4 py-3 text-sm max-w-xs truncate">
+                                                        {appointment.comment || '-'}
+                                                    </td>
+                                                )}
+
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-wrap gap-2 justify-center">
+                                                        {(user.role_id === 1 || user.role_id === 4) && (
+                                                            <>
+                                                                {/* Dilatation buttons - only for eye specialty */}
+                                                                {isEyeSpecialty && (
+                                                                    <>
+                                                                        {appointment.status === 'Dilatation' ? (
+                                                                            <button
+                                                                                onClick={(e) => handleFinishedDilatation(e, appointment.id)}
+                                                                                className="text-blue-700 hover:text-white border font-droid-arabic-kufi border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                                            >
+                                                                                إنهاء التمدد
+                                                                            </button>
+                                                                        ) : (
+                                                                            <button
+                                                                                onClick={(e) => handleDilatation(e, appointment.id)}
+                                                                                className="text-orange-700 hover:text-white border font-droid-arabic-kufi border-orange-700 hover:bg-orange-800 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                                            >
+                                                                                تمدد
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                )}
+
+                                                                {/* Coming soon button */}
+                                                                {appointment.status !== 'Commingsoon' && (
+                                                                    <button
+                                                                        onClick={(e) => handleCommingsoon(e, appointment.id, appointment.orderList + 10)}
+                                                                        className="text-yellow-700 hover:text-white border font-droid-arabic-kufi border-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                                    >
+                                                                        إنزال
+                                                                    </button>
+                                                                )}
+
+                                                                {/* Alter specialty button */}
+                                                                <button
+                                                                    onClick={(e) => handleAlterSpeciality(e, appointment.id)}
+                                                                    className="text-amber-700 hover:text-white border font-droid-arabic-kufi border-amber-700 hover:bg-amber-800 focus:ring-4 focus:outline-none focus:ring-amber-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                                >
+                                                                    تبديل
+                                                                </button>
+
+                                                                {/* Absent button - only show for coming soon */}
+                                                                {appointment.status === 'Commingsoon' && (
+                                                                    <button
+                                                                        onClick={(e) => handleAbsent(e, appointment.id)}
+                                                                        className="text-red-700 hover:text-white border font-droid-arabic-kufi border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                                    >
+                                                                        غائب
+                                                                    </button>
+                                                                )}
+
+                                                                {/* Complete button */}
+                                                                <button
+                                                                    onClick={(e) => handleComplete(e, appointment.id)}
+                                                                    className="text-green-700 hover:text-white border font-droid-arabic-kufi border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                                >
+                                                                    إجتاز
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {/* Add comment button */}
+                                                        {(user.role_id === 1 || user.role_id === 6) && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openCommentModal(appointment.id);
+                                                                }}
+                                                                type="button"
+                                                                className="text-blue-700 hover:text-white border font-droid-arabic-kufi border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                            >
+                                                                ملاحظة
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+
+                                                <td className="px-4 py-3">
+                                                    <button
+                                                        onClick={() => toggleRow(appointment.patient_id)}
+                                                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                                                    >
+                                                        {expandedRows[appointment.patient_id] ? (
+                                                            <ChevronUp className="w-5 h-5" />
+                                                        ) : (
+                                                            <ChevronDown className="w-5 h-5" />
+                                                        )}
+                                                    </button>
+                                                </td>
+                                            </tr>
+
+                                            {/* Expanded Details Row */}
+                                            {expandedRows[appointment.patient_id] && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan="8" className="px-6 py-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-right">
+                                                            <div className="flex items-center gap-2">
+                                                                <Calendar className="w-4 h-4 text-gray-500" />
+                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
+                                                                    تاريخ الميلاد:
+                                                                </span>
+                                                                <span className="text-sm font-medium text-gray-900">
+                                                                    {appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('ar-SA') : '-'}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2">
+                                                                <Phone className="w-4 h-4 text-gray-500" />
+                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
+                                                                    الهاتف:
+                                                                </span>
+                                                                <span className="text-sm font-medium text-gray-900" dir="ltr">
+                                                                    {appointment.phone || '-'}
+                                                                </span>
+                                                            </div>
+
+                                                            {appointment.phone2 && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Phone className="w-4 h-4 text-gray-500" />
+                                                                    <span className="text-sm text-gray-600 font-droid-arabic-kufi">
+                                                                        هاتف ثانوي:
+                                                                    </span>
+                                                                    <span className="text-sm font-medium text-gray-900" dir="ltr">
+                                                                        {appointment.phone2}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex items-center gap-2">
+                                                                <MapPin className="w-4 h-4 text-gray-500" />
+                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
+                                                                    القصر:
+                                                                </span>
+                                                                <span className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
+                                                                    {appointment.residence || '-'}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2">
+                                                                <User className="w-4 h-4 text-gray-500" />
+                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
+                                                                    الجنس:
+                                                                </span>
+                                                                <span className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
+                                                                    {appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى'}
+                                                                </span>
+                                                            </div>
+
+                                                            {appointment.diseases && appointment.diseases !== 'nothing' && (
+                                                                <div className="flex items-start gap-2 lg:col-span-3">
+                                                                    <Heart className="w-4 h-4 text-gray-500 mt-1" />
+                                                                    <div>
+                                                                        <span className="text-sm text-gray-600 font-droid-arabic-kufi">
+                                                                            الأمراض:
+                                                                        </span>
+                                                                        <p className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
+                                                                            {appointment.diseases}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    ))
                                 )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-                                <td>
-                                    {(user.role_id == 1 || user.role_id == 4) && (
-                                    <>{specialityId == 52 && <>
-                                        {appointment.status === 'Dilatation' ? (
-                                        <button
-                                            onClick={(e) => handleFinishedDilatation(e, appointment.id)}
-                                            className="text-blue-700 mx-3 hover:text-white border font-droid-arabic-kufi border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2"
-                                        >
-                                            Fin Dilatation
-                                        </button>
-                                        ) : (
-                                        <button
-                                            onClick={(e) => handleDilatation(e, appointment.id)}
-                                            className="text-orange-700 mx-3 hover:text-white border font-droid-arabic-kufi border-orange-700 hover:bg-orange-800 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2"
-                                        >
-                                            Dilatation
-                                        </button>
-                                        )}</>}
-
-                                        {appointment.status !== 'Commingsoon' && (
-                                        <button
-                                        onClick={(e) => handleCommingsoon(e, appointment.id, appointment.orderList + 1)} // example: move to next position
-                                        className="text-yellow-700 mx-3 hover:text-white border font-droid-arabic-kufi border-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-4 py-2"
-                                        >
-                                        إنزال
-                                        </button>) }
-                                        <button
-                                        onClick={(e) => handleAlterSpeciality(e, appointment.id)}
-                                        className="text-amber-300 mx-3 hover:text-white border font-droid-arabic-kufi border-amber-700 hover:bg-amber-800 focus:ring-4 focus:outline-none focus:ring-amber-300 font-medium rounded-lg text-sm px-4 py-2"
-                                        >
-                                        تبديل التخصص
-                                        </button>
-
-                                        {appointment.status == 'Commingsoon' && (
-                                        
-                                        <button
-                                        onClick={(e) => handleAbsent(e, appointment.id)}
-                                        className="text-red-700 mx-3 hover:text-white border font-droid-arabic-kufi border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
-                                        >
-                                        غائب
-                                        </button>)}
-
-                                        <button
-                                        onClick={(e) => handleComplete(e, appointment.id)}
-                                        className="text-green-700 mx-3 hover:text-white border font-droid-arabic-kufi border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
-                                        >
-                                        إجتاز
-                                        </button>
-                                    </>
-                                    )}
-
-                                    {(user.role_id == 1 || user.role_id == 6) && (
-                                    <button
-                                        onClick={() => openCommentModal(appointment.id)}
-                                        type="button"
-                                        className="text-blue-700 mx-3 hover:text-white border font-droid-arabic-kufi border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2"
-                                    >
-                                        أضف ملاحظة
-                                    </button>
-                                    )}
-                                </td>
-                            </tr>
-
-                        </React.Fragment>
-                    ))}
-                </tbody>
-            </table>
-</div></div>
+            {/* Comment Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-full h-[90%] overflow-auto">
-                        <h2 className="text-xl font-bold mb-4 font-droid-arabic-kufi">أضف ملاحظة</h2>
-                        <form
-                            onSubmit={async (e) => {
-                                // e.preventDefault(); // Prevent default form submission
-                                await addComment(e); // Call the function to handle adding a comment
-                                setIsModalOpen(false); // Close the modal
-                                setComment(''); // Reset the comment field
-                            }}
-                            className="bg-white rounded-lg  p-6 w-[90%] max-w-full h-[90%] overflow-auto"
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi flex items-center gap-2">
+                                <MessageSquare className="w-6 h-6 text-blue-600" />
+                                أضف ملاحظة
+                            </h2>
+                            <button
+                                onClick={closeCommentModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
 
-                        >
-                            <textarea
+                        <form onSubmit={addComment} className="p-6">
+                            <Textarea
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}
-                                placeholder="Enter your comment"
-                                className="w-full h-[80%] p-2 border rounded-md focus:ring focus:ring-blue-500 focus:outline-none"
+                                placeholder="اكتب ملاحظتك هنا..."
+                                rows={6}
                                 required
-                            ></textarea>
+                            />
 
-                            <div className="flex justify-start mt-4">
-                                <button
-                                    type="submit"
-                                    className="ml-2 px-4 mx-5 py-2 text-white bg-blue-600 font-droid-arabic-kufi rounded-md hover:bg-blue-700"
-                                >
-                                    حفظ
-                                </button>
+                            <div className="flex justify-end gap-3 mt-6">
                                 <button
                                     type="button"
                                     onClick={closeCommentModal}
-                                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md font-droid-arabic-kufi hover:bg-gray-300"
+                                    className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg font-droid-arabic-kufi hover:bg-gray-300 transition-colors"
                                 >
                                     إلغاء
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-6 py-2 text-white bg-blue-600 font-droid-arabic-kufi rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                >
+                                    <CheckCircle className="w-4 h-4" />
+                                    حفظ
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
         </div>
     );
 };

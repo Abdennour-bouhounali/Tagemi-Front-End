@@ -2,133 +2,376 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../Context/LanguageContext';
 import Footer from './HomePage/Components/Footer';
+import {
+    Target,
+    Award,
+    Users,
+    Heart,
+    TrendingUp,
+    Sparkles,
+    Play,
+    ArrowRight,
+    CheckCircle,
+    Globe
+} from 'lucide-react';
+
 const env = import.meta.env;
 export const apiUrl = env.VITE_API_URL;
+
 const About = () => {
-  const { language } = useLanguage();
-  const [types, setTypes] = useState([]);
+    const { language } = useLanguage();
+    const [types, setTypes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [videoPlaying, setVideoPlaying] = useState(false);
 
-  async function getTypes() {
-    const res = await fetch(`${apiUrl}/api/types`);
-    const data = await res.json();
-    setTypes(data);
-  }
+    async function getTypes() {
+        try {
+            setLoading(true);
+            const res = await fetch(`${apiUrl}/api/types`);
+            const data = await res.json();
+            setTypes(data);
+        } catch (error) {
+            console.error('Error fetching types:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
 
-  useEffect(() => {
-    getTypes();
-  }, []);
+    useEffect(() => {
+        getTypes();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, []);
 
-  return (
-    <>
-      {/* About Section */}
-      <div className=" px-4 sm:px-6 md:px-10 flex flex-col items-center text-center mt-24">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-4 font-droid-arabic-kufi text-[#E03A6F]">
-          {language === 'en' ? 'About Us' : 'من نحن'}
-        </h1>
-        <p className="text-base sm:text-lg md:text-[24px] leading-relaxed mb-6 font-droid-arabic-kufi w-full sm:w-3/4 md:w-2/3 mx-auto mt-10">
-          {language === 'en'
-            ? 'TAGEMI Foundation is a humanitarian charity dedicated to contributing to human development in its social, economic, educational, and scientific aspects, aiming for a prosperous and leading Algeria. Established on 15/07/2018, it is an extension of the Tajmi Association, founded on May 29, 2006, which is a humanitarian and social association located in Saha Souk, Aïn Témouchent, Ghardaia.'
-            : 'مؤسسة تــجــمــي ، خيرية إنسانية غايتنا المساهمة في تحقيق تنمية انسانية بجوانبها الإجتماعية، الإقتصادية، التربوية و العلمية لجزائر مزدهرة و رائدة تأسست بتاريخ 15/07/2018 و هي امتداد لنشاط جمعية تجمي التي تأسست بتاريخ : 29 ماي 2006 و هي جمعية ذات طابع إنساني اجتماعي، الكائن مقرها بساحة السوق، بلدية العطف ولاية غرداية.'}
-        </p>
-      </div>
+    const goals = [
+        {
+            icon: Heart,
+            text: language === 'en' 
+                ? 'Promoting humane behavior in line with nature' 
+                : 'ترقية السلوك الإنساني بما يتماشى و الفطرة',
+            color: 'from-pink-500 to-rose-500'
+        },
+        {
+            icon: Users,
+            text: language === 'en' 
+                ? 'Maintaining public health for families and the community' 
+                : 'المحافظة على الصحة العامة للأسرة و المجتمع',
+            color: 'from-blue-500 to-cyan-500'
+        },
+        {
+            icon: Award,
+            text: language === 'en' 
+                ? 'Promoting science as a cultural and human value' 
+                : 'ترقية العلم كقيمة حضارية و إنسانية',
+            color: 'from-purple-500 to-indigo-500'
+        }
+    ];
 
-      {/* Our Goals Section */}
-      <div className="flex flex-col lg:flex-row mt-10 lg:mt-20 px-4 sm:px-6 lg:px-10 gap-10">
-        <div className="lg:basis-1/2">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-center lg:text-left font-droid-arabic-kufi text-[#E03A6F]">
-            {language === 'en' ? 'Our Goals' : 'غايتنا'}
-          </h1>
-          <ul className="list-none text-base sm:text-lg md:text-[24px] leading-relaxed mt-6 space-y-4 text-center lg:text-left font-droid-arabic-kufi">
-            <li>{language === 'en' ? 'Promoting humane behavior in line with nature' : 'ترقية السلوك الإنساني بما يتماشى و الفطرة'}</li>
-            <li>{language === 'en' ? 'Maintaining public health for families and the community' : 'المحافظة على الصحة العامة للأسرة و المجتمع'}</li>
-            <li>{language === 'en' ? 'Promoting science as a cultural and human value' : 'ترقية العلم كقيمة حضارية و إنسانية'}</li>
-          </ul>
+    const objectives = [
+        {
+            icon: Heart,
+            text: language === 'en' 
+                ? 'Enhancing humanitarian and solidarity work and providing relief' 
+                : 'تعزيز العمل الإنساني و التضامني و تقديم الإغاثة'
+        },
+        {
+            icon: TrendingUp,
+            text: language === 'en' 
+                ? 'Contributing to social, health, educational, and cultural development' 
+                : 'المساهمة في تحقيق تنمية و رعاية إجتماعية، صحية، تعليمية و حضارية'
+        },
+        {
+            icon: Globe,
+            text: language === 'en' 
+                ? 'Working towards sustainable development' 
+                : 'العمل و المساهمة في تحقيق تنمية مستدامة'
+        },
+        {
+            icon: Sparkles,
+            text: language === 'en' 
+                ? 'Preserving social, Islamic, and national values' 
+                : 'المحافظة على القيم الإجتماعية و الإسلامية و الوطنية'
+        }
+    ];
+
+    // Skeleton loader component
+    const SkeletonCard = () => (
+        <div className="aspect-square rounded-2xl bg-gray-200 animate-pulse"></div>
+    );
+
+    return (
+        <div className="min-h-screen bg-white">
+            {/* Hero Section */}
+            <section className="relative py-20 md:py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#E03A6F] overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0" style={{
+                        backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+                        backgroundSize: '40px 40px'
+                    }}></div>
+                </div>
+
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="text-center animate-fade-in">
+                        <div className="inline-block bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full mb-6">
+                            <span className="text-white font-semibold font-droid-arabic-kufi">
+                                {language === 'en' ? 'TAGEMI Foundation' : 'مؤسسة تجمي'}
+                            </span>
+                        </div>
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-white font-droid-arabic-kufi drop-shadow-2xl">
+                            {language === 'en' ? 'About Us' : 'من نحن'}
+                        </h1>
+                        <div className="w-20 h-1 bg-white mx-auto mb-8"></div>
+                        <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 font-droid-arabic-kufi max-w-4xl mx-auto">
+                            {language === 'en'
+                                ? "Let's work together for eternal life"
+                                : 'لنعمل سويا من أجل حياة أبدية'}
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Mission Statement */}
+            <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+                <div className="max-w-7xl mx-auto">
+                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl p-8 md:p-12 lg:p-16 shadow-xl border border-blue-100">
+                        <div className="flex items-start gap-6 mb-8">
+                            <div className="flex-shrink-0 bg-gradient-to-br from-[#E03A6F] to-[#c8102e] p-4 rounded-2xl shadow-lg">
+                                <Target className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 font-droid-arabic-kufi text-gray-900">
+                                    {language === 'en' ? 'Our Mission' : 'مهمتنا'}
+                                </h2>
+                                <div className="w-16 h-1 bg-[#E03A6F]"></div>
+                            </div>
+                        </div>
+                        <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-gray-700 font-droid-arabic-kufi">
+                            {language === 'en'
+                                ? 'TAGEMI Foundation is a humanitarian charity dedicated to contributing to human development in its social, economic, educational, and scientific aspects, aiming for a prosperous and leading Algeria. Established on 15/07/2018, it is an extension of the Tajmi Association, founded on May 29, 2006, which is a humanitarian and social association located in Saha Souk, Aïn Témouchent, Ghardaia.'
+                                : 'مؤسسة تـجـمـي ، خيرية إنسانية غايتنا المساهمة في تحقيق تنمية انسانية بجوانبها الإجتماعية، الإقتصادية، التربوية و العلمية لجزائر مزدهرة و رائدة تأسست بتاريخ 15/07/2018 و هي امتداد لنشاط جمعية تجمي التي تأسست بتاريخ : 29 ماي 2006 و هي جمعية ذات طابع إنساني اجتماعي، الكائن مقرها بساحة السوق، بلدية العطف ولاية غرداية.'}
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Goals Section with Video */}
+            <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                        {/* Goals Cards */}
+                        <div className="order-2 lg:order-1 space-y-8">
+                            <div className="text-center lg:text-left">
+                                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font-droid-arabic-kufi text-gray-900">
+                                    {language === 'en' ? 'Our Goals' : 'غايتنا'}
+                                </h2>
+                                <div className="w-20 h-1 bg-[#E03A6F] mx-auto lg:mx-0 mb-8"></div>
+                            </div>
+
+                            {goals.map((goal, index) => (
+                                <div
+                                    key={index}
+                                    className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in"
+                                    style={{ animationDelay: `${index * 150}ms` }}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className={`flex-shrink-0 w-14 h-14 bg-gradient-to-br ${goal.color} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                            <goal.icon className="w-7 h-7 text-white" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-base sm:text-lg md:text-xl text-gray-700 font-droid-arabic-kufi leading-relaxed">
+                                                {goal.text}
+                                            </p>
+                                        </div>
+                                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Video */}
+                        <div className="order-1 lg:order-2">
+                            <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl bg-gray-900 group">
+                                <iframe
+                                    src="https://www.youtube.com/embed/Bc9DI4uzg2Q?si=m0cfxB4yaRS_w2Y6"
+                                    title="YouTube video player"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    referrerPolicy="strict-origin-when-cross-origin"
+                                    allowFullScreen
+                                    className="absolute inset-0 w-full h-full"
+                                    onLoad={() => setVideoPlaying(true)}
+                                ></iframe>
+                                
+                                {/* Video Overlay */}
+                                {!videoPlaying && (
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center">
+                                        <div className="bg-white/90 backdrop-blur-sm rounded-full p-6 shadow-2xl transform group-hover:scale-110 transition-transform duration-300">
+                                            <Play className="w-12 h-12 text-[#E03A6F]" fill="currentColor" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Objectives Section */}
+            <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-12 md:mb-16">
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-droid-arabic-kufi text-gray-900 mb-4">
+                            {language === 'en' ? 'Our Objectives' : 'أهدافنا'}
+                        </h2>
+                        <div className="w-20 h-1 bg-[#E03A6F] mx-auto mb-6"></div>
+                        <p className="text-lg md:text-xl text-gray-600 font-droid-arabic-kufi max-w-3xl mx-auto">
+                            {language === 'en' 
+                                ? 'Working together to achieve sustainable development and positive change' 
+                                : 'نعمل معاً لتحقيق التنمية المستدامة والتغيير الإيجابي'}
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto">
+                        {objectives.map((objective, index) => (
+                            <div
+                                key={index}
+                                className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden animate-fade-in"
+                                style={{ animationDelay: `${index * 100}ms` }}
+                            >
+                                {/* Background decoration */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#E03A6F]/5 to-transparent rounded-bl-full transform translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-500"></div>
+                                
+                                <div className="relative flex items-start gap-4">
+                                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#E03A6F] to-[#c8102e] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                        <objective.icon className="w-6 h-6 text-white" />
+                                    </div>
+                                    <p className="text-base sm:text-lg md:text-xl text-gray-700 font-droid-arabic-kufi leading-relaxed flex-1">
+                                        {objective.text}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Activities Section */}
+            <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white hidden">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-12 md:mb-16">
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-droid-arabic-kufi text-gray-900 mb-4">
+                            {language === 'en' ? 'Our Activities' : 'مجالات الأنشطة'}
+                        </h2>
+                        <div className="w-20 h-1 bg-[#E03A6F] mx-auto mb-6"></div>
+                        <p className="text-lg md:text-xl text-gray-600 font-droid-arabic-kufi max-w-3xl mx-auto">
+                            {language === 'en' 
+                                ? 'Explore our diverse programs and initiatives' 
+                                : 'استكشف برامجنا ومبادراتنا المتنوعة'}
+                        </p>
+                    </div>
+
+                    {loading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                            {[...Array(8)].map((_, i) => (
+                                <SkeletonCard key={i} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                            {types.map((type, index) => (
+                                <Link
+                                    key={type.id}
+                                    to={`/activities/showByActivitiesType/${type.id}`}
+                                    className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 animate-fade-in"
+                                    style={{ animationDelay: `${index * 100}ms` }}
+                                >
+                                    <div className="aspect-square relative">
+                                        {/* Image */}
+                                        <img
+                                            src={`${apiUrl}/${type.image_url}`}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            alt={language === 'en' ? type.name_en : type.name_ar}
+                                            onError={(e) => {
+                                                e.target.src = '/tagemi_consept.png';
+                                            }}
+                                        />
+                                        
+                                        {/* Gradient Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                                        
+                                        {/* Content */}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-end p-6">
+                                            <h3 className="text-xl md:text-2xl font-bold font-droid-arabic-kufi text-white text-center mb-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                                                {language === 'en' ? type.name_en : type.name_ar}
+                                            </h3>
+                                            
+                                            {/* Arrow Button */}
+                                            <div className="flex items-center justify-center gap-2 text-white opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                                <span className="font-semibold font-droid-arabic-kufi">
+                                                    {language === 'en' ? 'Explore' : 'استكشف'}
+                                                </span>
+                                                <ArrowRight className={`w-5 h-5 ${language === 'ar' ? 'rotate-180' : ''}`} />
+                                            </div>
+                                        </div>
+
+                                        {/* Corner Badge */}
+                                        <div className="absolute top-4 right-4 bg-[#E03A6F] text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            {language === 'en' ? 'View' : 'عرض'}
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </section> 
+
+            {/* Stats Section */}
+            <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#101E58] to-[#1a2d78]">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                        {[
+                            { number: '19+', label: language === 'en' ? 'Years of Service' : 'سنة من الخدمة' },
+                            { number: '100+', label: language === 'en' ? 'Projects' : 'مشروع' },
+                            { number: '50K+', label: language === 'en' ? 'Lives Impacted' : 'حياة تأثرت' },
+                            { number: '500+', label: language === 'en' ? 'Volunteers' : 'متطوع' }
+                        ].map((stat, index) => (
+                            <div 
+                                key={index} 
+                                className="text-center animate-fade-in"
+                                style={{ animationDelay: `${index * 150}ms` }}
+                            >
+                                <div className="text-4xl md:text-5xl font-bold text-white mb-2 font-droid-arabic-kufi">
+                                    {stat.number}
+                                </div>
+                                <div className="text-white/80 font-droid-arabic-kufi text-sm md:text-base">
+                                    {stat.label}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <Footer types={types} />
+
+            <style jsx>{`
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .animate-fade-in {
+                    animation: fade-in 0.6s ease-out forwards;
+                }
+            `}</style>
         </div>
-        <div className="lg:basis-1/2 flex justify-center">
-          <div className="relative w-full pb-[56.25%] h-0 rounded-lg shadow-lg">
-            <iframe
-              src="https://www.youtube.com/embed/Bc9DI4uzg2Q?si=m0cfxB4yaRS_w2Y6"
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              className="absolute top-0 left-0 w-full h-full rounded-lg"
-            ></iframe>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Our Objectives Section */}
-      <div className="flex flex-col lg:flex-row mt-10 lg:mt-20 px-4 sm:px-6 lg:px-10 gap-10">
-        {/* <div className="lg:basis-1/2 flex justify-center">
-          <img src="/medical.JPG" alt="Medical" className="w-full sm:w-3/4 lg:w-full h-auto" />
-        </div> */}
-        <div className="lg:basis-1/2">
-          <h1 className="text-3xl sm:text-4xl font-bold text-center lg:text-left font-droid-arabic-kufi text-[#E03A6F] my-5">
-            {language === 'en' ? 'Our Objectives' : 'أهدافنا'}
-          </h1>
-          <ul className="list-none text-base sm:text-lg md:text-[24px] leading-relaxed mt-6 space-y-3 text-center lg:text-left font-droid-arabic-kufi">
-            <li>{language === 'en' ? 'Enhancing humanitarian and solidarity work and providing relief' : 'تعزيز العمل الإنساني و التضامني و تقديم الإغاثة'}</li>
-            <li>{language === 'en' ? 'Contributing to social, health, educational, and cultural development' : 'المساهمة في تحقيق تنمية و رعاية إجتماعية، صحية، تعليمية و حضارية'}</li>
-            <li>{language === 'en' ? 'Working towards sustainable development' : 'العمل و المساهمة في تحقيق تنمية مستدامة'}</li>
-            <li>{language === 'en' ? 'Preserving social, Islamic, and national values' : 'المحافظة على القيم الإجتماعية و الإسلامية و الوطنية'}</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Activities Section */}
-      <div className="text-center mt-10 lg:mt-20">
-        <h1 className="text-3xl sm:text-4xl font-bold font-droid-arabic-kufi text-[#E03A6F] my-5">
-          {language === 'en' ? 'Our Field' : 'مجالات الأنشطة'}
-        </h1>
-      </div>
-      <div className="cards bg-gradient-to-r p-6 gap-6 flex flex-wrap justify-center">
-        {types.map((type) => (
-          <Link
-            to={`/activities/showByActivitiesType/${type.id}`}
-            className="relative group w-full sm:w-1/2 lg:w-1/4 p-4"
-            key={type.id}
-          >
-            <img
-              src={`${apiUrl}/${type.image_url}`}
-              className="card__image w-full h-auto transition-transform duration-500 ease-in-out transform group-hover:scale-105"
-              alt=""
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-              <h2 className="text-lg sm:text-xl font-bold font-droid-arabic-kufi text-white">
-                {language === 'en' ? type.name_en : type.name_ar}
-              </h2>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      <Footer types={types} />
-    </>
-  );
-
+    );
 };
 
 export default About;
-
-
-
-// {types.map((type) => (
-//   <Link
-//     to={`/activities/showByActivitiesType/${type.id}`}
-//     className=" relative group"
-//     key={type.id}
-//   >
-//     <img
-//       src={'http://127.0.0.1:8000/' + type.image_url}
-//       className="card__image w-full h-auto transition-transform duration-500 ease-in-out transform group-hover:scale-105"
-//       alt=""
-//     />
-//     <div className="absolute m-0 w-full inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 opacity-0 transition-opacity duration-500 ease-in-out group-hover:opacity-100">
-//     <h2 className="text-3xl font-bold font-droid-arabic-kufi text-center text-white ">{type.name}</h2>
-
-//     </div>
-//       {/* <h3 className="font-droid-arabic-kufi text-[#E03A6F] text-2xl text-center mt-5">تعرف على الأنشطة</h3> */}
-//   </Link>
-// ))}

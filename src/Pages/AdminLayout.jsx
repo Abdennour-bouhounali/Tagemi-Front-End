@@ -226,7 +226,7 @@ export default function AdminLayout() {
     </header>
   )}
 <main className="overflow-x-auto">
-  <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center px-4 py-10">
+  <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center px-4">
     <Outlet />
   </div>
 </main>

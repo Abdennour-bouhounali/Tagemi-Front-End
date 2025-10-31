@@ -143,4 +143,465 @@
     overflow: hidden;
     text-decoration: none;
   }
+  /* Enhanced UI/UX Custom Styles for TAGEMI Foundation */
+
+/* ============================================
+   Custom Animations
+   ============================================ */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse-slow {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Animation Classes */
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.animate-fade-in-down {
+    animation: fadeInDown 0.8s ease-out;
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.8s ease-out;
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================
+   Custom Utilities
+   ============================================ */
+
+/* Gradient Text */
+.gradient-text {
+    background: linear-gradient(135deg, #101E58 0%, #E03A6F 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Glass morphism effect */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth Scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #101E58;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #E03A6F;
+}
+
+/* ============================================
+   Button Styles
+   ============================================ */
+
+.btn-primary {
+    @apply px-8 py-4 bg-gradient-to-r from-[#101E58] to-[#1a2d78] text-white rounded-full font-bold transition-all duration-300 hover:shadow-2xl hover:scale-105 transform;
+}
+
+.btn-secondary {
+    @apply px-8 py-4 bg-gradient-to-r from-[#E03A6F] to-[#c8102e] text-white rounded-full font-bold transition-all duration-300 hover:shadow-2xl hover:scale-105 transform;
+}
+
+.btn-outline {
+    @apply px-8 py-4 bg-transparent border-2 border-[#101E58] text-[#101E58] rounded-full font-bold transition-all duration-300 hover:bg-[#101E58] hover:text-white hover:shadow-xl;
+}
+
+/* ============================================
+   Card Styles
+   ============================================ */
+
+.card-elevated {
+    @apply bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2;
+}
+
+.card-glass {
+    @apply bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 hover:bg-white/15 transition-all duration-500;
+}
+
+/* ============================================
+   Section Backgrounds
+   ============================================ */
+
+.section-gradient-blue {
+    @apply bg-gradient-to-br from-[#EEF7FF] via-white to-[#EEF7FF];
+}
+
+.section-gradient-dark {
+    @apply bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#101E58];
+}
+
+.section-gradient-pink {
+    @apply bg-gradient-to-r from-[#E03A6F] to-[#c8102e];
+}
+
+/* ============================================
+   Text Utilities
+   ============================================ */
+
+.text-balance {
+    text-wrap: balance;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ============================================
+   Focus Styles for Accessibility
+   ============================================ */
+
+button:focus,
+a:focus,
+input:focus,
+textarea:focus,
+select:focus {
+    outline: 2px solid #E03A6F;
+    outline-offset: 2px;
+}
+
+/* ============================================
+   Loading Spinner
+   ============================================ */
+
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #101E58;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   Hover Effects
+   ============================================ */
+
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.hover-scale {
+    transition: transform 0.3s ease;
+}
+
+.hover-scale:hover {
+    transform: scale(1.05);
+}
+
+/* ============================================
+   Responsive Typography
+   ============================================ */
+
+.responsive-heading-1 {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold;
+}
+
+.responsive-heading-2 {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold;
+}
+
+.responsive-heading-3 {
+    @apply text-xl sm:text-2xl md:text-3xl font-bold;
+}
+
+.responsive-body {
+    @apply text-base sm:text-lg md:text-xl;
+}
+
+/* ============================================
+   Container Utilities
+   ============================================ */
+
+.container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* ============================================
+   Decorative Elements
+   ============================================ */
+
+.decorative-blob-1 {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(16, 30, 88, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(40px);
+}
+
+.decorative-blob-2 {
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(224, 58, 111, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(40px);
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .print-break-before {
+        page-break-before: always;
+    }
+    
+    a[href]:after {
+        content: " (" attr(href) ")";
+    }
+}
+
+/* ============================================
+   Reduced Motion (Accessibility)
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ============================================
+   Dark Mode Support (Optional)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    /* Add dark mode styles if needed */
+    /* .dark-mode-class {
+        background-color: #1a1a1a;
+        color: #ffffff;
+    } */
+}
+
+/* ============================================
+   RTL Support Enhancement
+   ============================================ */
+
+[dir="rtl"] {
+    direction: rtl;
+}
+
+[dir="rtl"] .text-left {
+    text-align: right;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left;
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.aspect-video {
+    aspect-ratio: 16 / 9;
+}
+
+.aspect-square {
+    aspect-ratio: 1 / 1;
+}
+
+.backdrop-blur-custom {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* ============================================
+   Print Optimization
+   ============================================ */
+
+@page {
+    margin: 2cm;
+}
+
+/* ============================================
+   Fonts Loading Optimization
+   ============================================ */
+
+.font-droid-arabic-kufi {
+    font-display: swap; /* Ensures text remains visible during font load */
+}
+
+/* Add to src/index.css or your global CSS file */
+
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Custom breakpoint */
+@media (min-width: 768px) {
+  .custom\:flex {
+    display: flex;
+  }
   
+  .custom\:hidden {
+    display: none;
+  }
+  
+  .custom\:block {
+    display: block;
+  }
+}

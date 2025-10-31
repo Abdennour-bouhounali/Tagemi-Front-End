@@ -1,149 +1,141 @@
-import React, { useContext, useRef, useEffect, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import React, { useContext, useEffect, useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
-import SuperAdminNav from "./Headers/SuperAdminNav";
-import AuthNavBar from "./Headers/AuthNavBar";
 import GuestNavBar from "./Headers/GuestNavBar";
-import Footer from "./GuestUser/HomePage/Components/Footer";
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n'; // Ensure this path matches your i18n configuration file
+import i18n from '../i18n';
 import { useLanguage } from "../Context/LanguageContext";
-const apiUrl = import.meta.env.VITE_API_URL; 
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 export default function GuestLayout() {
-    const { setUser, token, setToken } = useContext(AppContext);
+    const { setUser, token, setToken, user } = useContext(AppContext);
     const navigate = useNavigate();
     const [specialities, setSpecialities] = useState([]);
-    const [isOpen, setIsOpen] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const dropdownRef = useRef(null);
     const [types, setTypes] = useState([]);
+    const [loading, setLoading] = useState(true);
     const { language } = useLanguage();
-
-    // const [language, setLanguage] = useState(localStorage.getItem('language') || 'en');
     const { t } = useTranslation();
 
-    // const handleLanguageChange = (event) => {
-    //     const selectedLanguage = event.target.value;
-    //     setLanguage(selectedLanguage);
-    //     localStorage.setItem('language', selectedLanguage);
-    //     i18n.changeLanguage(selectedLanguage); // Change language in i18n
-    // };
-      
     async function getTypes() {
-        let headers = new Headers();
+        try {
+            const headers = new Headers();
+            headers.append('Content-Type', 'application/json');
+            headers.append('Accept', 'application/json');
+            headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+            headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
 
-        headers.append('Content-Type', 'application/json');
-        headers.append('Accept', 'application/json');
-      
-        headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-        headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
-        headers.append('Access-Control-Allow-Headers' ,'Origin, Content-Type, X-Auth-Token , Cookie');
-        headers.append('Access-Control-Allow-Credentials', 'true');
-        const res = await fetch(`${apiUrl}/api/types`,{
-            headers : headers
-        });
-        const data = await res.json();
-        setTypes(data);
-
-    }
-
-    useEffect(() => {
-        getTypes()
-    }, []);
-
-    useEffect(() => {
-        i18n.changeLanguage(language); // Change language in i18n
-        getTypes();
-    }, [language]);
-
-    const changeLanguage = (lng) => {
-        i18n.changeLanguage(lng);
-    };
-
-    const toggleDropdown = () => {
-        setIsOpen(!isOpen);
-    };
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        };
-
-        // Bind the event listener
-        document.addEventListener('mousedown', handleClickOutside);
-
-        return () => {
-            // Unbind the event listener on cleanup
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    const toggleMobileMenu = () => {
-        setIsMobileMenuOpen(!isMobileMenuOpen);
-    };
-
-    async function getSpecialites() {
-        let headers = new Headers();
-
-        headers.append('Content-Type', 'application/json');
-        headers.append('Accept', 'application/json');
-      
-        headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-        headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
-        headers.append('Access-Control-Allow-Headers' ,'Origin, Content-Type, X-Auth-Token , Cookie');
-        headers.append('Access-Control-Allow-Credentials', 'true');
-        const res = await fetch(`${apiUrl}/api/specialty`, {
-            headers: headers,
-        });
-        const data = await res.json();
-        setSpecialities(data["specialties"]);
-    }
-
-    useEffect(() => {
-        getSpecialites();
-    }, []);
-
-    async function handlelogout(e) {
-        e.preventDefault();
-        let headers = new Headers();
-
-        headers.append('Content-Type', 'application/json');
-        headers.append('Accept', 'application/json');
-        headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-        headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
-        headers.append('Authorization',`Bearer ${token}`);
-        const res = await fetch(`${apiUrl}/api/logout`, {
-            
-            method: "post",
-            headers: headers,
-        });
-
-        if (res.ok) {
-            setUser(null);
-            setToken(null);
-            localStorage.removeItem("token");
-            navigate("/");
+            const res = await fetch(`${apiUrl}/api/types`, { headers });
+            const data = await res.json();
+            setTypes(data);
+        } catch (error) {
+            console.error('Error fetching types:', error);
         }
     }
 
-    const { user } = useContext(AppContext);
+    async function getSpecialities() {
+        try {
+            const headers = new Headers();
+            headers.append('Content-Type', 'application/json');
+            headers.append('Accept', 'application/json');
+            headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+            headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
+            const res = await fetch(`${apiUrl}/api/specialty`, { headers });
+            const data = await res.json();
+            setSpecialities(data["specialties"] || []);
+        } catch (error) {
+            console.error('Error fetching specialities:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        const fetchData = async () => {
+            await Promise.all([getTypes(), getSpecialities()]);
+        };
+        fetchData();
+    }, []);
+
+    useEffect(() => {
+        i18n.changeLanguage(language);
+    }, [language]);
+
+    return (
+        <div className="min-h-screen flex flex-col bg-white">
+            {/* Navigation */}
+            <GuestNavBar user={user} types={types} />
+
+            {/* Main Content */}
+            <main className="flex-1">
+                {loading ? (
+                    <div className="flex items-center justify-center min-h-[60vh]">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#E03A6F] mx-auto"></div>
+                            <p className="mt-4 text-gray-600 font-droid-arabic-kufi">
+                                {language === 'en' ? 'Loading...' : 'جاري التحميل...'}
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <Outlet context={{ specialities, types }} />
+                )}
+            </main>
+
+            {/* Scroll to Top Button */}
+            <ScrollToTopButton />
+        </div>
+    );
+}
+
+// Scroll to Top Button Component
+const ScrollToTopButton = () => {
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const toggleVisibility = () => {
+            if (window.pageYOffset > 300) {
+                setIsVisible(true);
+            } else {
+                setIsVisible(false);
+            }
+        };
+
+        window.addEventListener('scroll', toggleVisibility);
+        return () => window.removeEventListener('scroll', toggleVisibility);
+    }, []);
+
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
     };
 
     return (
-        <main className='max-w-[1833px] m-0 p-0'>
-            {user && (<GuestNavBar user={user} types={types}/>)}
-
-            <section className="z-99"> {/* Adjust margin to match the header height */}
-                <Outlet />
-                
-            </section>
-        </main>
+        <>
+            {isVisible && (
+                <button
+                    onClick={scrollToTop}
+                    className="fixed bottom-8 right-8 z-50 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    aria-label="Scroll to top"
+                >
+                    <svg 
+                        className="w-6 h-6" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                    >
+                        <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth="2" 
+                            d="M5 10l7-7m0 0l7 7m-7-7v18" 
+                        />
+                    </svg>
+                </button>
+            )}
+        </>
     );
-}
+};
