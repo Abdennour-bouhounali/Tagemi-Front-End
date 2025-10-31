@@ -7,6 +7,7 @@ import {
 import EventAdminsManager from "./EventAdminsManager";
 import EditEvent from "./EditEvent";
 import EventDetails from "./EventDetails";
+import { Link } from "react-router-dom";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -429,6 +430,14 @@ export default function Events({ events, getEvents, onViewDetails }) {
                       )}
 
                       {/* Restore Button */}
+                  {event.is_archived && (
+                    <Link 
+                      to={`/admin/archived/comprehensive-report/${event.id}`}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      View Report
+                    </Link>
+                  )}
                      
                     </div>
                   </td>

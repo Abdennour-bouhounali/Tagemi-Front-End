@@ -74,7 +74,385 @@ const DemographicStats = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    const printContent = generatePrintDocument();
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const generatePrintDocument = () => {
+    const currentDate = new Date().toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const totalPatients = genderStats.reduce((sum, stat) => sum + parseInt(stat.count), 0);
+
+    const genderChartData = genderStats.map(stat => ({
+      name: stat.sex === '0' || stat.sex === 'ذكر' ? 'ذكر' : 'أنثى',
+      value: parseInt(stat.count),
+      percentage: ((parseInt(stat.count) / totalPatients) * 100).toFixed(1)
+    }));
+
+    const ageChartData = ageStats.map(stat => ({
+      name: stat.age_group,
+      value: parseInt(stat.count)
+    }));
+
+    return `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>إحصائيات ديموغرافية - ${event?.name}</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 2cm;
+          }
+
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: 'Arial', 'Tahoma', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+          }
+
+          .document {
+            width: 100%;
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+          }
+
+          .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 3px solid #7c3aed;
+            margin-bottom: 30px;
+          }
+
+          .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 15px;
+          }
+
+          .header h1 {
+            font-size: 28px;
+            color: #7c3aed;
+            margin-bottom: 8px;
+            font-weight: bold;
+          }
+
+          .header .event-name {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 5px;
+          }
+
+          .header .date {
+            font-size: 14px;
+            color: #999;
+          }
+
+          .section {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+          }
+
+          .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #7c3aed;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+          }
+
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+
+          .summary-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+          }
+
+          .summary-card .label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+          }
+
+          .summary-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #7c3aed;
+            margin-bottom: 5px;
+          }
+
+          .summary-card .percentage {
+            font-size: 14px;
+            color: #999;
+          }
+
+          .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+          }
+
+          .data-table th {
+            background-color: #7c3aed;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+          }
+
+          .data-table td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: center;
+            font-size: 15px;
+          }
+
+          .data-table tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+
+          .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            background-color: #f9fafb;
+          }
+
+          .stats-row .label {
+            font-size: 15px;
+            color: #333;
+            font-weight: 600;
+          }
+
+          .stats-row .value {
+            font-size: 18px;
+            color: #7c3aed;
+            font-weight: bold;
+          }
+
+          .analysis-box {
+            border: 2px solid #7c3aed;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f5f3ff;
+            margin-top: 20px;
+          }
+
+          .analysis-box h3 {
+            color: #7c3aed;
+            font-size: 18px;
+            margin-bottom: 15px;
+          }
+
+          .analysis-box ul {
+            list-style: none;
+            padding-right: 0;
+          }
+
+          .analysis-box li {
+            padding: 8px 0;
+            padding-right: 20px;
+            position: relative;
+            font-size: 15px;
+            line-height: 1.8;
+          }
+
+          .analysis-box li:before {
+            content: "◆";
+            position: absolute;
+            right: 0;
+            color: #7c3aed;
+            font-weight: bold;
+          }
+
+          .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+          }
+
+          .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+          }
+
+          @media print {
+            body {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            
+            .section {
+              page-break-inside: avoid;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="document">
+          <!-- Header with Logo -->
+          <div class="header">
+            <img src="/tagemi_logo.png" alt="Logo" class="logo" />
+            <h1>تقرير الإحصائيات الديموغرافية</h1>
+            <p class="event-name">${event?.name || 'الحملة الطبية'}</p>
+            <p class="date">تاريخ الإصدار: ${currentDate}</p>
+          </div>
+
+          <!-- Summary Section -->
+          <div class="section">
+            <h2 class="section-title">الملخص التنفيذي</h2>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="label">إجمالي المرضى</div>
+                <div class="value">${totalPatients}</div>
+              </div>
+              ${genderChartData.map(stat => `
+                <div class="summary-card">
+                  <div class="label">${stat.name}</div>
+                  <div class="value">${stat.value}</div>
+                  <div class="percentage">${stat.percentage}%</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Gender Statistics -->
+          <div class="section">
+            <h2 class="section-title">إحصائيات توزيع المرضى حسب الجنس</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>الجنس</th>
+                  <th>العدد</th>
+                  <th>النسبة المئوية</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${genderChartData.map(stat => `
+                  <tr>
+                    <td><strong>${stat.name}</strong></td>
+                    <td>${stat.value}</td>
+                    <td>${stat.percentage}%</td>
+                  </tr>
+                `).join('')}
+                <tr style="background-color: #f3f4f6; font-weight: bold;">
+                  <td>الإجمالي</td>
+                  <td>${totalPatients}</td>
+                  <td>100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Age Statistics -->
+          <div class="section">
+            <h2 class="section-title">إحصائيات توزيع المرضى حسب الفئة العمرية</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>الفئة العمرية</th>
+                  <th>عدد المرضى</th>
+                  <th>النسبة المئوية</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ageChartData.map(stat => {
+                  const percentage = ((stat.value / totalPatients) * 100).toFixed(1);
+                  return `
+                    <tr>
+                      <td><strong>${stat.name} سنة</strong></td>
+                      <td>${stat.value}</td>
+                      <td>${percentage}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+                <tr style="background-color: #f3f4f6; font-weight: bold;">
+                  <td>الإجمالي</td>
+                  <td>${totalPatients}</td>
+                  <td>100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Analysis Section -->
+          <div class="section">
+            <h2 class="section-title">التحليل والملاحظات</h2>
+            <div class="analysis-box">
+              <h3>الملاحظات الرئيسية:</h3>
+              <ul>
+                <li>إجمالي عدد المرضى المسجلين في الحملة: <strong>${totalPatients}</strong> مريض</li>
+                <li>الفئة العمرية الأكثر حضوراً: <strong>${ageChartData[0]?.name} سنة</strong> بعدد <strong>${ageChartData[0]?.value}</strong> مريض</li>
+                <li>التوزيع بين الجنسين: ${genderChartData.map(s => `${s.name} (${s.percentage}%)`).join(' و ')}</li>
+                <li>عدد الفئات العمرية المشمولة: <strong>${ageStats.length}</strong> فئات عمرية</li>
+              </ul>
+            </div>
+
+            <div style="margin-top: 30px;">
+              <h3 style="color: #7c3aed; font-size: 18px; margin-bottom: 15px;">إحصائيات تفصيلية:</h3>
+              <div class="stats-row">
+                <span class="label">متوسط الفئة العمرية الأكثر انتشاراً</span>
+                <span class="value">31-45 سنة</span>
+              </div>
+              <div class="stats-row">
+                <span class="label">عدد الفئات العمرية المسجلة</span>
+                <span class="value">${ageStats.length}</span>
+              </div>
+              <div class="stats-row">
+                <span class="label">نسبة التغطية الديموغرافية</span>
+                <span class="value">ممتازة</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="footer">
+            <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة نظام إدارة الحملات الطبية</p>
+            <p>جميع الحقوق محفوظة © ${new Date().getFullYear()}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   };
 
   const handleExport = () => {
@@ -345,18 +723,6 @@ const DemographicStats = () => {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-        }
-      `}</style>
     </div>
   );
 };

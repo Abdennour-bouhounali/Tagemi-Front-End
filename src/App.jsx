@@ -108,7 +108,6 @@ export default function App() {
               {/* Super Admin Only Routes */}
               <Route path="users" element={isSuperAdmin ? <AllUsers /> : <NotAuthenticated />} />
               <Route path="speciality" element={isSuperAdmin ? <ManageSpeciality /> : <NotAuthenticated />} />
-              <Route path="settings" element={isSuperAdmin ? <Settings /> : <NotAuthenticated />} />
               <Route path="statistics" element={isSuperAdmin ? <VisitsStatistics /> : <NotAuthenticated />} />
               <Route path="rules" element={isSuperAdmin ? <ManageRules /> : <NotAuthenticated />} />
               <Route path="manage-events" element={isSuperAdmin ? <EventsManagement /> : <NotAuthenticated />} />

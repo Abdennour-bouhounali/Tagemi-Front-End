@@ -66,10 +66,126 @@ const GeographicStats = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+// STEP 2: With these two functions:
+const handlePrint = () => {
+  const printWindow = window.open('', '_blank');
+  const printContent = generatePrintDocument();
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 250);
+};
 
+const generatePrintDocument = () => {
+  const currentDate = new Date().toLocaleDateString('ar-EG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <title>إحصائيات جغرافية - ${event?.name}</title>
+      <style>
+        @page { size: A4; margin: 2cm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', 'Tahoma', sans-serif; line-height: 1.6; color: #333; }
+        
+        .header {
+          text-align: center;
+          padding: 20px 0;
+          border-bottom: 3px solid #f59e0b;
+          margin-bottom: 30px;
+        }
+        .logo { width: 120px; height: auto; margin-bottom: 15px; }
+        .header h1 { font-size: 28px; color: #f59e0b; margin-bottom: 8px; font-weight: bold; }
+        
+        .data-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 25px;
+        }
+        .data-table th {
+          background-color: #f59e0b;
+          color: white;
+          padding: 12px;
+          text-align: center;
+        }
+        .data-table td {
+          border: 1px solid #e5e7eb;
+          padding: 10px;
+          text-align: center;
+        }
+        
+        @media print {
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="/tagemi_logo.png" alt="Logo" class="logo" />
+        <h1>تقرير الإحصائيات الجغرافية</h1>
+        <p>${event?.name}</p>
+        <p>تاريخ الإصدار: ${currentDate}</p>
+      </div>
+
+      <h2>إحصائيات الولايات</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>الترتيب</th>
+            <th>الولاية</th>
+            <th>عدد المرضى</th>
+            <th>النسبة المئوية</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${stateStats.map((stat, index) => {
+            const percentage = ((parseInt(stat.count) / totalPatients) * 100).toFixed(1);
+            return `
+              <tr>
+                <td>${index + 1}</td>
+                <td><strong>${stat.state}</strong></td>
+                <td>${stat.count}</td>
+                <td>${percentage}%</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+
+      <h2>أعلى 20 مدينة</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>الترتيب</th>
+            <th>المدينة</th>
+            <th>الولاية</th>
+            <th>العدد</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cityStats.map((stat, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${stat.city}</td>
+              <td>${stat.state}</td>
+              <td>${stat.count}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `;
+};
   const handleExport = () => {
     const csvContent = [
       ["=== إحصائيات الولايات ==="],

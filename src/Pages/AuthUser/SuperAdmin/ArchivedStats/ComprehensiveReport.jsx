@@ -70,7 +70,458 @@ const ComprehensiveReport = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    const printContent = generatePrintDocument();
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const generatePrintDocument = () => {
+    if (!report) return '';
+
+    const currentDate = new Date().toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const statusData = report.status_breakdown.map(stat => ({
+      name: stat.status,
+      nameAr: stat.status === 'Completed' ? 'أنهى الفحص' : 
+              stat.status === 'Pending' ? 'غائب' : 
+              stat.status === 'Waiting' ? 'في الإنتظار' : stat.status,
+      count: parseInt(stat.count),
+      special: parseInt(stat.special_count || 0)
+    }));
+
+    return `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>التقرير الشامل - ${report.event.name}</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 1.5cm;
+          }
+
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: 'Arial', 'Tahoma', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+          }
+
+          .document {
+            width: 100%;
+            max-width: 210mm;
+            margin: 0 auto;
+          }
+
+          .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 3px solid #dc2626;
+            margin-bottom: 30px;
+          }
+
+          .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 15px;
+          }
+
+          .header h1 {
+            font-size: 28px;
+            color: #dc2626;
+            margin-bottom: 8px;
+            font-weight: bold;
+          }
+
+          .header .event-name {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 5px;
+          }
+
+          .header .date {
+            font-size: 14px;
+            color: #999;
+          }
+
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border-radius: 8px;
+            color: white;
+          }
+
+          .info-card {
+            text-align: center;
+          }
+
+          .info-card .label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+          }
+
+          .info-card .value {
+            font-size: 20px;
+            font-weight: bold;
+          }
+
+          .section {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+          }
+
+          .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+          }
+
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+          }
+
+          .summary-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+          }
+
+          .summary-card .label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+          }
+
+          .summary-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 5px;
+          }
+
+          .summary-card .percentage {
+            font-size: 12px;
+            color: #999;
+          }
+
+          .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+          }
+
+          .data-table th {
+            background-color: #dc2626;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+          }
+
+          .data-table td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+            text-align: center;
+            font-size: 13px;
+          }
+
+          .data-table tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+
+          .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+          }
+
+          .analysis-box {
+            border: 2px solid #dc2626;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #fef2f2;
+          }
+
+          .analysis-box h3 {
+            color: #dc2626;
+            font-size: 16px;
+            margin-bottom: 15px;
+          }
+
+          .analysis-box ul {
+            list-style: none;
+            padding-right: 0;
+          }
+
+          .analysis-box li {
+            padding: 6px 0;
+            padding-right: 20px;
+            position: relative;
+            font-size: 14px;
+            line-height: 1.6;
+          }
+
+          .analysis-box li:before {
+            content: "◆";
+            position: absolute;
+            right: 0;
+            color: #dc2626;
+            font-weight: bold;
+          }
+
+          .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+          }
+
+          @media print {
+            body {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            
+            .section {
+              page-break-inside: avoid;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="document">
+          <!-- Header -->
+          <div class="header">
+            <img src="/tagemi_logo.png" alt="Logo" class="logo" />
+            <h1>التقرير الشامل للحملة الطبية</h1>
+            <p class="event-name">${report.event.name}</p>
+            <p class="date">تاريخ الإصدار: ${currentDate}</p>
+          </div>
+
+          <!-- Event Info -->
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="label">اسم الحدث</div>
+              <div class="value">${report.event.name}</div>
+            </div>
+            <div class="info-card">
+              <div class="label">تاريخ الحدث</div>
+              <div class="value">${new Date(report.event.date).toLocaleDateString('en-UK')}</div>
+            </div>
+            <div class="info-card">
+              <div class="label">إجمالي المواعيد</div>
+              <div class="value">${report.total_appointments}</div>
+            </div>
+            <div class="info-card">
+              <div class="label">الحالة</div>
+              <div class="value">مؤرشف</div>
+            </div>
+          </div>
+
+          <!-- Status Summary -->
+          <div class="section">
+            <h2 class="section-title">ملخص الحالات</h2>
+            <div class="summary-grid">
+              ${statusData.map(stat => `
+                <div class="summary-card">
+                  <div class="label">${stat.nameAr}</div>
+                  <div class="value">${stat.count}</div>
+                  <div class="percentage">${((stat.count / report.total_appointments) * 100).toFixed(1)}%</div>
+                  ${stat.special > 0 ? `<div class="percentage">خاص: ${stat.special}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Status Details -->
+          <div class="section">
+            <h2 class="section-title">تفاصيل توزيع الحالات</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>الحالة</th>
+                  <th>العدد</th>
+                  <th>حالات خاصة</th>
+                  <th>النسبة المئوية</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${statusData.map(stat => `
+                  <tr>
+                    <td><strong>${stat.nameAr}</strong></td>
+                    <td>${stat.count}</td>
+                    <td>${stat.special > 0 ? stat.special : '-'}</td>
+                    <td>${((stat.count / report.total_appointments) * 100).toFixed(1)}%</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Specialty Statistics -->
+          <div class="section">
+            <h2 class="section-title">إحصائيات التخصصات الطبية</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>التخصص</th>
+                  <th>عدد المرضى</th>
+                  <th>النسبة المئوية</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${report.specialty_breakdown.map(stat => {
+                  const percentage = ((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1);
+                  return `
+                    <tr>
+                      <td><strong>${stat.name}</strong></td>
+                      <td>${stat.count}</td>
+                      <td>${percentage}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Gender & Age Demographics -->
+          <div class="section">
+            <h2 class="section-title">التوزيع الديموغرافي</h2>
+            <div class="two-column">
+              <div>
+                <h3 style="font-size: 16px; margin-bottom: 10px; color: #666;">توزيع الجنس</h3>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>الجنس</th>
+                      <th>العدد</th>
+                      <th>النسبة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.gender_breakdown.map(stat => {
+                      const genderName = stat.sex === '0' || stat.sex === 'ذكر' ? 'ذكر' : 'أنثى';
+                      const percentage = ((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1);
+                      return `
+                        <tr>
+                          <td>${genderName}</td>
+                          <td>${stat.count}</td>
+                          <td>${percentage}%</td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <h3 style="font-size: 16px; margin-bottom: 10px; color: #666;">الفئات العمرية</h3>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>الفئة العمرية</th>
+                      <th>العدد</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.age_breakdown.map(stat => `
+                      <tr>
+                        <td>${stat.age_group} سنة</td>
+                        <td>${stat.count}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Geographic Distribution -->
+          <div class="section">
+            <h2 class="section-title">التوزيع الجغرافي (أعلى 10 ولايات)</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>الترتيب</th>
+                  <th>الولاية</th>
+                  <th>عدد المرضى</th>
+                  <th>النسبة المئوية</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${report.top_states.map((stat, index) => {
+                  const percentage = ((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1);
+                  return `
+                    <tr>
+                      <td>${index + 1}</td>
+                      <td><strong>${stat.state}</strong></td>
+                      <td>${stat.count}</td>
+                      <td>${percentage}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Analysis -->
+          <div class="section">
+            <h2 class="section-title">التحليل والملاحظات</h2>
+            <div class="analysis-box">
+              <h3>النقاط الرئيسية:</h3>
+              <ul>
+                <li>إجمالي المواعيد المؤرشفة: <strong>${report.total_appointments}</strong> موعد</li>
+                <li>عدد التخصصات الطبية المشاركة: <strong>${report.specialty_breakdown.length}</strong> تخصص</li>
+                <li>التغطية الجغرافية: <strong>${report.top_states.length}+</strong> ولاية</li>
+                <li>أكبر تخصص مشاركة: <strong>${report.specialty_breakdown[0]?.name}</strong> بـ <strong>${report.specialty_breakdown[0]?.count}</strong> مريض</li>
+                <li>أكثر ولاية تمثيلاً: <strong>${report.top_states[0]?.state}</strong> بـ <strong>${report.top_states[0]?.count}</strong> مريض</li>
+                <li>تاريخ الأرشفة: <strong>${new Date(report.event.updated_at).toLocaleDateString('en-UK')}</strong></li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="footer">
+            <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة نظام إدارة الحملات الطبية</p>
+            <p>جميع الحقوق محفوظة © ${new Date().getFullYear()}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   };
 
   const handleExport = () => {
@@ -217,7 +668,7 @@ const ComprehensiveReport = () => {
             <div className="text-center">
               <Calendar className="w-8 h-8 mx-auto mb-2 opacity-80" />
               <p className="text-sm opacity-80 font-droid-arabic-kufi mb-1">التاريخ</p>
-              <p className="text-xl font-bold font-droid-arabic-kufi">{report.event.date}</p>
+              <p className="text-xl font-bold font-droid-arabic-kufi">{new Date(report.event.date).toLocaleDateString('en-UK')}</p>
             </div>
             <div className="text-center">
               <Users className="w-8 h-8 mx-auto mb-2 opacity-80" />
@@ -237,7 +688,12 @@ const ComprehensiveReport = () => {
           {report.status_breakdown.map((stat, index) => (
             <div key={index} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 font-droid-arabic-kufi text-sm">{stat.status}</span>
+                <span className="text-gray-600 font-droid-arabic-kufi text-sm">
+              {stat.status === 'Completed' && 'أنهى الفحص'}
+            {stat.status === 'Pending' && 'غائب'}
+            {stat.status === 'Waiting' && 'في الإنتظار'}
+                  
+                  </span>
                 <TrendingUp className="w-5 h-5 text-gray-400" />
               </div>
               <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">{stat.count}</p>
@@ -397,30 +853,43 @@ const ComprehensiveReport = () => {
           </div>
 
           {/* Status Table */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="p-4 bg-gray-50 border-b border-gray-100">
-              <h4 className="font-bold text-gray-900 font-droid-arabic-kufi">تفاصيل الحالات</h4>
-            </div>
-            <div className="p-4">
-              <div className="space-y-2">
-                {report.status_breakdown.map((stat, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="font-droid-arabic-kufi text-sm font-semibold text-gray-900">
-                      {stat.status}
-                    </span>
-                    <div className="text-left">
-                      <span className="font-droid-arabic-kufi font-bold text-gray-900 block">
-                        {stat.count}
-                      </span>
-                      <span className="text-xs text-gray-500 font-droid-arabic-kufi">
-                        {((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
+         <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+  <div className="p-4 bg-gray-50 border-b border-gray-100">
+    <h4 className="font-bold text-gray-900 font-droid-arabic-kufi">تفاصيل الحالات</h4>
+  </div>
+  <div className="p-4">
+    <div className="space-y-2">
+      {report.status_breakdown.map((stat, index) => (
+        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+          <span className="font-droid-arabic-kufi text-sm font-semibold text-gray-900">
+            {stat.status === 'Completed' && 'أنهى الفحص'}
+            {stat.status === 'Pending' && 'غائب'}
+            {stat.status === 'Waiting' && 'في الإنتظار'}
+          </span>
+          <div className="text-left">
+            <div className="flex items-center gap-2">
+              <div>
+                <span className="font-droid-arabic-kufi font-bold text-gray-900 block">
+                  {stat.count}
+                </span>
+                <span className="text-xs text-gray-500 font-droid-arabic-kufi">
+                  {((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1)}%
+                </span>
               </div>
+              {stat.special_count > 0 && (
+                <div className="bg-blue-100 px-2 py-1 rounded">
+                  <span className="text-xs font-droid-arabic-kufi font-semibold text-blue-700">
+                    خاص: {stat.special_count}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
         </div>
 
         {/* Summary Section */}
@@ -464,13 +933,13 @@ const ComprehensiveReport = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700 font-droid-arabic-kufi text-sm">تاريخ التقرير:</span>
                   <span className="font-bold text-red-600 font-droid-arabic-kufi text-sm">
-                    {new Date().toLocaleDateString('ar-SA')}
+                    {new Date().toLocaleDateString('en-UK')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700 font-droid-arabic-kufi text-sm">تاريخ الأرشفة:</span>
                   <span className="font-bold text-red-600 font-droid-arabic-kufi text-sm">
-                    {new Date(report.event.updated_at).toLocaleDateString('ar-SA')}
+                    {new Date(report.event.updated_at).toLocaleDateString('en-UK')}
                   </span>
                 </div>
               </div>
@@ -478,18 +947,6 @@ const ComprehensiveReport = () => {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-        }
-      `}</style>
     </div>
   );
 };

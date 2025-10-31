@@ -106,28 +106,42 @@ export default function AddEvent({ getEvents }) {
 
   // Specialty operations
   const addSpecialty = useCallback(() => {
+    // Create default hours from 8:00 to 17:00
+    const defaultHours = Array.from({ length: 10 }, (_, i) => ({
+      time: `${String(8 + i).padStart(2, '0')}:00:00`
+    }));
+
     setEventSpecialties(prev => [
       ...prev,
       {
         id: "",
         doctors: [],
         is_saturated: false,
-        days: [],
+        days: [{
+          day_date: form.date,
+          number_per_hour: 20,
+          hours: defaultHours,
+        }],
       },
     ]);
-  }, []);
+  }, [form.date]);
 
   const addDay = useCallback((specIndex) => {
+    // Create default hours from 8:00 to 17:00
+    const defaultHours = Array.from({ length: 10 }, (_, i) => ({
+      time: `${String(8 + i).padStart(2, '0')}:00:00`
+    }));
+
     setEventSpecialties(prev => {
       const updated = [...prev];
       updated[specIndex].days.push({
-        day_date: "",
+        day_date: form.date,
         number_per_hour: 20,
-        hours: [],
+        hours: defaultHours,
       });
       return updated;
     });
-  }, []);
+  }, [form.date]);
 
   const updateDayNumberPerHour = useCallback((specIndex, dayIndex, value) => {
     setEventSpecialties(prev => {

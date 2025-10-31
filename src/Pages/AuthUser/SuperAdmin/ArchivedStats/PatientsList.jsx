@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 
 const apiUrl = import.meta.env.VITE_API_URL;
+import {Select} from '../../../Common/FormInputs';
+import { Users } from 'lucide-react';
 
 const STATUS_CONFIG = {
   Completed: { label: "مكتمل", color: "bg-green-100 text-green-700", icon: CheckCircle },
@@ -130,9 +132,194 @@ const PatientsList = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+const handlePrint = () => {
+  const printWindow = window.open('', '_blank');
+  const printContent = generatePrintDocument();
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 250);
+};
+
+const generatePrintDocument = () => {
+  const currentDate = new Date().toLocaleDateString('ar-EG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      'Completed': 'مكتمل',
+      'Cancelled': 'ملغي',
+      'NoShow': 'غائب',
+      'Pending': 'معلق'
+    };
+    return labels[status] || status;
   };
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-UK');
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <title>قائمة المرضى - ${event?.name}</title>
+      <style>
+        @page { size: A4 landscape; margin: 1.5cm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', 'Tahoma', sans-serif; line-height: 1.6; color: #333; background: white; }
+        
+        .header {
+          text-align: center;
+          padding: 20px 0;
+          border-bottom: 3px solid #6366f1;
+          margin-bottom: 25px;
+        }
+        .logo { width: 100px; height: auto; margin-bottom: 12px; }
+        .header h1 { font-size: 26px; color: #6366f1; margin-bottom: 6px; font-weight: bold; }
+        .header .event-name { font-size: 16px; color: #666; margin-bottom: 4px; }
+        .header .date { font-size: 12px; color: #999; }
+        
+        .summary-box {
+          padding: 15px;
+          background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+          border-radius: 8px;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+        .summary-box .value { font-size: 24px; font-weight: bold; color: #6366f1; }
+        .summary-box .label { font-size: 13px; color: #666; margin-top: 5px; }
+        
+        .data-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+        }
+        .data-table th {
+          background-color: #6366f1;
+          color: white;
+          padding: 10px 6px;
+          text-align: center;
+          font-weight: bold;
+          font-size: 12px;
+        }
+        .data-table td {
+          border: 1px solid #e5e7eb;
+          padding: 8px 6px;
+          text-align: center;
+        }
+        .data-table tr:nth-child(even) { background-color: #f9fafb; }
+        .data-table tr:hover { background-color: #f3f4f6; }
+        
+        .status-badge {
+          padding: 3px 8px;
+          border-radius: 10px;
+          font-size: 10px;
+          font-weight: bold;
+          display: inline-block;
+        }
+        .status-completed { background-color: #dcfce7; color: #16a34a; }
+        .status-cancelled { background-color: #fee2e2; color: #dc2626; }
+        .status-noshow { background-color: #fed7aa; color: #ea580c; }
+        .status-pending { background-color: #dbeafe; color: #2563eb; }
+        
+        .footer {
+          margin-top: 30px;
+          padding-top: 15px;
+          border-top: 2px solid #e5e7eb;
+          text-align: center;
+          color: #999;
+          font-size: 11px;
+        }
+        
+        @media print {
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="/tagemi_logo.png" alt="Logo" class="logo" />
+        <h1>قائمة المرضى الكاملة</h1>
+        <p class="event-name">${event?.name}</p>
+        <p class="date">تاريخ الإصدار: ${currentDate}</p>
+      </div>
+
+      <div class="summary-box">
+        <div class="value">${appointments.length}</div>
+        <div class="label">إجمالي المرضى في هذه الصفحة</div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 40px;">الرقم</th>
+            <th>الاسم الكامل</th>
+            <th>الجنس</th>
+            <th>تاريخ الميلاد</th>
+            <th>الهاتف</th>
+            <th>المدينة</th>
+            <th>الولاية</th>
+            <th>التخصص</th>
+            <th>اليوم</th>
+            <th>الساعة</th>
+            <th>الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${appointments.map(apt => {
+            const statusClass = 
+              apt.status === 'Completed' ? 'status-completed' :
+              apt.status === 'Cancelled' ? 'status-cancelled' :
+              apt.status === 'NoShow' ? 'status-noshow' :
+              'status-pending';
+            
+            return `
+              <tr>
+                <td><strong>${apt.id}</strong></td>
+                <td style="text-align: right; padding-right: 10px;"><strong>${apt.full_name}</strong></td>
+                <td>${apt.sex === '0' ? 'ذكر' : 'أنثى'}</td>
+                <td>${formatDate(apt.birthday) || '-'}</td>
+                <td>${apt.phone || '-'}</td>
+                <td>${apt.city || '-'}</td>
+                <td>${apt.state || '-'}</td>
+                <td>${apt.event_specialty?.specialty?.name || '-'}</td>
+                <td>${apt.day?.day_date || '-'}</td>
+                <td>${apt.hour?.time || '-'}</td>
+                <td>
+                  <span class="status-badge ${statusClass}">
+                    ${getStatusLabel(apt.status)}
+                  </span>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+
+      ${appointments.length === 0 ? '<p style="text-align: center; color: #999; padding: 40px;">لا توجد بيانات للعرض</p>' : ''}
+
+      <div class="footer">
+        <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة نظام إدارة الحملات الطبية</p>
+        <p>جميع الحقوق محفوظة © ${new Date().getFullYear()}</p>
+        <p style="margin-top: 5px;">الصفحة ${currentPage} من ${totalPages} | إجمالي المرضى: ${appointments.length}</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
 
   const handleExport = () => {
     const csvContent = [
@@ -227,87 +414,89 @@ const PatientsList = () => {
             </div>
           </div>
         </div>
+{/* Filters */}
+<div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-6 no-print">
+  <div className="flex items-center gap-3 mb-4">
+    <Filter className="w-5 h-5 text-indigo-600" />
+    <h3 className="text-lg font-bold text-gray-900 font-droid-arabic-kufi">الفلاتر</h3>
+  </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-6 no-print">
-          <div className="flex items-center gap-3 mb-4">
-            <Filter className="w-5 h-5 text-indigo-600" />
-            <h3 className="text-lg font-bold text-gray-900 font-droid-arabic-kufi">الفلاتر</h3>
-          </div>
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    {/* Search */}
+    <div className="relative">
+      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <input
+        type="text"
+        placeholder="بحث (الاسم، الهاتف، رقم المريض)"
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-droid-arabic-kufi"
+      />
+    </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="بحث (الاسم، الهاتف، رقم المريض)"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-droid-arabic-kufi"
-              />
-            </div>
+    {/* Status Filter */}
+    <Select
+      icon={Filter}
+      value={statusFilter}
+      onChange={(e) => {
+        setStatusFilter(e.target.value);
+        setCurrentPage(1);
+      }}
+      options={[
+        { value: "", label: "جميع الحالات" },
+        { value: "Completed", label: "مكتمل" },
+        { value: "Cancelled", label: "ملغي" },
+        { value: "NoShow", label: "غائب" },
+        { value: "Pending", label: "معلق" }
+      ]}
+    />
 
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-droid-arabic-kufi"
-            >
-              <option value="">جميع الحالات</option>
-              <option value="Completed">مكتمل</option>
-              <option value="Cancelled">ملغي</option>
-              <option value="NoShow">غائب</option>
-              <option value="Pending">معلق</option>
-            </select>
+    {/* Specialty Filter */}
+    <Select
+      icon={Users}
+      value={specialtyFilter}
+      onChange={(e) => {
+        setSpecialtyFilter(e.target.value);
+        setCurrentPage(1);
+      }}
+      options={[
+        { value: "", label: "جميع التخصصات" },
+        ...specialties.map(specialty => ({
+          value: specialty.id,
+          label: specialty.name
+        }))
+      ]}
+    />
 
-            {/* Specialty Filter */}
-            <select
-              value={specialtyFilter}
-              onChange={(e) => {
-                setSpecialtyFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-droid-arabic-kufi"
-            >
-              <option value="">جميع التخصصات</option>
-              {specialties.map(specialty => (
-                <option key={specialty.id} value={specialty.id}>{specialty.name}</option>
-              ))}
-            </select>
+    {/* Reset Button */}
+    <button
+      onClick={resetFilters}
+      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-droid-arabic-kufi font-semibold"
+    >
+      إعادة تعيين
+    </button>
+  </div>
 
-            {/* Reset Button */}
-            <button
-              onClick={resetFilters}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-droid-arabic-kufi font-semibold"
-            >
-              إعادة تعيين
-            </button>
-          </div>
-
-          {/* Per Page Selector */}
-          <div className="mt-4 flex items-center gap-3">
-            <span className="text-sm text-gray-600 font-droid-arabic-kufi">عدد النتائج في الصفحة:</span>
-            <select
-              value={perPage}
-              onChange={(e) => {
-                setPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-droid-arabic-kufi"
-            >
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </div>
-        </div>
+  {/* Per Page Selector */}
+  <div className="mt-4 flex items-center gap-3">
+    <span className="text-sm text-gray-600 font-droid-arabic-kufi">عدد النتائج في الصفحة:</span>
+    <Select
+      value={perPage}
+      onChange={(e) => {
+        setPerPage(Number(e.target.value));
+        setCurrentPage(1);
+      }}
+      options={[
+        { value: "25", label: "25" },
+        { value: "50", label: "50" },
+        { value: "100", label: "100" }
+      ]}
+    />
+  </div>
+</div>
 
         {/* Loading State */}
         {loading ? (
@@ -367,9 +556,9 @@ const PatientsList = () => {
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <Calendar className="w-3 h-3 text-gray-400" />
-                              <span className="font-droid-arabic-kufi text-xs text-gray-600">
-                                {apt.birthday}
-                              </span>
+                          <span className="font-droid-arabic-kufi text-xs text-gray-600">
+                            {apt.birthday ? new Date(apt.birthday).toLocaleDateString('en-UK') : '-'}
+                          </span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center">

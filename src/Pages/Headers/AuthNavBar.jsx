@@ -153,26 +153,21 @@ const AuthNavBar = ({
 
             {isGeneralDesktopOpen && (
               <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-56">
+ 
                 <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
-                >
-                  إعدادات عامة
-                </Link>
-                <Link
-                  to="/rules"
+                  to="/admin/rules"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
                 >
                   التحكم في الضوابط
                 </Link>
                 <Link
-                  to="/contacts"
+                  to="/admin/contacts"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
                 >
                   الإتصالات
                 </Link>
                 <Link
-                  to="/voulenteers"
+                  to="/admin/volunteers"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
                 >
                   المتطوعون
@@ -337,29 +332,23 @@ const AuthNavBar = ({
 
           {isGeneralMenuOpen && (
             <div className="mt-1 flex flex-col space-y-1 bg-gray-50 rounded-lg p-2">
+
               <Link
-                to="/settings"
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
-              >
-                <Settings className="w-4 h-4 flex-shrink-0" />
-                <span>إعدادات عامة</span>
-              </Link>
-              <Link
-                to="/rules"
+                to="/admin/rules"
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
               >
                 <FileText className="w-4 h-4 flex-shrink-0" />
                 <span>التحكم في الضوابط</span>
               </Link>
               <Link
-                to="/contacts"
+                to="/admin/contacts"
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
               >
                 <Phone className="w-4 h-4 flex-shrink-0" />
                 <span>الإتصالات</span>
               </Link>
               <Link
-                to="/voulenteers"
+                to="/admin/volunteers"
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
               >
                 <UserPlus className="w-4 h-4 flex-shrink-0" />

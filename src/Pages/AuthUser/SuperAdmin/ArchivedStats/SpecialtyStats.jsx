@@ -64,9 +64,196 @@ const SpecialtyStats = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+const handlePrint = () => {
+  const printWindow = window.open('', '_blank');
+  const printContent = generatePrintDocument();
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 250);
+};
+
+const generatePrintDocument = () => {
+  const currentDate = new Date().toLocaleDateString('ar-EG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const totalCompleted = statistics.reduce((sum, stat) => sum + parseInt(stat.completed), 0);
+  const totalCancelled = statistics.reduce((sum, stat) => sum + parseInt(stat.cancelled) + parseInt(stat.no_show), 0);
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <title>إحصائيات التخصصات - ${event?.name}</title>
+      <style>
+        @page { size: A4; margin: 2cm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', 'Tahoma', sans-serif; line-height: 1.6; color: #333; background: white; }
+        
+        .header {
+          text-align: center;
+          padding: 20px 0;
+          border-bottom: 3px solid #3b82f6;
+          margin-bottom: 30px;
+        }
+        .logo { width: 120px; height: auto; margin-bottom: 15px; }
+        .header h1 { font-size: 28px; color: #3b82f6; margin-bottom: 8px; font-weight: bold; }
+        .header .event-name { font-size: 18px; color: #666; margin-bottom: 5px; }
+        .header .date { font-size: 14px; color: #999; }
+        
+        .section { margin-bottom: 35px; page-break-inside: avoid; }
+        .section-title {
+          font-size: 20px;
+          font-weight: bold;
+          color: #3b82f6;
+          margin-bottom: 15px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 15px;
+          margin-bottom: 30px;
+          padding: 20px;
+          background: #eff6ff;
+          border-radius: 8px;
+        }
+        .summary-card { text-align: center; }
+        .summary-card .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .summary-card .value { font-size: 24px; font-weight: bold; color: #3b82f6; }
+        
+        .data-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 25px;
+        }
+        .data-table th {
+          background-color: #3b82f6;
+          color: white;
+          padding: 12px;
+          text-align: center;
+          font-weight: bold;
+          font-size: 14px;
+        }
+        .data-table td {
+          border: 1px solid #e5e7eb;
+          padding: 10px;
+          text-align: center;
+          font-size: 13px;
+        }
+        .data-table tr:nth-child(even) { background-color: #f9fafb; }
+        
+        .status-badge {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: bold;
+        }
+        .status-completed { background-color: #dcfce7; color: #16a34a; }
+        .status-cancelled { background-color: #fee2e2; color: #dc2626; }
+        .status-pending { background-color: #dbeafe; color: #2563eb; }
+        
+        .footer {
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 2px solid #e5e7eb;
+          text-align: center;
+          color: #999;
+          font-size: 12px;
+        }
+        
+        @media print {
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          .section { page-break-inside: avoid; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="/tagemi_logo.png" alt="Logo" class="logo" />
+        <h1>تقرير إحصائيات التخصصات الطبية</h1>
+        <p class="event-name">${event?.name}</p>
+        <p class="date">تاريخ الإصدار: ${currentDate}</p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="label">إجمالي المواعيد</div>
+          <div class="value">${totalAppointments}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">عدد التخصصات</div>
+          <div class="value">${statistics.length}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">مكتمل</div>
+          <div class="value" style="color: #10b981;">${totalCompleted}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">ملغي + غائب</div>
+          <div class="value" style="color: #ef4444;">${totalCancelled}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">تفاصيل التخصصات</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>التخصص</th>
+              <th>إجمالي المواعيد</th>
+              <th>مكتمل</th>
+              <th>ملغي</th>
+              <th>غائب</th>
+              <th>معلق</th>
+              <th>معدل الإكمال</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${statistics.map(stat => {
+              const completionRate = ((parseInt(stat.completed) / parseInt(stat.total_appointments)) * 100).toFixed(1);
+              return `
+                <tr>
+                  <td><strong>${stat.name}</strong></td>
+                  <td>${stat.total_appointments}</td>
+                  <td><span class="status-badge status-completed">${stat.completed}</span></td>
+                  <td><span class="status-badge status-cancelled">${stat.cancelled}</span></td>
+                  <td><span class="status-badge status-cancelled">${stat.no_show}</span></td>
+                  <td><span class="status-badge status-pending">${stat.pending}</span></td>
+                  <td><strong>${completionRate}%</strong></td>
+                </tr>
+              `;
+            }).join('')}
+            <tr style="background-color: #f3f4f6; font-weight: bold;">
+              <td>الإجمالي</td>
+              <td>${totalAppointments}</td>
+              <td>${totalCompleted}</td>
+              <td>${statistics.reduce((sum, s) => sum + parseInt(s.cancelled), 0)}</td>
+              <td>${statistics.reduce((sum, s) => sum + parseInt(s.no_show), 0)}</td>
+              <td>${statistics.reduce((sum, s) => sum + parseInt(s.pending), 0)}</td>
+              <td>${((totalCompleted / totalAppointments) * 100).toFixed(1)}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="footer">
+        <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة نظام إدارة الحملات الطبية</p>
+        <p>جميع الحقوق محفوظة © ${new Date().getFullYear()}</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
 
   const handleExport = () => {
     const csvContent = [
@@ -213,13 +400,17 @@ const SpecialtyStats = () => {
               توزيع المواعيد حسب التخصص
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={statistics}>
+              <BarChart data={statistics.map(stat => ({
+                ...stat,
+                other_appointments: parseInt(stat.total_appointments) - parseInt(stat.completed)
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} style={{ fontSize: '12px' }} />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="total_appointments" fill="#3b82f6" name="إجمالي المواعيد" />
+                <Bar dataKey="completed" fill="#10b981" name="مكتمل" stackId="a" />
+                <Bar dataKey="other_appointments" fill="#f59e0b" name="أخرى" stackId="a" />
               </BarChart>
             </ResponsiveContainer>
           </div>
