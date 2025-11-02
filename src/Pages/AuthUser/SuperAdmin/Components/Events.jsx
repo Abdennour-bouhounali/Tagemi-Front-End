@@ -8,6 +8,7 @@ import EventAdminsManager from "./EventAdminsManager";
 import EditEvent from "./EditEvent";
 import EventDetails from "./EventDetails";
 import { Link } from "react-router-dom";
+import { FileText } from "lucide-react"; // Add FileText import
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -430,13 +431,22 @@ export default function Events({ events, getEvents, onViewDetails }) {
                       )}
 
                       {/* Restore Button */}
-                  {event.is_archived && (
+                  {event.is_archived && ( <>
                     <Link 
                       to={`/admin/archived/comprehensive-report/${event.id}`}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      className="flex items-center gap-1 px-3 py-2 bg-yellow-500 text-white  hover:bg-yellow-600  rounded-lg text-sm font-droid-arabic-kufi transition"
                     >
-                      View Report
+                      <FileText className="w-4 h-4" />
+                      تقرير إحصائي
                     </Link>
+                    <Link 
+                      to={`/admin/event-report/${event.id}`}
+                      className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-droid-arabic-kufi transition"
+                      title="تقرير الحدث الشامل"
+                    >
+                      <FileText className="w-4 h-4" />
+                      تقرير الحدث
+                    </Link></>
                   )}
                      
                     </div>

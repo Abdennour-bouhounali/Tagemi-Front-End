@@ -24,14 +24,19 @@ import {
   Building2,
   CalendarDays,
   Users,
-  AlertTriangle
+  AlertTriangle,
+  Upload,
+  FileText,
+  X
 } from 'lucide-react';
 import BirthdayInput from '../SuperAdmin/Components/BirthdayInput';
 import algeriaLocations from '../../../data/algeria_locations.json';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-// Separate component for progress indicator
+// ==================== HELPER COMPONENTS ====================
+
+// Progress Bar Component
 const ProgressBar = ({ currentStep, totalSteps }) => (
   <div className="w-full mb-8">
     <div className="flex items-center justify-between mb-2">
@@ -63,7 +68,7 @@ const ProgressBar = ({ currentStep, totalSteps }) => (
   </div>
 );
 
-// Alert component for messages
+// Alert Component
 const Alert = ({ type, message, onClose }) => {
   const configs = {
     success: {
@@ -114,7 +119,7 @@ const Alert = ({ type, message, onClose }) => {
   );
 };
 
-// Loading skeleton component
+// Loading Skeleton
 const LoadingSkeleton = () => (
   <div className="space-y-4 animate-pulse">
     <div className="h-12 bg-gray-200 rounded-lg"></div>
@@ -124,80 +129,100 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-// Form field component with validation (RTL optimized)
-const FormField = ({ 
-  icon: Icon, 
-  label, 
-  name, 
-  type = 'text', 
-  value, 
-  onChange, 
-  placeholder, 
-  required, 
-  error, 
-  options,
-  disabled 
-}) => {
-  const [focused, setFocused] = useState(false);
+// File Upload Component
+const FileUploadField = ({ files, onChange, error }) => {
+  const [preview, setPreview] = useState([]);
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    
+    // Validate file size (10MB max per file)
+    const validFiles = selectedFiles.filter(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`الملف ${file.name} أكبر من 10MB`);
+        return false;
+      }
+      return true;
+    });
+
+    onChange(validFiles);
+    
+    // Create preview
+    const newPreviews = validFiles.map(file => ({
+      name: file.name,
+      size: (file.size / 1024).toFixed(2) + ' KB',
+      type: file.type
+    }));
+    setPreview(newPreviews);
+  };
+
+  const removeFile = (index) => {
+    const newFiles = files.filter((_, i) => i !== index);
+    onChange(newFiles);
+    setPreview(preview.filter((_, i) => i !== index));
+  };
 
   return (
-    <div className="relative">
+    <div className="space-y-3">
       <label className="block text-sm font-medium text-gray-700 mb-1 font-droid-arabic-kufi">
-        {label}
-        {required && <span className="text-red-500 mr-1">*</span>}
+        المستندات الطبية (اختياري)
       </label>
-      <div className={`
-        relative rounded-lg border transition-all duration-300
-        ${focused ? 'border-blue-400 shadow-md' : error ? 'border-red-300' : 'border-gray-300'}
-      `}>
-        {Icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10">
-            <Icon className={`w-5 h-5 ${focused ? 'text-blue-500' : 'text-gray-400'}`} />
-          </div>
-        )}
-        {type === 'select' ? (
-          <select
-            name={name}
-            value={value}
-            onChange={onChange}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            required={required}
-            disabled={disabled}
-            className={`
-              w-full p-3 rounded-lg focus:outline-none font-droid-arabic-kufi
-              ${Icon ? 'pl-12 pr-3' : 'pr-3'}
-              ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}
-            `}
-            dir="rtl"
-          >
-            <option value="">{placeholder}</option>
-            {options?.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            type={type}
-            name={name}
-            value={value}
-            onChange={onChange}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder={placeholder}
-            required={required}
-            disabled={disabled}
-            className={`
-              w-full p-3 rounded-lg focus:outline-none font-droid-arabic-kufi
-              ${Icon ? 'pl-12 pr-3' : 'pr-3'}
-              ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}
-            `}
-            dir="rtl"
-          />
-        )}
+      
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition-colors">
+        <input
+          type="file"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          onChange={handleFileChange}
+          className="hidden"
+          id="medical-documents-upload"
+        />
+        <label 
+          htmlFor="medical-documents-upload"
+          className="flex flex-col items-center cursor-pointer"
+        >
+          <Upload className="w-10 h-10 text-gray-400 mb-2" />
+          <span className="text-sm text-gray-600 font-droid-arabic-kufi text-center">
+            انقر لتحميل المستندات الطبية
+          </span>
+          <span className="text-xs text-gray-500 font-droid-arabic-kufi mt-1">
+            (PDF, JPG, PNG, DOC - حتى 10MB لكل ملف)
+          </span>
+        </label>
       </div>
+
+      {/* File Preview */}
+      {preview.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700 font-droid-arabic-kufi">
+            الملفات المحددة ({preview.length}):
+          </p>
+          {preview.map((file, index) => (
+            <div 
+              key={index}
+              className="flex items-center justify-between bg-blue-50 p-3 rounded-lg"
+            >
+              <div className="flex items-center gap-2 flex-1">
+                <FileText className="w-5 h-5 text-blue-500" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-700 truncate font-droid-arabic-kufi">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-gray-500">{file.size}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeFile(index)}
+                className="p-1 hover:bg-red-100 rounded text-red-500 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {error && (
         <p className="text-red-500 text-xs mt-1 font-droid-arabic-kufi animate-slideIn">
           {error}
@@ -207,7 +232,7 @@ const FormField = ({
   );
 };
 
-// Specialty card component
+// Specialty Card Component
 const SpecialtyCard = ({ 
   specialty, 
   index, 
@@ -343,6 +368,8 @@ const SpecialtyCard = ({
   );
 };
 
+// ==================== MAIN COMPONENT ====================
+
 const RegisterVisit = () => {
   const { eventID } = useParams();
   const { token } = useContext(AppContext);
@@ -360,6 +387,7 @@ const RegisterVisit = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [appointmentDetails, setAppointmentDetails] = useState(null);
   const [availableCities, setAvailableCities] = useState([]);
+  const [medicalDocuments, setMedicalDocuments] = useState([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -392,6 +420,8 @@ const RegisterVisit = () => {
     if (!event?.event_specialties) return 0;
     return event.event_specialties.filter(es => !es.is_saturated).length;
   }, [event]);
+
+  // ==================== API CALLS ====================
 
   // Fetch event data
   const getEvent = useCallback(async () => {
@@ -468,7 +498,8 @@ const RegisterVisit = () => {
     getRules();
   }, [getEvent, getRules]);
 
-  // Form handlers
+  // ==================== FORM HANDLERS ====================
+
   const handleAddSpecialty = useCallback(() => {
     if (formData.specialties.length < 2) {
       setFormData(prev => ({
@@ -531,6 +562,7 @@ const RegisterVisit = () => {
         }
         break;
       case 'phone':
+      case 'phone2':
         if (!phoneRegex.test(value)) {
           error = 'رقم الهاتف غير صحيح';
         } else if (value.length < 9) {
@@ -562,15 +594,12 @@ const RegisterVisit = () => {
     validateField('birthday', birthday);
   }, [validateField]);
 
-  // NEW: Handle state change
   const handleStateChange = useCallback((e) => {
     const stateName = e.target.value;
     setFormData(prev => ({ ...prev, state: stateName, city: '' }));
     
-    // Clear field errors
     setFieldErrors(prev => ({ ...prev, state: '', city: '' }));
     
-    // Find the selected wilaya and set its communes
     const selectedWilaya = algeriaLocations.algeria_locations.find(
       loc => loc.name_ar === stateName
     );
@@ -582,7 +611,15 @@ const RegisterVisit = () => {
     }
   }, []);
 
-  // Form submission
+  const handleFileChange = useCallback((files) => {
+    setMedicalDocuments(files);
+    if (files.length > 0) {
+      setFieldErrors(prev => ({ ...prev, medical_documents: '' }));
+    }
+  }, []);
+
+  // ==================== FORM SUBMISSION ====================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -602,9 +639,33 @@ const RegisterVisit = () => {
     }
     
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-      };
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      
+      // Append regular form data
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('birthday', formData.birthday);
+      formDataToSend.append('state', formData.state);
+      formDataToSend.append('city', formData.city);
+      formDataToSend.append('diseases', formData.diseases || '');
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('phone2', formData.phone2);
+      formDataToSend.append('sex', formData.sex);
+      
+      // Append specialties as JSON
+      formData.specialties.forEach((specialty, index) => {
+        formDataToSend.append(`specialties[${index}][event_specialty_id]`, specialty.event_specialty_id);
+        formDataToSend.append(`specialties[${index}][day_id]`, specialty.day_id);
+        formDataToSend.append(`specialties[${index}][hour_id]`, specialty.hour_id);
+      });
+
+      // Append files
+      medicalDocuments.forEach((file, index) => {
+        formDataToSend.append(`medical_documents[${index}]`, file);
+      });
+
+      const headers = {};
       
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -613,7 +674,7 @@ const RegisterVisit = () => {
       const res = await fetch(`${apiUrl}/api/appointment/${eventId}`, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(formData),
+        body: formDataToSend,
       });
       
       if (!res.ok) {
@@ -631,7 +692,8 @@ const RegisterVisit = () => {
       
       setAppointmentDetails({
         ...formData,
-        eventInfo: event
+        eventInfo: event,
+        documentsCount: medicalDocuments.length
       });
       
     } catch (error) {
@@ -645,7 +707,8 @@ const RegisterVisit = () => {
     }
   };
 
-  // Check if form is valid
+  // ==================== FORM VALIDATION ====================
+
   const isFormValid = useMemo(() => {
     return (
       formData.name &&
@@ -664,7 +727,8 @@ const RegisterVisit = () => {
     );
   }, [formData, fieldErrors, acceptedRules]);
 
-  // Step components
+  // ==================== RENDER METHODS ====================
+
   const renderEventInfo = () => (
     <div className="space-y-6 animate-fadeIn">
       {allSpecialtiesSaturated && (
@@ -706,65 +770,63 @@ const RegisterVisit = () => {
       {/* Event Details Cards */}
       <div className="grid md:grid-cols-2 gap-4 mt-8">
         {/* Event Days Card */}
-<div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200">
-  <div className="flex items-center gap-3 mb-3">
-    <div className="w-10 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center">
-      <CalendarDays className="w-6 h-6" />
-    </div>
-    <h3 className="font-bold text-lg font-droid-arabic-kufi text-gray-800">
-      أيام الحدث
-    </h3>
-  </div>
-  <div className="space-y-2">
-    {(() => {
-      // Collect all days from all event specialties
-      const allDays = event?.event_specialties?.flatMap(es => 
-        es.days?.map(day => new Date(day.day_date)) || []
-      ) || [];
-      
-      if (allDays.length === 0) {
-        return (
-          <div className="text-gray-500 font-droid-arabic-kufi text-sm">
-            لا توجد أيام متاحة
-          </div>
-        );
-      }
-      
-      // Find min and max dates
-      const minDate = new Date(Math.min(...allDays));
-      const maxDate = new Date(Math.max(...allDays));
-      
-      return (
-        <>
-          <div className="flex items-center gap-2 text-gray-700">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span className="font-droid-arabic-kufi text-sm font-medium">
-             {minDate.getTime() !== maxDate.getTime() && (<span>  من:</span>)  } {minDate.toLocaleDateString('ar-DZ', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </span>
-          </div>
-          {minDate.getTime() !== maxDate.getTime() && (
-            <div className="flex items-center gap-2 text-gray-700">
-              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-              <span className="font-droid-arabic-kufi text-sm font-medium">
-                إلى: {maxDate.toLocaleDateString('ar-DZ', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </span>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center">
+              <CalendarDays className="w-6 h-6" />
             </div>
-          )}
-        </>
-      );
-    })()}
-  </div>
-</div>
+            <h3 className="font-bold text-lg font-droid-arabic-kufi text-gray-800">
+              أيام الحدث
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {(() => {
+              const allDays = event?.event_specialties?.flatMap(es => 
+                es.days?.map(day => new Date(day.day_date)) || []
+              ) || [];
+              
+              if (allDays.length === 0) {
+                return (
+                  <div className="text-gray-500 font-droid-arabic-kufi text-sm">
+                    لا توجد أيام متاحة
+                  </div>
+                );
+              }
+              
+              const minDate = new Date(Math.min(...allDays));
+              const maxDate = new Date(Math.max(...allDays));
+              
+              return (
+                <>
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="font-droid-arabic-kufi text-sm font-medium">
+                      {minDate.getTime() !== maxDate.getTime() && (<span>من:</span>)} {minDate.toLocaleDateString('ar-DZ', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  {minDate.getTime() !== maxDate.getTime() && (
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                      <span className="font-droid-arabic-kufi text-sm font-medium">
+                        إلى: {maxDate.toLocaleDateString('ar-DZ', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
 
         {/* Location Card */}
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200">
@@ -777,7 +839,7 @@ const RegisterVisit = () => {
             </h3>
           </div>
           <p className="text-gray-700 font-droid-arabic-kufi text-sm leading-relaxed">
-            {event?.state  || 'سيتم تحديد المكان لاحقاً'} | {event?.city  || '-'}
+            {event?.state || 'سيتم تحديد المكان لاحقاً'} | {event?.city || '-'}
           </p>
         </div>
 
@@ -889,7 +951,6 @@ const RegisterVisit = () => {
         error={fieldErrors.birthday}
       />
       
-      {/* NEW: State and City Fields */}
       <div className="grid md:grid-cols-2 gap-4">
         <Select
           icon={MapPin}
@@ -924,7 +985,6 @@ const RegisterVisit = () => {
           }))}
         />
       </div>
-      {/* END NEW */}
       
       <div className="grid md:grid-cols-2 gap-4">
         <Input
@@ -975,6 +1035,26 @@ const RegisterVisit = () => {
         onChange={handleChangeData}
         placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
       />
+
+      {/* File Upload Field */}
+      <FileUploadField
+        files={medicalDocuments}
+        onChange={handleFileChange}
+        error={fieldErrors.medical_documents}
+      />
+
+      {/* Info box about medical documents */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-blue-800 font-droid-arabic-kufi leading-relaxed">
+              يمكنك تحميل المستندات الطبية (تقارير، تحاليل، أشعة) لمساعدة الطبيب على فهم حالتك بشكل أفضل. 
+              هذا الخيار اختياري ولن يؤثر على حجزك.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -1085,7 +1165,8 @@ const RegisterVisit = () => {
     </div>
   );
 
-  // Success animation component
+  // ==================== SUCCESS ANIMATION ====================
+
   const SuccessAnimation = () => {
     const getAppointmentSummary = () => {
       const summaries = formData.specialties.map((spec, index) => {
@@ -1101,7 +1182,7 @@ const RegisterVisit = () => {
             month: 'long',
             day: 'numeric'
           }) : 'غير محدد',
-      time: slot?.time ? new Date(slot.time).toISOString().split('T')[1].substring(0, 5) : 'غير محدد'
+          time: slot?.time ? new Date(slot.time).toISOString().split('T')[1].substring(0, 5) : 'غير محدد'
         };
       });
       
@@ -1123,6 +1204,18 @@ const RegisterVisit = () => {
             <p className="text-gray-600 font-droid-arabic-kufi mb-6">
               سيتم التواصل معك قريباً عبر الواتساب
             </p>
+            
+            {/* Document Upload Confirmation */}
+            {medicalDocuments.length > 0 && (
+              <div className="w-full bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2 justify-center">
+                  <FileText className="w-5 h-5 text-green-600" />
+                  <span className="text-sm font-medium text-green-800 font-droid-arabic-kufi">
+                    تم تحميل {medicalDocuments.length} مستند طبي بنجاح
+                  </span>
+                </div>
+              </div>
+            )}
             
             {/* Appointment Details */}
             <div className="w-full bg-blue-50 rounded-xl p-6 mb-6 text-right">
@@ -1192,6 +1285,7 @@ const RegisterVisit = () => {
                   sex: '',
                   specialties: [{ event_specialty_id: '', day_id: '', hour_id: '' }],
                 });
+                setMedicalDocuments([]);
                 setCurrentStep(0);
                 setAcceptedRules(false);
                 setAvailableCities([]);
@@ -1206,7 +1300,8 @@ const RegisterVisit = () => {
     );
   };
 
-  // Main render
+  // ==================== MAIN RENDER ====================
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-4 flex items-center justify-center">
@@ -1217,7 +1312,7 @@ const RegisterVisit = () => {
     );
   }
 
-  if (!event) {
+  if (!event || event.is_active == 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-4 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
@@ -1261,17 +1356,7 @@ const RegisterVisit = () => {
               <div className="space-y-2 text-gray-600 font-droid-arabic-kufi">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-gray-400" />
-                  <span>{event.place || 'غير محدد'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span>
-                    {new Date(event.date).toLocaleDateString('ar-DZ', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </span>
+                  <span>{event.state || 'غير محدد'} | {event.city || '-'}</span>
                 </div>
               </div>
             </div>

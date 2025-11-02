@@ -41,6 +41,7 @@ import DemographicStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/Demograp
 import GeographicStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/GeographicStats';
 import PatientsList from './Pages/AuthUser/SuperAdmin/ArchivedStats/PatientsList';
 import ComprehensiveReport from './Pages/AuthUser/SuperAdmin/ArchivedStats/ComprehensiveReport';
+import EventReport from './Pages/AuthUser/SuperAdmin/Components/EventReport';
 
 export default function App() {
   const [specialities, setSpecialities] = useState([]);
@@ -113,6 +114,7 @@ export default function App() {
               <Route path="manage-events" element={isSuperAdmin ? <EventsManagement /> : <NotAuthenticated />} />
               <Route path="contacts" element={isSuperAdmin ? <Messages /> : <NotAuthenticated />} />
               <Route path="volunteers" element={isSuperAdmin ? <SuperAdminVolunteers /> : <NotAuthenticated />} />
+              <Route path="/admin/event-report/:eventId" element={<EventReport />} />
               
               {/* Special Admin Routes */}
               <Route path="special-case" element={isSpecialAdmin ? <SpecialCase /> : <NotAuthenticated />} />

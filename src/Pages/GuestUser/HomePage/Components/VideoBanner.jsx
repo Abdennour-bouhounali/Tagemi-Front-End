@@ -15,10 +15,10 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
     return (
         <>
             {!homePage ? (
-                <div className="relative w-full h-[40vh] md:h-[50vh] overflow-hidden">
+                <div className="relative w-full h-[40vh] md:h-[50vh] overflow-hidden pt-20 md:pt-24">
                     <img 
                         src={bannerImage} 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full  object-cover object-left md:object-center" 
                         alt="Banner" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60"></div>
@@ -31,10 +31,10 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                     )}
                 </div>
             ) : (
-                <div className="relative w-full min-h-[70vh] md:min-h-[85vh] overflow-hidden bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#101E58]">
+                <div className="relative w-full min-h-[70vh] md:min-h-[85vh] overflow-hidden bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#101E58] pt-16 md:pt-28">
                     {/* Background Image with Parallax Effect */}
                     <div 
-                        className="absolute inset-0 opacity-20"
+                        className="absolute inset-0 opacity-60"
                         style={{
                             transform: `translateY(${scrollY * 0.5}px)`,
                             transition: 'transform 0.1s ease-out'
@@ -42,19 +42,19 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                     >
                         <img 
                             src={bannerImage} 
-                            className="w-full h-full object-cover" 
+                            className="w-full h-full object-cover  object-left md:object-center" 
                             alt="Hero Background" 
                         />
                     </div>
                     
                     {/* Overlay Pattern */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#101E58]/80 to-[#101E58]/95"></div>
+                    <div className="absolute inset-0 bg-gradient-to-b -translate-x-3 from-transparent via-[#101E58]/5 to-[#101E58]/30"></div>
                     
                     {/* Content */}
                     <div className="relative z-10 mb-10 container mx-auto px-4 h-full min-h-[70vh] md:min-h-[85vh] flex items-center">
                         <div className="w-full max-w-4xl mx-auto text-center space-y-8 py-20">
                             {/* Animated Logo/Icon */}
-                            <motion.div
+                            {/* <motion.div
                                 initial={{ scale: 0, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.6, ease: "easeOut" }}
@@ -65,31 +65,19 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                                     </svg>
                                 </div>
-                            </motion.div>
+                            </motion.div> */}
                             
                             {/* Main Heading */}
                             <motion.h1
                                 initial={{ y: 50, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
                                 transition={{ duration: 0.8, delay: 0.2 }}
-                                className="text-xl md:text-3xl lg:text-4xl font-bold text-white font-droid-arabic-kufi leading-tight"
-                            >
-                                  {language === 'en'
-                                    ? 'Together we work for human development and a better future'
-                                    : 'معاً نعمل من أجل التنمية الإنسانية ومستقبل أفضل'}
-                            </motion.h1>
-                            
-                            {/* Subtitle */}
-                            {/* <motion.p
-                                initial={{ y: 30, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ duration: 0.8, delay: 0.4 }}
-                                className="text-xl md:text-2xl text-gray-200 font-droid-arabic-kufi max-w-3xl mx-auto leading-relaxed"
+                                className="text-xl md:text-3xl lg:text-4xl font-bold text-white font-droid-arabic-kufi leading-tight drop-shadow-lg"
                             >
                                 {language === 'en'
-                                    ? 'Together we work for human development and a better future'
-                                    : 'معاً نعمل من أجل التنمية الإنسانية ومستقبل أفضل'}
-                            </motion.p> */}
+                                    ? "Let's Working together for human development and eternal life"
+                                    : 'لنعمل سويا من أجل حياة أبدية'}
+                            </motion.h1>
                             
                             {/* CTA Buttons */}
                             <motion.div
@@ -98,8 +86,8 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                 transition={{ duration: 0.8, delay: 0.6 }}
                                 className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8"
                             >
-                                <a
-                                    href="#donate"
+                                
+                              <a      href="#donate"
                                     className="group relative px-8 py-4 bg-[#E03A6F] text-white rounded-full font-bold text-lg font-droid-arabic-kufi overflow-hidden transition-all duration-300 hover:bg-[#c8102e] hover:shadow-2xl hover:scale-105 w-full sm:w-auto"
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">
@@ -111,8 +99,8 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                     <div className="absolute inset-0 bg-gradient-to-r from-[#c8102e] to-[#E03A6F] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
                                 </a>
                                 
-                                <a
-                                    href="/volunteer"
+                                
+                                <a    href="/volunteer"
                                     className="group px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 rounded-full font-bold text-lg font-droid-arabic-kufi transition-all duration-300 hover:bg-white hover:text-[#101E58] hover:shadow-2xl hover:scale-105 w-full sm:w-auto"
                                 >
                                     <span className="flex items-center justify-center gap-2">
@@ -129,7 +117,7 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                 initial={{ y: 30, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
                                 transition={{ duration: 0.8, delay: 0.8 }}
-                                className="grid grid-cols-3 ةﻻ-5 gap-6 pt-12 max-w-2xl mx-auto"
+                                className="grid grid-cols-3 gap-6 pt-12 max-w-2xl mx-auto"
                             >
                                 <div className="text-center">
                                     <div className="text-3xl md:text-4xl font-bold text-white mb-2">500+</div>
@@ -160,8 +148,8 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                         transition={{ duration: 1, delay: 1.2 }}
                         className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10"
                     >
-                        <div className="flex flex-col items-center  gap-2">
-                            <span className="text-white/60 text-sm  mt-10 font-droid-arabic-kufi">
+                        <div className="flex flex-col items-center gap-2">
+                            <span className="text-white/60 text-sm mt-10 font-droid-arabic-kufi">
                                 {language === 'en' ? 'Scroll Down' : 'للأسفل'}
                             </span>
                             <motion.div
