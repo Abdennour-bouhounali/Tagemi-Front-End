@@ -5,20 +5,39 @@ import { Trash2, Plus, Loader2, CheckCircle, Copy, Eye, EyeOff } from "lucide-re
 import { AppContext } from "../../../../Context/AppContext";
 import { Select } from '../../../Common/FormInputs';
 import algeriaLocations from '../../../../data/algeria_locations.json';
+import { CheckSquare, Square,Shield } from 'lucide-react';
 
 export default function AddEvent({ getEvents }) {
   const { token } = useContext(AppContext);
   
   // Form state
-  const [form, setForm] = useState({
+const [form, setForm] = useState({
     name: "",
     date: "",
     state: "",
+    nbr_of_allowed_specialties: 1,
     city: "",
     description: "",
+    rules_ids: [], // ADD THIS
     is_active: true,
     is_tawat: true,
   });
+
+  const fetchRules = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/api/rules`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch rules');
+      
+      const data = await res.json();
+      setRules(data || []);
+    } catch (err) {
+      console.error("Error fetching rules:", err);
+      setMessage("❌ خطأ في تحميل القواعد");
+    }
+  };
   
   // Data state
   const [specialties, setSpecialties] = useState([]);
@@ -36,16 +55,26 @@ export default function AddEvent({ getEvents }) {
   const [credentials, setCredentials] = useState(null);
   const [showPasswords, setShowPasswords] = useState({});
   const [copiedField, setCopiedField] = useState(null);
-
+  const [rules, setRules] = useState([]);
+  const [selectedRules, setSelectedRules] = useState([]);
   // Fetch initial data
-  useEffect(() => {
+useEffect(() => {
     const loadData = async () => {
       setDataLoading(true);
-      await Promise.all([fetchSpecialties(), fetchDoctors()]);
+      await Promise.all([fetchSpecialties(), fetchDoctors(), fetchRules()]);
       setDataLoading(false);
     };
     loadData();
   }, [token]);
+  const toggleRuleSelection = useCallback((ruleId) => {
+    setSelectedRules(prev => {
+      if (prev.includes(ruleId)) {
+        return prev.filter(id => id !== ruleId);
+      } else {
+        return [...prev, ruleId];
+      }
+    });
+  }, []);
 
   const fetchSpecialties = async () => {
     try {
@@ -351,6 +380,7 @@ const updateSpecialtyDescription = useCallback((index, description) => {
 
     const payload = {
       ...form,
+      rules_ids: selectedRules, // ADD THIS
       specialties: eventSpecialties,
     };
 
@@ -731,7 +761,73 @@ const updateSpecialtyDescription = useCallback((index, description) => {
             className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
           />
         </div>
-
+        <div className="mb-4">
+          <label htmlFor="nbr-specialties" className="block text-sm font-medium mb-1 text-gray-700">
+            عدد التخصصات المسموح بها للحجز *
+          </label>
+          <input
+            type="number"
+            id="nbr-specialties"
+            name="nbr_of_allowed_specialties"
+            value={form.nbr_of_allowed_specialties}
+            onChange={handleChange}
+            min="1"
+            max="5"
+            required
+            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            الحد الأدنى: 1، الحد الأقصى: 5 تخصصات
+          </p>
+        </div>
+                <div className="mb-6 border-t pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="w-6 h-6 text-blue-600" />
+            <h3 className="text-xl font-bold text-gray-800">قواعد الحدث</h3>
+          </div>
+          
+          {rules.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">لا توجد قواعد متاحة</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto bg-gray-50 rounded-lg p-4">
+              {rules.map((rule) => (
+                <label
+                  key={rule.id}
+                  className={`
+                    flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all
+                    ${selectedRules.includes(rule.id)
+                      ? 'bg-blue-100 border-2 border-blue-500'
+                      : 'bg-white border-2 border-gray-200 hover:border-blue-300'
+                    }
+                  `}
+                >
+                  <div className="flex-shrink-0 mt-1">
+                    {selectedRules.includes(rule.id) ? (
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <Square className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={selectedRules.includes(rule.id)}
+                    onChange={() => toggleRuleSelection(rule.id)}
+                    className="hidden"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {rule.rule}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+          
+          <p className="text-sm text-gray-500 mt-2">
+            تم تحديد {selectedRules.length} من {rules.length} قاعدة
+          </p>
+        </div>
         {/* Specialties Section */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">

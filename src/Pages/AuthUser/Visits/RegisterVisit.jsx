@@ -4,7 +4,7 @@ import { AppContext } from '../../../Context/AppContext';
 import { useParams } from 'react-router-dom';
 import { Select } from '../../Common/FormInputs';
 import { Input } from '../../Common/FormInputs';
-
+// import { CheckCircle2, FileText, Calendar, Heart, CalendarDays, Clock, AlertCircle, User } from 'lucide-react';
 import { 
   Loader2, 
   CheckCircle2, 
@@ -12,7 +12,6 @@ import {
   AlertCircle, 
   Calendar,
   Clock,
-  User,
   Phone,
   MapPin,
   Heart,
@@ -23,6 +22,7 @@ import {
   Info,
   Building2,
   CalendarDays,
+  User,
   Users,
   AlertTriangle,
   Upload,
@@ -407,7 +407,6 @@ const SpecialtyCard = ({
 const RegisterVisit = () => {
   const { eventID } = useParams();
   const { token } = useContext(AppContext);
-  
   // State management
   const [currentStep, setCurrentStep] = useState(0);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -422,6 +421,7 @@ const RegisterVisit = () => {
   const [appointmentDetails, setAppointmentDetails] = useState(null);
   const [availableCities, setAvailableCities] = useState([]);
   const [medicalDocuments, setMedicalDocuments] = useState([]);
+  const maxAllowedSpecialties = event?.nbr_of_allowed_specialties || 1;
   
   const [formData, setFormData] = useState({
     name: '',
@@ -481,6 +481,8 @@ const RegisterVisit = () => {
       const data = await res.json();
       setEvent(data.event);
       
+
+      
       const availableSpecs = data.event?.event_specialties?.filter(es => !es.is_saturated) || [];
       if (availableSpecs.length === 0) {
         setMessage({ 
@@ -498,15 +500,34 @@ const RegisterVisit = () => {
   }, [eventID, token]);
 
   // Fetch rules
-  const getRules = useCallback(async () => {
-    try {
+ // UPDATE getRules function to fetch event-specific rules:
+const getRules = useCallback(async () => {
+  try {
+    // Fetch event to get its rules_ids
+    const eventRes = await fetch(`${apiUrl}/api/public/events/${eventID}`);
+    const eventData = await eventRes.json();
+    
+    if (eventData.event?.rules_ids && eventData.event.rules_ids.length > 0) {
+      // Fetch only the rules that belong to this event
+      const allRulesRes = await fetch(`${apiUrl}/api/rules`);
+      const allRulesData = await allRulesRes.json();
+      
+      // Filter rules based on event's rules_ids
+      const eventRules = allRulesData.filter(rule => 
+        eventData.event.rules_ids.includes(rule.id)
+      );
+      
+      setRules(eventRules);
+    } else {
+      // Fallback: show all rules if event has none selected
       const res = await fetch(`${apiUrl}/api/rules`);
       const data = await res.json();
       setRules(data);
-    } catch (error) {
-      console.error('Error fetching rules:', error);
     }
-  }, []);
+  } catch (error) {
+    console.error('Error fetching rules:', error);
+  }
+}, [eventID, token]);
 
   // Fetch available slots
   const fetchAvailableSlots = useCallback(async (eventSpecialtyId, dayId, specialtyIndex) => {
@@ -533,18 +554,17 @@ const RegisterVisit = () => {
   }, [getEvent, getRules]);
 
   // ==================== FORM HANDLERS ====================
-
-  const handleAddSpecialty = useCallback(() => {
-    if (formData.specialties.length < 2) {
-      setFormData(prev => ({
-        ...prev,
-        specialties: [
-          ...prev.specialties,
-          { event_specialty_id: '', day_id: '', hour_id: '' }
-        ],
-      }));
-    }
-  }, [formData.specialties.length]);
+const handleAddSpecialty = useCallback(() => {
+  if (formData.specialties.length < maxAllowedSpecialties) {
+    setFormData(prev => ({
+      ...prev,
+      specialties: [
+        ...prev.specialties,
+        { event_specialty_id: '', day_id: '', hour_id: '' }
+      ],
+    }));
+  }
+}, [formData.specialties.length, maxAllowedSpecialties]);
 
   const handleRemoveSpecialty = useCallback((index) => {
     setFormData(prev => ({
@@ -558,6 +578,7 @@ const RegisterVisit = () => {
       return newSlots;
     });
   }, []);
+  
 
   const handleSpecialtyChange = useCallback((index, field, value) => {
     const updatedSpecialties = formData.specialties.map((specialty, i) => {
@@ -916,7 +937,7 @@ const RegisterVisit = () => {
               </div>
 
               {/* ✨ SHOW DESCRIPTION PREVIEW IN EVENT INFO ✨ */}
-              {es.description && !es.is_saturated && (
+              {/* {es.description && !es.is_saturated && (
                 <div className="mt-2 pt-2 border-t border-green-100">
                   <div className="flex items-start gap-2">
                     <Info className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
@@ -925,11 +946,11 @@ const RegisterVisit = () => {
                     </p>
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           ))}
         </div>
-          {availableSpecialtiesCount > 0 && (
+          { availableSpecialtiesCount > 0 && (
             <div className="mt-3 pt-3 border-t border-green-200">
               <p className="text-sm text-gray-600 font-droid-arabic-kufi">
                 {availableSpecialtiesCount > 2 && <> <span className="font-bold text-green-600">{availableSpecialtiesCount}</span> تخصصات متاحة للحجز</>}
@@ -941,7 +962,7 @@ const RegisterVisit = () => {
 
 
         {/* Capacity Card */}
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-5 border border-orange-200">
+        {/* <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-5 border border-orange-200">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-orange-500 text-white rounded-lg flex items-center justify-center">
               <Users className="w-6 h-6" />
@@ -953,11 +974,11 @@ const RegisterVisit = () => {
           <p className="text-gray-700 font-droid-arabic-kufi text-sm leading-relaxed">
             {event?.additional_info || 'يرجى الحضور قبل الموعد بـ 15 دقيقة'}
           </p>
-        </div>
+        </div> */}
       </div>
 
       {/* Important Notes */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mt-6">
+      {/* <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mt-6">
         <div className="flex items-start gap-3">
           <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
           <div>
@@ -970,7 +991,7 @@ const RegisterVisit = () => {
             </ul>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 
@@ -1054,7 +1075,7 @@ const RegisterVisit = () => {
           type="tel"
           value={formData.phone}
           onChange={handleChangeData}
-          placeholder="أدخل رقم الواتساب"
+          placeholder="أدخل رقم الهاتف (الواتساب إن وجد) "
           required
           error={fieldErrors.phone}
         />
@@ -1096,25 +1117,9 @@ const RegisterVisit = () => {
         placeholder="يرجى ذكر الأمراض المزمنة إن وجدت"
       />
 
-      {/* File Upload Field */}
-      <FileUploadField
-        files={medicalDocuments}
-        onChange={handleFileChange}
-        error={fieldErrors.medical_documents}
-      />
 
       {/* Info box about medical documents */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm text-blue-800 font-droid-arabic-kufi leading-relaxed">
-              يمكنك تحميل المستندات الطبية (تقارير، تحاليل، أشعة) لمساعدة الطبيب على فهم حالتك بشكل أفضل. 
-              هذا الخيار اختياري ولن يؤثر على حجزك.
-            </p>
-          </div>
-        </div>
-      </div>
+     
     </div>
   );
 
@@ -1169,22 +1174,44 @@ const RegisterVisit = () => {
             />
           ))}
           
-          {formData.specialties.length < 2 && 
-           availableSpecialtiesCount > 1 && 
-           availableSpecialtiesCount > formData.specialties.length && (
-            <button
-              type="button"
-              onClick={handleAddSpecialty}
-              className="w-full py-3 border-2 border-dashed border-blue-300 rounded-lg
-                       text-blue-600 font-medium font-droid-arabic-kufi
-                       hover:bg-blue-50 transition-all duration-300
-                       flex items-center justify-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              أضف تخصص آخر
-            </button>
-          )}
+          {formData.specialties.length < maxAllowedSpecialties && 
+            availableSpecialtiesCount > 1 && 
+            availableSpecialtiesCount > formData.specialties.length && (
+              <button
+                type="button"
+                onClick={handleAddSpecialty}
+                className="w-full py-3 border-2 border-dashed border-blue-300 rounded-lg
+                        text-blue-600 font-medium font-droid-arabic-kufi
+                        hover:bg-blue-50 transition-all duration-300
+                        flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                أضف تخصص آخر (متاح: {maxAllowedSpecialties - formData.specialties.length})
+              </button>
+            )}
         </div>
+        {maxAllowedSpecialties === 1 && formData.specialties[0].event_specialty_id && (
+        <div className="mt-6 animate-slideIn">
+          <FileUploadField
+            files={medicalDocuments}
+            onChange={handleFileChange}
+            error={fieldErrors.medical_documents}
+          />
+          
+          {/* Info box about medical documents */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-blue-800 font-droid-arabic-kufi leading-relaxed">
+                        يمكنك تحميل المستندات الطبية (تقارير، تحاليل، أشعة) لمساعدة الطبيب على فهم حالتك بشكل أفضل. 
+                        هذا الخيار اختياري ولن يؤثر على حجزك.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          )}
       </div>
     );
   };
@@ -1227,138 +1254,201 @@ const RegisterVisit = () => {
 
   // ==================== SUCCESS ANIMATION ====================
 
-  const SuccessAnimation = () => {
-    const getAppointmentSummary = () => {
-      const summaries = formData.specialties.map((spec, index) => {
-        const specialty = event?.event_specialties?.find(es => es.id == spec.event_specialty_id);
-        const day = specialty?.days?.find(d => d.id == spec.day_id);
-        const slot = availableSlots[`${index}`]?.find(s => s.hour_id == spec.hour_id);
-        
-        return {
-          specialty: specialty?.specialty?.name || 'غير محدد',
-          date: day ? new Date(day.day_date).toLocaleDateString('ar-DZ', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          }) : 'غير محدد',
-          time: slot?.time ? new Date(slot.time).toISOString().split('T')[1].substring(0, 5) : 'غير محدد'
-        };
-      });
+const SuccessAnimation = () => {
+  const getAppointmentSummary = () => {
+    const summaries = formData.specialties.map((spec, index) => {
+      const specialty = event?.event_specialties?.find(es => es.id == spec.event_specialty_id);
+      const day = specialty?.days?.find(d => d.id == spec.day_id);
+      const slot = availableSlots[`${index}`]?.find(s => s.hour_id == spec.hour_id);
       
-      return summaries;
-    };
+      return {
+        specialty: specialty?.specialty?.name || 'غير محدد',
+        date: day ? new Date(day.day_date).toLocaleDateString('ar-DZ', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }) : 'غير محدد',
+        time: slot?.time ? new Date(slot.time).toISOString().split('T')[1].substring(0, 5) : 'غير محدد'
+      };
+    });
+    
+    return summaries;
+  };
 
-    const appointments = getAppointmentSummary();
+  const appointments = getAppointmentSummary();
+  const fullName = `${formData.name} ${formData.lastName}`;
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-2xl mx-4 animate-bounceIn max-h-[90vh] overflow-y-auto">
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 md:p-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl mx-auto animate-bounceIn max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* Header Section */}
+        <div className="sticky top-0 bg-gradient-to-b from-green-50 to-white pt-6 pb-4 px-4 sm:px-6 md:px-8 border-b border-green-100">
           <div className="flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-12 h-12 text-green-500 animate-pulse" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-3 sm:mb-4 shadow-lg">
+              <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-pulse" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 font-droid-arabic-kufi">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 font-droid-arabic-kufi">
               تم الحجز بنجاح!
             </h3>
-            <p className="text-gray-600 font-droid-arabic-kufi mb-6">
+            <p className="text-sm sm:text-base text-gray-600 font-droid-arabic-kufi">
               سيتم التواصل معك قريباً عبر الواتساب
             </p>
-            
-            {/* Document Upload Confirmation */}
-            {medicalDocuments.length > 0 && (
-              <div className="w-full bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-2 justify-center">
-                  <FileText className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-800 font-droid-arabic-kufi">
-                    تم تحميل {medicalDocuments.length} مستند طبي بنجاح
-                  </span>
-                </div>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
+          {/* Patient Name */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-blue-200">
+            <div className="flex items-center gap-3 justify-center sm:justify-start">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-            )}
+              <div className="text-center sm:text-right">
+                <p className="text-xs sm:text-sm text-gray-600 font-droid-arabic-kufi mb-1">
+                  السيد :
+                </p>
+                <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800 font-droid-arabic-kufi">
+                  {fullName}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Document Upload Confirmation */}
+          {medicalDocuments.length > 0 && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm">
+              <div className="flex items-center gap-2 sm:gap-3 justify-center">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
+                <span className="text-sm sm:text-base font-semibold text-green-800 font-droid-arabic-kufi">
+                  تم تحميل {medicalDocuments.length} مستند طبي بنجاح
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {/* Appointment Details */}
+          <div className="bg-gradient-to-br text-left  from-blue-50 via-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-blue-200">
+            <h4 className="font-bold text-left  text-base sm:text-lg md:text-xl text-gray-800 mb-3 sm:mb-4 font-droid-arabic-kufi flex items-center gap-2 justify-center sm:justify-start">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <span>تفاصيل المواعيد</span>
+            </h4>
             
-            {/* Appointment Details */}
-            <div className="w-full bg-blue-50 rounded-xl p-6 mb-6 text-right">
-              <h4 className="font-bold text-lg text-gray-800 mb-4 font-droid-arabic-kufi flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                تفاصيل موعدك
-              </h4>
-              
+            <div className="space-y-3">
               {appointments.map((apt, index) => (
-                <div key={index} className="bg-white rounded-lg p-4 mb-3 border border-blue-200">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Heart className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium font-droid-arabic-kufi text-gray-700">
-                        التخصص: {apt.specialty}
+                <div 
+                  key={index} 
+                  className="bg-white text-left  rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {appointments.length > 1 && (
+                    <div className="flex text-left  justify-center mb-3">
+                      <span className="inline-block px-3 py-1 bg-blue-500 text-white text-xs sm:text-sm font-bold rounded-full">
+                        الموعد {index + 1}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium font-droid-arabic-kufi text-gray-700">
-                        التاريخ: {apt.date}
-                      </span>
+                  )}
+                  
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
+                      <div className="text-left  flex-1">
+                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">التخصص</p>
+                        <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800">
+                          {apt.specialty}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium font-droid-arabic-kufi text-gray-700">
-                        الوقت: {apt.time}
-                      </span>
+                    
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
+                      <div className="text-left  flex-1">
+                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">التاريخ</p>
+                        <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800 leading-relaxed">
+                          {apt.date}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
+                      <div className="text-left  flex-1">
+                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">الوقت</p>
+                        <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800">
+                          {apt.time}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            
-            {/* Important Reminder */}
-            <div className="w-full bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
-                <div className="text-right">
-                  <h4 className="font-bold text-gray-800 font-droid-arabic-kufi mb-2">
-                    تنبيه مهم
-                  </h4>
-                  <ul className="space-y-1 text-sm text-gray-700 font-droid-arabic-kufi">
-                    <li>• يرجى الالتزام بالموعد المحدد والحضور قبله بـ 15 دقيقة</li>
-                    <li>• في حالة عدم القدرة على الحضور، يرجى إبلاغنا مسبقاً</li>
-                    <li>• سنتواصل معك على الرقم: {formData.phone}</li>
-                    {formData.phone2 && (
-                      <li>• أو الرقم الثانوي: {formData.phone2}</li>
-                    )}
-                  </ul>
-                </div>
+          </div>
+          
+          {/* Important Reminder */}
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm" dir="rtl">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 flex-shrink-0 mt-1" />
+              <div className="text-left flex-1">
+                <h4 className="font-bold text-base sm:text-lg text-gray-800 font-droid-arabic-kufi mb-2 sm:mb-3">
+                  تنبيه مهم
+                </h4>
+                <ul className="space-y-2 text-xs sm:text-sm text-gray-700 font-droid-arabic-kufi leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                    <span>يرجى الالتزام بالموعد المحدد والحضور قبله بـ 15 دقيقة</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                    <span>في حالة عدم القدرة على الحضور، يرجى إبلاغنا مسبقاً</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                    <span>سنتواصل معك على الرقم: <span className="font-bold text-gray-800">{formData.phone}</span></span>
+                  </li>
+                  {formData.phone2 && (
+                    <li className="flex items-start gap-2">
+                      <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                      <span>أو الرقم الثانوي: <span className="font-bold text-gray-800">{formData.phone2}</span></span>
+                    </li>
+                  )}
+                </ul>
               </div>
             </div>
-            
-            <button
-              onClick={() => {
-                setShowSuccessAnimation(false);
-                setFormData({
-                  name: '',
-                  lastName: '',
-                  birthday: '',
-                  state: '',
-                  city: '',
-                  diseases: '',
-                  phone: '',
-                  phone2: '',
-                  sex: '',
-                  specialties: [{ event_specialty_id: '', day_id: '', hour_id: '' }],
-                });
-                setMedicalDocuments([]);
-                setCurrentStep(0);
-                setAcceptedRules(false);
-                setAvailableCities([]);
-              }}
-              className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg font-medium font-droid-arabic-kufi hover:bg-blue-600 transition-colors"
-            >
-              حجز موعد آخر
-            </button>
           </div>
         </div>
+
+        {/* Footer Button */}
+        <div className="sticky bottom-0 bg-gradient-to-t from-white to-transparent pt-4 pb-6 px-4 sm:px-6 md:px-8">
+          <button
+            onClick={() => {
+              setShowSuccessAnimation(false);
+              setFormData({
+                name: '',
+                lastName: '',
+                birthday: '',
+                state: '',
+                city: '',
+                diseases: '',
+                phone: '',
+                phone2: '',
+                sex: '',
+                specialties: [{ event_specialty_id: '', day_id: '', hour_id: '' }],
+              });
+              setMedicalDocuments([]);
+              setCurrentStep(0);
+              setAcceptedRules(false);
+              setAvailableCities([]);
+            }}
+            className="w-full px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg sm:rounded-xl text-sm sm:text-base md:text-lg font-bold font-droid-arabic-kufi hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl"
+          >
+            حجز موعد آخر
+          </button>
+        </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   // ==================== MAIN RENDER ====================
 

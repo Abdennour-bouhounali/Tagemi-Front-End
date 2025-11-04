@@ -3,21 +3,39 @@ import { X, Save, Loader2, Plus, Trash2 } from "lucide-react";
 import { AppContext } from "../../../../Context/AppContext";
 
 const apiUrl = import.meta.env.VITE_API_URL;
+import { CheckSquare, Square,Shield } from 'lucide-react';
 
 export default function EditEvent({ event, onClose, onSuccess }) {
   const { token } = useContext(AppContext);
+  const [rules, setRules] = useState([]);
+const [selectedRules, setSelectedRules] = useState(event.rules_ids || []);
   
   // Form state
   const [form, setForm] = useState({
     name: event.name || "",
     date: event.date ? event.date.split('T')[0] : "",
     state: event.state || "",
+    nbr_of_allowed_specialties: event.nbr_of_allowed_specialties || 1, // ADD THIS
     city: event.city || "",
     description: event.description || "",
     is_active: event.is_active ?? true,
     is_tawat: event.is_tawat ?? true,
   });
-  
+  const fetchRules = async () => {
+  try {
+    const res = await fetch(`${apiUrl}/api/rules`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!res.ok) throw new Error('Failed to fetch rules');
+    
+    const data = await res.json();
+    setRules(data || []);
+  } catch (err) {
+    console.error("Error fetching rules:", err);
+    setMessage("❌ خطأ في تحميل القواعد");
+  }
+};
   // Data state
   const [specialties, setSpecialties] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -29,18 +47,28 @@ export default function EditEvent({ event, onClose, onSuccess }) {
   const [message, setMessage] = useState("");
 
   // Fetch initial data
-  useEffect(() => {
-    const loadData = async () => {
-      setDataLoading(true);
-      await Promise.all([
-        fetchSpecialties(), 
-        fetchDoctors(),
-        fetchEventSpecialties()
-      ]);
-      setDataLoading(false);
-    };
-    loadData();
-  }, [event.id]);
+useEffect(() => {
+  const loadData = async () => {
+    setDataLoading(true);
+    await Promise.all([
+      fetchSpecialties(), 
+      fetchDoctors(),
+      fetchRules(), // ADD THIS
+      fetchEventSpecialties()
+    ]);
+    setDataLoading(false);
+  };
+  loadData();
+}, [event.id]);
+const toggleRuleSelection = useCallback((ruleId) => {
+  setSelectedRules(prev => {
+    if (prev.includes(ruleId)) {
+      return prev.filter(id => id !== ruleId);
+    } else {
+      return [...prev, ruleId];
+    }
+  });
+}, []);
 
   const fetchSpecialties = async () => {
     try {
@@ -313,10 +341,11 @@ const addSpecialty = useCallback(() => {
     setLoading(true);
 
     try {
-      const payload = {
-        ...form,
-        specialties: eventSpecialties,
-      };
+  const payload = {
+    ...form,
+    rules_ids: selectedRules, // ADD THIS
+    specialties: eventSpecialties,
+  };
 
       const res = await fetch(`${apiUrl}/api/events/${event.id}/full`, {
         method: "PUT",
@@ -496,8 +525,73 @@ const addSpecialty = useCallback(() => {
                 className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1 text-gray-700 font-droid-arabic-kufi">
+                عدد التخصصات المسموح بها للحجز *
+              </label>
+              <input
+                type="number"
+                name="nbr_of_allowed_specialties"
+                value={form.nbr_of_allowed_specialties}
+                onChange={handleChange}
+                min="1"
+                max="5"
+                required
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1 font-droid-arabic-kufi">
+                الحد الأدنى: 1، الحد الأقصى: 5 تخصصات
+              </p>
+            </div>
           </div>
-
+<div className="mb-6 border-t pt-6">
+  <div className="flex items-center gap-2 mb-4">
+    <Shield className="w-6 h-6 text-blue-600" />
+    <h3 className="text-xl font-bold text-gray-800 font-droid-arabic-kufi">قواعد الحدث</h3>
+  </div>
+  
+  {rules.length === 0 ? (
+    <p className="text-gray-500 text-center py-4 font-droid-arabic-kufi">لا توجد قواعد متاحة</p>
+  ) : (
+    <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto bg-gray-50 rounded-lg p-4">
+      {rules.map((rule) => (
+        <label
+          key={rule.id}
+          className={`
+            flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all
+            ${selectedRules.includes(rule.id)
+              ? 'bg-blue-100 border-2 border-blue-500'
+              : 'bg-white border-2 border-gray-200 hover:border-blue-300'
+            }
+          `}
+        >
+          <div className="flex-shrink-0 mt-1">
+            {selectedRules.includes(rule.id) ? (
+              <CheckSquare className="w-5 h-5 text-blue-600" />
+            ) : (
+              <Square className="w-5 h-5 text-gray-400" />
+            )}
+          </div>
+          <input
+            type="checkbox"
+            checked={selectedRules.includes(rule.id)}
+            onChange={() => toggleRuleSelection(rule.id)}
+            className="hidden"
+          />
+          <div className="flex-1">
+            <p className="text-sm text-gray-700 leading-relaxed font-droid-arabic-kufi">
+              {rule.rule}
+            </p>
+          </div>
+        </label>
+      ))}
+    </div>
+  )}
+  
+  <p className="text-sm text-gray-500 mt-2 font-droid-arabic-kufi">
+    تم تحديد {selectedRules.length} من {rules.length} قاعدة
+  </p>
+</div>
           {/* Specialties Section */}
           <div>
             <div className="flex justify-between items-center mb-4">

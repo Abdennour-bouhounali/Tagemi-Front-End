@@ -20,9 +20,11 @@ import {
   X,
   Star,
   Stethoscope,
-    FileText, // ✅ Add this
-    Download
-
+  FileText,
+  Download,
+  Edit, // ✅ Edit icon
+  Save,  // ✅ Save icon
+  Trash2, // ✅ NEW: Delete icon
 } from "lucide-react";
 import { Select, Input } from '../../Common/FormInputs';
 import AppointmentDocuments from '../SuperAdmin/AppointmentDocuments';
@@ -32,7 +34,8 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const CheckPresence = () => {
   const { eventId } = useParams();
   const { token, user } = useContext(AppContext);
-const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
+  const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
+  
   // State management
   const [event, setEvent] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -51,6 +54,14 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [dayFilter, setDayFilter] = useState("all");
 
+  // ✅ Edit mode states
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({});
+  
+  // ✅ NEW: Delete confirmation states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+
   // Group appointments by patient_id and get primary appointment
   const getUniquePatients = (appointments) => {
     const patientMap = new Map();
@@ -67,7 +78,6 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
         patient.all.push(apt);
         patient.count++;
         
-        // Update primary if this has higher specialty_order
         if (apt.specialty_order > patient.primary.specialty_order) {
           patient.primary = apt;
         }
@@ -109,7 +119,6 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
       );
     }
 
-    // Group by patient to show only one row per patient
     const uniquePatients = getUniquePatients(filtered);
     setFilteredAppointments(uniquePatients);
   };
@@ -165,11 +174,120 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
     }
   };
 
+  // ✅ Initialize edit mode
+  const startEditing = () => {
+    if (!selectedAppointment) {
+      console.error('Cannot start editing: selectedAppointment is null');
+      return;
+    }
+    
+    setIsEditing(true);
+    const nameParts = selectedAppointment.full_name?.split(' ') || [];
+    setEditedData({
+      name: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      birthday: selectedAppointment.birthday || '',
+      state: selectedAppointment.state || '',
+      city: selectedAppointment.city || '',
+      diseases: selectedAppointment.diseases === 'nothing' ? '' : (selectedAppointment.diseases || ''),
+      phone: selectedAppointment.phone || '',
+      phone2: selectedAppointment.phone2 || '',
+      sex: selectedAppointment.sex?.toString() || '0',
+    });
+  };
+
+  // ✅ Cancel editing
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditedData({});
+  };
+
+  // ✅ Save edited data
+  const saveEditedAppointment = async () => {
+    setUpdating(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch(`${apiUrl}/api/appointments/${selectedAppointment.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editedData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccess("تم تحديث معلومات المريض بنجاح");
+        
+        // Update local state
+        await fetchAppointments();
+        
+        // Update selected appointment
+        setSelectedAppointment(data.appointment);
+        
+        // Exit edit mode
+        setIsEditing(false);
+        setEditedData({});
+        
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(data.message || "فشل في تحديث المعلومات");
+      }
+    } catch (err) {
+      console.error("Update error:", err);
+      setError("حدث خطأ أثناء التحديث");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // ✅ NEW: Delete appointment
+  const deleteAppointment = async (appointmentId) => {
+    setUpdating(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch(`${apiUrl}/api/appointments/${appointmentId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccess("تم حذف الموعد بنجاح");
+        
+        // Refresh appointments list
+        await fetchAppointments();
+        
+        // Close modal and confirmation
+        setShowDetailsModal(false);
+        setShowDeleteConfirm(false);
+        setAppointmentToDelete(null);
+        
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(data.message || "فشل في حذف الموعد");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      setError("حدث خطأ أثناء حذف الموعد");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   // Export appointments grouped by specialty with logo
   const exportBySpecialty = () => {
     const appointmentsBySpecialty = {};
     
-    // Group appointments by specialty
     filteredAppointments.forEach(apt => {
       const specialtyName = apt.event_specialty?.specialty?.name || "غير محدد";
       const specialtyId = apt.event_specialty?.specialty?.id || "unknown";
@@ -634,10 +752,8 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
       if (res.ok) {
         setSuccess(`تم تحديث حالة الحضور بنجاح`);
         
-        // REFRESH ALL APPOINTMENTS to get updated statuses from backend
         await fetchAppointments();
 
-        // Update selected appointment modal if open
         if (selectedAppointment?.id === appointmentId) {
           const updatedAppointment = data.appointment;
           if (updatedAppointment) {
@@ -675,10 +791,7 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
       if (res.ok) {
         setSuccess(data.message || "تم تحديد المريض كحالة خاصة");
         
-        // REFRESH ALL APPOINTMENTS to get updated data
         await fetchAppointments();
-
-        // Close modal after refresh
         setShowDetailsModal(false);
 
         setTimeout(() => setSuccess(""), 3000);
@@ -881,7 +994,6 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
   };
 
   const getStatusBadge = (appointment) => {
-    // Check if it's a special case
     if (appointment.is_special === true || appointment.is_special === 1) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold font-droid-arabic-kufi bg-purple-100 text-purple-700">
@@ -980,120 +1092,113 @@ const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
         </div>
       </div>
     );
-  }
-const handleDownloadCSV = () => {
-  // Filter appointments by selected specialty
-  let appointmentsToExport = appointments;
-  
-  if (downloadSpecialtyFilter !== "all") {
-    appointmentsToExport = appointments.filter(
-      (apt) => apt.event_specialty?.specialty?.id?.toString() === downloadSpecialtyFilter
-    );
-  }
-
-  if (appointmentsToExport.length === 0) {
-    setError("لا توجد مواعيد للتصدير");
-    setTimeout(() => setError(""), 3000);
-    return;
-  }
-
-  // CSV Headers in Arabic
-  const headers = [
-    'رقم المريض',
-    'الاسم الكامل',
-    'التخصص',
-    'اليوم',
-    'الساعة',
-    'الحالة',
-    'تاريخ الميلاد',
-    'الهاتف',
-    'هاتف ثانوي',
-    'الولاية',
-    'البلدية',
-    'الجنس',
-    'الأمراض',
-    'الطبيب',
-    'حالة خاصة'
-  ];
-
-  // Map status to Arabic
-  const statusMap = {
-    Present: 'حاضر',
-    Waiting: 'في الانتظار',
-    Pending: 'لم يحضر بعد',
-    Completed: 'مكتمل',
-    Commingsoon: 'قادم قريباً',
-    Absent: 'غائب'
   };
 
-  // Convert appointments to CSV rows
-  const csvRows = appointmentsToExport.map(appointment => {
-    const status = appointment.is_special 
-      ? 'حالة خاصة' 
-      : (statusMap[appointment.status] || appointment.status);
-    const birthday = appointment.birthday 
-      ? new Date(appointment.birthday).toLocaleDateString('en-UK') 
-      : '-';
-    const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
-    const diseases = appointment.diseases && appointment.diseases !== 'nothing' 
-      ? appointment.diseases 
-      : '-';
-    const isSpecial = appointment.is_special ? 'نعم' : 'لا';
+  const handleDownloadCSV = () => {
+    let appointmentsToExport = appointments;
     
-    return [
-      appointment.patient_id || '-',
-      appointment.full_name || '-',
-      appointment.event_specialty?.specialty?.name || '-',
-      appointment.day?.day_date || appointment.day?.date || '-',
-      appointment.hour?.time || appointment.hour?.hour || '-',
-      status,
-      birthday,
-      appointment.phone || '-',
-      appointment.phone2 || '-',
-      appointment.state || '-',
-      appointment.city || '-',
-      sex,
-      diseases,
-      appointment.doctor?.name || 'غير محدد',
-      isSpecial
+    if (downloadSpecialtyFilter !== "all") {
+      appointmentsToExport = appointments.filter(
+        (apt) => apt.event_specialty?.specialty?.id?.toString() === downloadSpecialtyFilter
+      );
+    }
+
+    if (appointmentsToExport.length === 0) {
+      setError("لا توجد مواعيد للتصدير");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    const headers = [
+      'رقم المريض',
+      'الاسم الكامل',
+      'التخصص',
+      'اليوم',
+      'الساعة',
+      'الحالة',
+      'تاريخ الميلاد',
+      'الهاتف',
+      'هاتف ثانوي',
+      'الولاية',
+      'البلدية',
+      'الجنس',
+      'الأمراض',
+      'الطبيب',
+      'حالة خاصة'
     ];
-  });
 
-  // Create CSV content with BOM for proper Arabic encoding
-  const BOM = '\uFEFF';
-  const csvContent = [
-    headers.join(','),
-    ...csvRows.map(row => row.map(cell => {
-      // Escape commas and quotes in cell content
-      const cellStr = String(cell).replace(/"/g, '""');
-      return `"${cellStr}"`;
-    }).join(','))
-  ].join('\n');
+    const statusMap = {
+      Present: 'حاضر',
+      Waiting: 'في الانتظار',
+      Pending: 'لم يحضر بعد',
+      Completed: 'مكتمل',
+      Commingsoon: 'قادم قريباً',
+      Absent: 'غائب'
+    };
 
-  // Create blob and download
-  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  // Generate filename
-  const specialtyName = downloadSpecialtyFilter === "all" 
-    ? "جميع_التخصصات" 
-    : specialties.find(s => s.id.toString() === downloadSpecialtyFilter)?.name || "تخصص";
-  const eventName = event?.name?.replace(/\s+/g, '_') || 'الحدث';
-  const filename = `${eventName}_${specialtyName}_${new Date().toLocaleDateString('en-UK').replace(/\//g, '-')}.csv`;
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+    const csvRows = appointmentsToExport.map(appointment => {
+      const status = appointment.is_special 
+        ? 'حالة خاصة' 
+        : (statusMap[appointment.status] || appointment.status);
+      const birthday = appointment.birthday 
+        ? new Date(appointment.birthday).toLocaleDateString('en-UK') 
+        : '-';
+      const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
+      const diseases = appointment.diseases && appointment.diseases !== 'nothing' 
+        ? appointment.diseases 
+        : '-';
+      const isSpecial = appointment.is_special ? 'نعم' : 'لا';
+      
+      return [
+        appointment.patient_id || '-',
+        appointment.full_name || '-',
+        appointment.event_specialty?.specialty?.name || '-',
+        appointment.day?.day_date || appointment.day?.date || '-',
+        appointment.hour?.time || appointment.hour?.hour || '-',
+        status,
+        birthday,
+        appointment.phone || '-',
+        appointment.phone2 || '-',
+        appointment.state || '-',
+        appointment.city || '-',
+        sex,
+        diseases,
+        appointment.doctor?.name || 'غير محدد',
+        isSpecial
+      ];
+    });
 
-  // Show success message
-  setSuccess(`تم تحميل ${appointmentsToExport.length} موعد بنجاح`);
-  setTimeout(() => setSuccess(''), 3000);
-};
+    const BOM = '\uFEFF';
+    const csvContent = [
+      headers.join(','),
+      ...csvRows.map(row => row.map(cell => {
+        const cellStr = String(cell).replace(/"/g, '""');
+        return `"${cellStr}"`;
+      }).join(','))
+    ].join('\n');
+
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    const specialtyName = downloadSpecialtyFilter === "all" 
+      ? "جميع_التخصصات" 
+      : specialties.find(s => s.id.toString() === downloadSpecialtyFilter)?.name || "تخصص";
+    const eventName = event?.name?.replace(/\s+/g, '_') || 'الحدث';
+    const filename = `${eventName}_${specialtyName}_${new Date().toLocaleDateString('en-UK').replace(/\//g, '-')}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setSuccess(`تم تحميل ${appointmentsToExport.length} موعد بنجاح`);
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
   return (
     <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-7xl mb-4">
@@ -1121,71 +1226,70 @@ const handleDownloadCSV = () => {
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
-  {event?.is_current && (
-    <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold font-droid-arabic-kufi flex items-center gap-2">
-      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-      حدث نشط
-    </span>
-  )}
-  
-  {/* CSV Download Section */}
-  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-    <Select
-      icon={Stethoscope}
-      value={downloadSpecialtyFilter}
-      onChange={(e) => setDownloadSpecialtyFilter(e.target.value)}
-      options={[
-        { value: "all", label: "جميع التخصصات" },
-        ...specialties.map((specialty) => ({
-          value: specialty.id.toString(),
-          label: specialty.name,
-        })),
-      ]}
-      className="min-w-[200px]"
-    />
-    
-    <button
-      onClick={handleDownloadCSV}
-      disabled={appointments.length === 0}
-      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi whitespace-nowrap"
-      title="تحميل CSV"
-    >
-      <Download className="w-4 h-4" />
-      تحميل CSV
-      {appointments.length > 0 && (
-        <span className="bg-green-800 px-2 py-0.5 rounded text-xs">
-          {downloadSpecialtyFilter === "all" 
-            ? appointments.length 
-            : appointments.filter(a => a.event_specialty?.specialty?.id?.toString() === downloadSpecialtyFilter).length}
-        </span>
-      )}
-    </button>
-  </div>
-  
-  <button
-    onClick={exportBySpecialty}
-    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
-    title="طباعة حسب التخصص"
-  >
-    <Stethoscope className="w-4 h-4" />
-    طباعة حسب التخصص
-  </button>
-  
-  <button
-    onClick={exportToPDF}
-    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
-  >
-    <Printer className="w-4 h-4" />
-    طباعة PDF
-  </button>
+                {event?.is_current && (
+                  <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold font-droid-arabic-kufi flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    حدث نشط
+                  </span>
+                )}
+                
+                <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                  <Select
+                    icon={Stethoscope}
+                    value={downloadSpecialtyFilter}
+                    onChange={(e) => setDownloadSpecialtyFilter(e.target.value)}
+                    options={[
+                      { value: "all", label: "جميع التخصصات" },
+                      ...specialties.map((specialty) => ({
+                        value: specialty.id.toString(),
+                        label: specialty.name,
+                      })),
+                    ]}
+                    className="min-w-[200px]"
+                  />
+                  
+                  <button
+                    onClick={handleDownloadCSV}
+                    disabled={appointments.length === 0}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi whitespace-nowrap"
+                    title="تحميل CSV"
+                  >
+                    <Download className="w-4 h-4" />
+                    تحميل CSV
+                    {appointments.length > 0 && (
+                      <span className="bg-green-800 px-2 py-0.5 rounded text-xs">
+                        {downloadSpecialtyFilter === "all" 
+                          ? appointments.length 
+                          : appointments.filter(a => a.event_specialty?.specialty?.id?.toString() === downloadSpecialtyFilter).length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+                
+                <button
+                  onClick={exportBySpecialty}
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+                  title="طباعة حسب التخصص"
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  طباعة حسب التخصص
+                </button>
+                
+                <button
+                  onClick={exportToPDF}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+                >
+                  <Printer className="w-4 h-4" />
+                  طباعة PDF
+                </button>
 
-  <button
-    onClick={fetchAppointments}
-    className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
-  >
-    <RefreshCw className="w-4 h-4" />
-  </button>
-</div>
+                <button
+                  onClick={fetchAppointments}
+                  className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1342,170 +1446,193 @@ const handleDownloadCSV = () => {
         </div>
 
         {/* Appointments Table */}
-{/* Appointments Table */}
-<div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-  <div className="overflow-x-auto">
-    <table className="w-full">
-      <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-        <tr>
-          <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
-            رقم المريض
-          </th>
-          <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
-            الاسم الكامل
-          </th>
-          <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
-            التخصص
-          </th>
-          <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
-            اليوم
-          </th>
-          <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
-            الساعة
-          </th>
-          <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
-            رقم الهاتف
-          </th>
-          <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
-            الحالة
-          </th>
-          <th className="px-4 py-3 text-center text-sm font-semibold font-droid-arabic-kufi">
-            الإجراءات
-          </th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-200">
-        {filteredAppointments.length === 0 ? (
-          <tr>
-            <td colSpan="8" className="px-4 py-8 text-center">
-              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500 font-droid-arabic-kufi">
-                لا توجد مواعيد متاحة
-              </p>
-            </td>
-          </tr>
-        ) : (
-          filteredAppointments.map((appointment) => (
-            <tr
-              key={appointment.id}
-              className={`hover:bg-gray-50 transition-colors ${
-                appointment.is_special ? 'bg-purple-50' : ''
-              }`}
-            >
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                <div className="flex items-center gap-2">
-                  <span>#{appointment.patient_id || "-"}</span>
-                  {appointment.is_special && (
-                    <Star className="w-3 h-3 text-purple-600" />
-                  )}
-                  {appointment.appointment_count > 1 && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                      {appointment.appointment_count} مواعيد
-                    </span>
-                  )}
-                  {/* ✅ NEW: Documents indicator badge */}
-                  {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                      <FileText className="w-3 h-3 mr-1" />
-                      {appointment.medical_document_urls.length}
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
-                {appointment.full_name || "-"}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
-                {appointment.event_specialty?.specialty?.name || "-"}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
-                {appointment.day?.day_date || appointment.day?.date || "-"}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
-                {appointment.hour?.time || appointment.hour?.hour || "-"}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-700" dir="ltr">
-                {appointment.phone || "-"}
-              </td>
-              <td className="px-4 py-3">
-                {getStatusBadge(appointment)}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center justify-center gap-2">
-                  {/* ✅ NEW: Download documents button - Shows if documents exist */}
-                  {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
-                    <div className="relative group">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (appointment.medical_document_urls.length === 1) {
-                            // If only one document, download directly
-                            window.open(appointment.medical_document_urls[0], '_blank');
-                          } else {
-                            // If multiple documents, show in modal
-                            setSelectedAppointment(appointment);
-                            setPatientAllAppointments(appointment.all_appointments || [appointment]);
-                            setShowDetailsModal(true);
-                          }
-                        }}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors relative"
-                        title={`عرض المستندات (${appointment.medical_document_urls.length})`}
-                      >
-                        <FileText className="w-4 h-4" />
-                        <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                          {appointment.medical_document_urls.length}
-                        </span>
-                      </button>
-                      
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                        {appointment.medical_document_urls.length} مستند طبي
-                      </div>
-                    </div>
-                  )}
-                  
-                  <button
-                    onClick={() => {
-                      setSelectedAppointment(appointment);
-                      setPatientAllAppointments(appointment.all_appointments || [appointment]);
-                      setShowDetailsModal(true);
-                    }}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="عرض التفاصيل"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  
-                  {appointment.status == "Pending" && (
-                    <button
-                      onClick={() => updatePresenceStatus(appointment.id, "Present")}
-                      disabled={updating}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                      title="تحديد كـ حاضر"
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <tr>
+                  <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
+                    رقم المريض
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
+                    الاسم الكامل
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
+                    التخصص
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
+                    اليوم
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
+                    الساعة
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
+                    رقم الهاتف
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold font-droid-arabic-kufi">
+                    الحالة
+                  </th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold font-droid-arabic-kufi">
+                    الإجراءات
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredAppointments.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="px-4 py-8 text-center">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500 font-droid-arabic-kufi">
+                        لا توجد مواعيد متاحة
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAppointments.map((appointment) => (
+                    <tr
+                      key={appointment.id}
+                      className={`hover:bg-gray-50 transition-colors ${
+                        appointment.is_special ? 'bg-purple-50' : ''
+                      }`}
                     >
-                      <CheckCheck className="w-4 h-4" />
-                    </button>
-                  )}
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <div className="flex items-center gap-2">
+                          <span>#{appointment.patient_id || "-"}</span>
+                          {appointment.is_special && (
+                            <Star className="w-3 h-3 text-purple-600" />
+                          )}
+                          {appointment.appointment_count > 1 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                              {appointment.appointment_count} مواعيد
+                            </span>
+                          )}
+                          {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              <FileText className="w-3 h-3 mr-1" />
+                              {appointment.medical_document_urls.length}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
+                        {appointment.full_name || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
+                        {appointment.event_specialty?.specialty?.name || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
+                        {appointment.day?.day_date || appointment.day?.date || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
+                        {appointment.hour?.time || appointment.hour?.hour || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700" dir="ltr">
+                        {appointment.phone || "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {getStatusBadge(appointment)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
+                            <div className="relative group">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (appointment.medical_document_urls.length === 1) {
+                                    window.open(appointment.medical_document_urls[0], '_blank');
+                                  } else {
+                                    setSelectedAppointment(appointment);
+                                    setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                                    setShowDetailsModal(true);
+                                  }
+                                }}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors relative"
+                                title={`عرض المستندات (${appointment.medical_document_urls.length})`}
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                  {appointment.medical_document_urls.length}
+                                </span>
+                              </button>
+                              
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                {appointment.medical_document_urls.length} مستند طبي
+                              </div>
+                            </div>
+                          )}
+                          
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                              setShowDetailsModal(true);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="عرض التفاصيل"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          
+                          {/* ✅ Edit button in table */}
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                              setShowDetailsModal(true);
+                              // Don't automatically start editing - let user do it manually
+                              // setTimeout(() => startEditing(), 100);
+                            }}
+                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                            title="تعديل المعلومات"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          
+                          {/* ✅ NEW: Delete button in table */}
+                          {user.role_id === 1 && (
+                            <button
+                              onClick={() => {
+                                setAppointmentToDelete(appointment);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="حذف الموعد"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          
+                          {(user.role_id === 1 || user.role_id === 5 ) && appointment.status == "Pending" && (
+                            <button
+                              onClick={() => updatePresenceStatus(appointment.id, "Present")}
+                              disabled={updating}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="تحديد كـ حاضر"
+                            >
+                              <CheckCheck className="w-4 h-4" />
+                            </button>
+                          )}
 
-                  {!appointment.is_special && appointment.status !== "Completed" && (
-                    <button
-                      onClick={() => markAsSpecialCase(appointment.id)}
-                      disabled={updating}
-                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
-                      title="تحديد كـ حالة خاصة"
-                    >
-                      <Star className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
+                          {(user.role_id === 1 || user.role_id === 3 ) && !appointment.is_special && appointment.status !== "Completed" && (
+                            <button
+                              onClick={() => markAsSpecialCase(appointment.id)}
+                              disabled={updating}
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="تحديد كـ حالة خاصة"
+                            >
+                              <Star className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         {/* Details Modal */}
         {showDetailsModal && selectedAppointment && (
@@ -1521,6 +1648,38 @@ const handleDownloadCSV = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* ✅ Edit/Save button */}
+                  {!isEditing ? (
+                    <button
+                      onClick={startEditing}
+                      className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+                      title="تعديل المعلومات"
+                    >
+                      <Edit className="w-4 h-4" />
+                      تعديل
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={saveEditedAppointment}
+                        disabled={updating}
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+                        title="حفظ التغييرات"
+                      >
+                        <Save className="w-4 h-4" />
+                        حفظ
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        disabled={updating}
+                        className="flex items-center gap-2 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+                        title="إلغاء"
+                      >
+                        إلغاء
+                      </button>
+                    </>
+                  )}
+                  
                   <button
                     onClick={() => printPatientCard(selectedAppointment)}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
@@ -1530,7 +1689,11 @@ const handleDownloadCSV = () => {
                     طباعة البطاقة
                   </button>
                   <button
-                    onClick={() => setShowDetailsModal(false)}
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      setIsEditing(false);
+                      setEditedData({});
+                    }}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     <X className="w-6 h-6 text-gray-600" />
@@ -1545,88 +1708,213 @@ const handleDownloadCSV = () => {
                     معلومات المريض
                   </h4>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-lg">
-                          <User className="w-5 h-5 text-blue-600" />
+                  {/* ✅ Edit mode vs View mode */}
+                  {!isEditing ? (
+                    // View Mode
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-blue-100 p-2 rounded-lg">
+                            <User className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 font-droid-arabic-kufi">
+                              الاسم الكامل
+                            </p>
+                            <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
+                              {selectedAppointment.full_name}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                            الاسم الكامل
-                          </p>
-                          <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
-                            {selectedAppointment.full_name}
-                          </p>
+
+                        <div className="flex items-center gap-3">
+                          <div className="bg-green-100 p-2 rounded-lg">
+                            <Calendar className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 font-droid-arabic-kufi">
+                              تاريخ الميلاد
+                            </p>
+                            <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
+                              {selectedAppointment.birthday
+                                ? new Date(selectedAppointment.birthday).toLocaleDateString("en-UK")
+                                : "-"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="bg-purple-100 p-2 rounded-lg">
+                            <MapPin className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 font-droid-arabic-kufi">
+                              الإقامة
+                            </p>
+                            <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
+                              {selectedAppointment.state || "-"} | {selectedAppointment.city || "-"}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="bg-green-100 p-2 rounded-lg">
-                          <Calendar className="w-5 h-5 text-green-600" />
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-orange-100 p-2 rounded-lg">
+                            <Phone className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 font-droid-arabic-kufi">
+                              رقم الهاتف
+                            </p>
+                            <p className="font-semibold text-gray-900" dir="ltr">
+                              {selectedAppointment.phone || "-"}
+                            </p>
+                            {selectedAppointment.phone2 && (
+                              <p className="font-semibold text-gray-700 text-sm" dir="ltr">
+                                {selectedAppointment.phone2}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                            تاريخ الميلاد
-                          </p>
-                          <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
-                            {selectedAppointment.birthday
-                              ? new Date(selectedAppointment.birthday).toLocaleDateString("en-UK")
-                              : "-"}
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="bg-purple-100 p-2 rounded-lg">
-                          <MapPin className="w-5 h-5 text-purple-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                            الإقامة
-                          </p>
-                          <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
-                            {selectedAppointment.state || "-"} | {selectedAppointment.city || "-"}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="bg-yellow-100 p-2 rounded-lg">
+                            <AlertCircle className="w-5 h-5 text-yellow-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 font-droid-arabic-kufi">
+                              الأمراض
+                            </p>
+                            <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
+                              {selectedAppointment.diseases && selectedAppointment.diseases !== "nothing"
+                                ? selectedAppointment.diseases
+                                : "لا يوجد"}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-orange-100 p-2 rounded-lg">
-                          <Phone className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                            رقم الهاتف
-                          </p>
-                          <p className="font-semibold text-gray-900" dir="ltr">
-                            {selectedAppointment.phone || "-"}
-                          </p>
-                        </div>
+                  ) : (
+                    // Edit Mode
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          الاسم الأول
+                        </label>
+                        <input
+                          type="text"
+                          value={editedData.name || ''}
+                          onChange={(e) => setEditedData({...editedData, name: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi"
+                        />
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="bg-yellow-100 p-2 rounded-lg">
-                          <AlertCircle className="w-5 h-5 text-yellow-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                            الأمراض
-                          </p>
-                          <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
-                            {selectedAppointment.diseases && selectedAppointment.diseases !== "nothing"
-                              ? selectedAppointment.diseases
-                              : "لا يوجد"}
-                          </p>
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          اللقب
+                        </label>
+                        <input
+                          type="text"
+                          value={editedData.lastName || ''}
+                          onChange={(e) => setEditedData({...editedData, lastName: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          تاريخ الميلاد
+                        </label>
+                        <input
+                          type="date"
+                          value={editedData.birthday || ''}
+                          onChange={(e) => setEditedData({...editedData, birthday: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          الجنس
+                        </label>
+                        <select
+                          value={editedData.sex || '0'}
+                          onChange={(e) => setEditedData({...editedData, sex: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi"
+                        >
+                          <option value="0">ذكر</option>
+                          <option value="1">أنثى</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          الولاية
+                        </label>
+                        <input
+                          type="text"
+                          value={editedData.state || ''}
+                          onChange={(e) => setEditedData({...editedData, state: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          البلدية
+                        </label>
+                        <input
+                          type="text"
+                          value={editedData.city || ''}
+                          onChange={(e) => setEditedData({...editedData, city: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          رقم الهاتف
+                        </label>
+                        <input
+                          type="tel"
+                          value={editedData.phone || ''}
+                          onChange={(e) => setEditedData({...editedData, phone: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          dir="ltr"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          رقم هاتف ثانوي
+                        </label>
+                        <input
+                          type="tel"
+                          value={editedData.phone2 || ''}
+                          onChange={(e) => setEditedData({...editedData, phone2: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          dir="ltr"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
+                          الأمراض
+                        </label>
+                        <textarea
+                          value={editedData.diseases || ''}
+                          onChange={(e) => setEditedData({...editedData, diseases: e.target.value})}
+                          rows={3}
+                          placeholder="اكتب الأمراض أو اترك الحقل فارغاً إذا لم يكن هناك أمراض"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi"
+                        />
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Medical Documents Section - CORRECT PLACEMENT */}
+                {/* Medical Documents Section */}
                 {user.role_id === 1 && (
                   <div className="mb-6">
                     <AppointmentDocuments appointment={selectedAppointment} />
@@ -1689,9 +1977,8 @@ const handleDownloadCSV = () => {
                           </div>
                         </div>
 
-                        {/* Action buttons for each appointment */}
                         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-                          {(apt.status == "Pending" || apt.status == "Absent") && (
+                          {(user.role_id === 1 || user.role_id === 5 ) && (apt.status == "Pending" || apt.status == "Absent") && (
                             <button
                               onClick={() => {
                                 updatePresenceStatus(apt.id, "Present");
@@ -1704,7 +1991,7 @@ const handleDownloadCSV = () => {
                             </button>
                           )}
 
-                          {!apt.is_special && apt.status !== "Completed" && (
+                          {(user.role_id === 1 || user.role_id === 3 ) && !apt.is_special && apt.status !== "Completed" && (
                             <button
                               onClick={() => {
                                 markAsSpecialCase(apt.id);
@@ -1721,6 +2008,72 @@ const handleDownloadCSV = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ NEW: Delete Confirmation Modal */}
+        {showDeleteConfirm && appointmentToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-3 rounded-full">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
+                  تأكيد الحذف
+                </h3>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-700 font-droid-arabic-kufi mb-2">
+                  هل أنت متأكد من حذف هذا الموعد؟
+                </p>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 font-droid-arabic-kufi">رقم المريض:</span>
+                      <span className="font-semibold text-gray-900">#{appointmentToDelete.patient_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 font-droid-arabic-kufi">الاسم:</span>
+                      <span className="font-semibold text-gray-900 font-droid-arabic-kufi">
+                        {appointmentToDelete.full_name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 font-droid-arabic-kufi">التخصص:</span>
+                      <span className="font-semibold text-gray-900 font-droid-arabic-kufi">
+                        {appointmentToDelete.event_specialty?.specialty?.name || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-red-600 text-sm font-droid-arabic-kufi mt-3">
+                  ⚠️ تحذير: هذا الإجراء لا يمكن التراجع عنه
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => deleteAppointment(appointmentToDelete.id)}
+                  disabled={updating}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-3 rounded-lg font-semibold font-droid-arabic-kufi transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {updating ? "جاري الحذف..." : "تأكيد الحذف"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setAppointmentToDelete(null);
+                  }}
+                  disabled={updating}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white px-4 py-3 rounded-lg font-semibold font-droid-arabic-kufi transition-all disabled:cursor-not-allowed"
+                >
+                  إلغاء
+                </button>
               </div>
             </div>
           </div>

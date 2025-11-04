@@ -402,9 +402,9 @@ const UserMenu = ({ user, language, handleLogout }) => {
     return (
         <div className="flex items-center gap-2">
             {/* All Appointments Button - Role 3 */}
-            {user.role_id === 3 && (
+            { (user.role_id === 3 || user.role_id === 5) && (
                 <Link
-                    to={`/admin/big-list-waiting/${user.event_id}`}
+                    to={`/admin/check-presence/${user.event_id}`}
                     className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
                 >
                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
