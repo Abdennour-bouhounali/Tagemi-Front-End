@@ -6,7 +6,7 @@ const Donate = () => {
     const [copiedCCP, setCopiedCCP] = useState(false);
     const [copiedBank, setCopiedBank] = useState(false);
 
-    const ccpAccount = "00400618405 Clé 44";
+    const ccpAccount = "00200028028130007330";
     const bankAccount = "005 00185 4180708410 52";
 
     const copyToClipboard = (text, type) => {
@@ -72,10 +72,10 @@ const Donate = () => {
                                 </div>
                                 <div>
                                     <h3 className='text-2xl font-bold font-droid-arabic-kufi'>
-                                        {language === 'en' ? 'CCP Account' : 'حساب CCP'}
+                                        {language === 'en' ? 'Tagemi Foundation : Bank Account' : 'مؤسسة تجمي : الحساب البنكي '}
                                     </h3>
-                                    <p className="text-sm text-gray-200 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Postal Account' : 'الحساب البريدي'}
+                                    <p className="text-lg text-gray-200 font-droid-arabic-kufi">
+                                        {language === 'en' ? 'Algeria Exterior Bank, Ghardaia Agenci' : 'بنك الجزائر الخارجي , وكالة غرداية'}
                                     </p>
                                 </div>
                             </div>
@@ -92,6 +92,9 @@ const Donate = () => {
                                         {ccpAccount}
                                     </p>
                                 </div>
+                                  <p className="text-xs text-gray-500 text-center font-droid-arabic-kufi mb-4 font-medium">
+                                    BEA - {language === 'en' ? 'Local Development Bank' : 'بنك الجزائر الخارجي'}
+                                </p>
                                 <button
                                     onClick={() => copyToClipboard(ccpAccount, 'ccp')}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#101E58] text-white rounded-lg hover:bg-[#1a2d78] transition-all duration-300 font-droid-arabic-kufi transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
@@ -120,9 +123,9 @@ const Donate = () => {
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                                 </svg>
                                 <p className="text-sm font-droid-arabic-kufi leading-relaxed">
-                                    {language === 'en'
-                                        ? 'You can donate through any post office or CCP agency'
-                                        : 'يمكنك التبرع من خلال أي مكتب بريد أو وكالة CCP'}
+                                     {language === 'en'
+                                        ? 'You can transfer directly to our BDL bank account'
+                                        : 'يمكنك التحويل مباشرة إلى حسابنا البنكي في بنك الجزائر الخارجي'}
                                 </p>
                             </div>
                         </div>
@@ -145,10 +148,12 @@ const Donate = () => {
                                 </div>
                                 <div>
                                     <h3 className='text-2xl font-bold font-droid-arabic-kufi'>
-                                        {language === 'en' ? 'Bank Account' : 'الحساب البنكي'}
+                                        {language === 'en' ? 'Tagemi Association : Bank Account' : 'جمعية تجمي : الحساب البنكي '}
+
                                     </h3>
-                                    <p className="text-sm text-gray-200 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'BDL Bank' : 'بنك التنمية المحلية'}
+                                    <p className="text-lg text-gray-200 font-droid-arabic-kufi">
+                                        {language === 'en' ? 'BDL Bank, Ghardaia Agenci' : 'بنك التنمية المحلية , وكالة غرداية'}
+
                                     </p>
                                 </div>
                             </div>

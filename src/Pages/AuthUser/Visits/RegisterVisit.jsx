@@ -233,6 +233,7 @@ const FileUploadField = ({ files, onChange, error }) => {
 };
 
 // Specialty Card Component
+
 const SpecialtyCard = ({ 
   specialty, 
   index, 
@@ -246,6 +247,11 @@ const SpecialtyCard = ({
 
   // Filter out saturated specialties
   const availableSpecialties = event?.event_specialties?.filter(es => !es.is_saturated) || [];
+  
+  // Get selected specialty details - THIS IS KEY!
+  const selectedSpecialty = availableSpecialties.find(
+    es => es.id == specialty.event_specialty_id
+  );
 
   return (
     <div className={`
@@ -293,7 +299,7 @@ const SpecialtyCard = ({
             />
           ) : (
             <>
-              {/* Specialty Selection - Only show non-saturated */}
+              {/* Specialty Selection */}
               <Select
                 icon={Heart}
                 label="التخصص الطبي"
@@ -308,6 +314,34 @@ const SpecialtyCard = ({
                   label: es.specialty?.name
                 }))}
               />
+
+              {/* ✨ SPECIALTY DESCRIPTION DISPLAY - THIS IS THE KEY ADDITION ✨ */}
+              {selectedSpecialty?.description && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-5 animate-slideIn shadow-md">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Info className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="text-base font-bold text-blue-900 font-droid-arabic-kufi mb-2 flex items-center gap-2">
+                        📋 معلومات مهمة عن التخصص
+                      </h5>
+                      <p className="text-sm text-blue-800 font-droid-arabic-kufi leading-relaxed whitespace-pre-line">
+                        {selectedSpecialty.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state when no description */}
+              {/* {specialty.event_specialty_id && !selectedSpecialty?.description && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-sm text-gray-500 font-droid-arabic-kufi">
+                    لا توجد معلومات إضافية عن هذا التخصص
+                  </p>
+                </div>
+              )} */}
 
               {/* Day Selection */}
               {specialty.event_specialty_id && (
@@ -844,32 +878,57 @@ const RegisterVisit = () => {
         </div>
 
         {/* Specialties Card */}
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 border border-green-200">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-green-500 text-white rounded-lg flex items-center justify-center">
-              <Heart className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-lg font-droid-arabic-kufi text-gray-800">
-              التخصصات المتاحة
-            </h3>
+      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 border border-green-200 md:col-span-2">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-green-500 text-white rounded-lg flex items-center justify-center">
+            <Heart className="w-6 h-6" />
           </div>
-          <div className="space-y-2">
-            {event?.event_specialties?.map(es => (
-              <div key={es.id} className="flex items-center justify-between gap-2">
+          <h3 className="font-bold text-lg font-droid-arabic-kufi text-gray-800">
+            التخصصات المتاحة
+          </h3>
+        </div>
+        
+        <div className="grid md:grid-cols-2 gap-3">
+          {event?.event_specialties?.map(es => (
+            <div 
+              key={es.id} 
+              className={`bg-white rounded-lg p-4 border-2 transition-all ${
+                es.is_saturated 
+                  ? 'border-gray-200 opacity-60' 
+                  : 'border-green-200 hover:border-green-400 hover:shadow-md'
+              }`}
+            >
+              {/* Specialty Header */}
+              <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${es.is_saturated ? 'bg-red-400' : 'bg-green-400'}`}></div>
-                  <span className={`font-droid-arabic-kufi text-sm ${es.is_saturated ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                  <div className={`w-3 h-3 rounded-full ${es.is_saturated ? 'bg-red-400' : 'bg-green-400'}`}></div>
+                  <span className={`font-bold font-droid-arabic-kufi ${
+                    es.is_saturated ? 'text-gray-400 line-through' : 'text-gray-800'
+                  }`}>
                     {es.specialty?.name}
                   </span>
                 </div>
                 {es.is_saturated && (
-                  <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-droid-arabic-kufi">
+                  <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-droid-arabic-kufi font-bold">
                     مكتمل
                   </span>
                 )}
               </div>
-            ))}
-          </div>
+
+              {/* ✨ SHOW DESCRIPTION PREVIEW IN EVENT INFO ✨ */}
+              {es.description && !es.is_saturated && (
+                <div className="mt-2 pt-2 border-t border-green-100">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700 font-droid-arabic-kufi leading-relaxed line-clamp-2">
+                      {es.description}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
           {availableSpecialtiesCount > 0 && (
             <div className="mt-3 pt-3 border-t border-green-200">
               <p className="text-sm text-gray-600 font-droid-arabic-kufi">
@@ -879,6 +938,7 @@ const RegisterVisit = () => {
             </div>
           )}
         </div>
+
 
         {/* Capacity Card */}
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-5 border border-orange-200">

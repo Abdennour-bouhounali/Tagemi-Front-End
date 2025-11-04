@@ -20,7 +20,9 @@ import {
     Heart,
     User,
     Activity,
-    Filter
+    Filter,
+    Download  // Add this
+
 } from 'lucide-react';
 import { Select, Input, Textarea } from '../../Common/FormInputs';
 
@@ -328,7 +330,93 @@ const CheckPatient = () => {
             </div>
         );
     }
+const handleDownloadCSV = () => {
+    // CSV Headers in Arabic
+    const headers = [
+        'رقم المريض',
+        'الاسم الكامل',
+        'الحالة',
+        'الساعة',
+        'الترتيب',
+        'تاريخ الميلاد',
+        'الهاتف',
+        'هاتف ثانوي',
+        'الولاية',
+        'البلدية',
+        'الجنس',
+        'الأمراض',
+        'الملاحظات'
+    ];
 
+    // Map status to Arabic
+    const statusMap = {
+        Present: 'حاضر',
+        Waiting: 'في الانتظار',
+        Commingsoon: 'قادم قريباً',
+        Dilatation: 'في التمدد',
+        Absent: 'غائب',
+        Completed: 'مكتمل'
+    };
+
+    // Convert appointments to CSV rows
+    const csvRows = filteredAppointments.map(appointment => {
+        const status = statusMap[appointment.status] || appointment.status;
+        const time = appointment.is_special === 1 ? 'حالة خاصة' : (appointment.hour?.time || 'غير محدد');
+        const birthday = appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('en-UK') : '-';
+        const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
+        const diseases = appointment.diseases && appointment.diseases !== 'nothing' ? appointment.diseases : '-';
+        
+        return [
+            appointment.patient_id,
+            appointment.full_name,
+            status,
+            time,
+            appointment.orderList,
+            birthday,
+            appointment.phone || '-',
+            appointment.phone2 || '-',
+            appointment.state || '-',
+            appointment.city || '-',
+            sex,
+            diseases,
+            appointment.comment || '-'
+        ];
+    });
+
+    // Create CSV content with BOM for proper Arabic encoding
+    const BOM = '\uFEFF';
+    const csvContent = [
+        headers.join(','),
+        ...csvRows.map(row => row.map(cell => {
+            // Escape commas and quotes in cell content
+            const cellStr = String(cell).replace(/"/g, '""');
+            return `"${cellStr}"`;
+        }).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    // Generate filename with event name, specialty, and date
+    const filename = `قائمة_الانتظار_${speciality}_${new Date().toLocaleDateString('ar-SA').replace(/\//g, '-')}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // Show success message
+    setMessage({ 
+        type: 'success', 
+        text: `تم تحميل ${filteredAppointments.length} موعد بنجاح` 
+    });
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+};
     return (
     <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-7xl mb-4">
@@ -344,23 +432,20 @@ const CheckPatient = () => {
                     </Link>
                     }
                     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                        <div className="flex items-center justify-between flex-wrap gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-indigo-100 p-3 rounded-lg">
-                                    <Activity className="w-8 h-8 text-indigo-600" />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl font-bold text-gray-900 mb-1 font-droid-arabic-kufi">
-                                        قائمة الانتظار - {speciality}
-                                    </h1>
-                                    {event && (
-                                        <p className="text-gray-600 font-droid-arabic-kufi flex items-center gap-2">
-                                            <Calendar className="w-4 h-4" />
-                                            {event.name}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
+                       <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleDownloadCSV}
+                                disabled={filteredAppointments.length === 0}
+                                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+                            >
+                                <Download className="w-4 h-4" />
+                                تحميل CSV
+                                {filteredAppointments.length > 0 && (
+                                    <span className="bg-green-800 px-2 py-0.5 rounded text-xs">
+                                        {filteredAppointments.length}
+                                    </span>
+                                )}
+                            </button>
 
                             <button
                                 onClick={getWaitingListBySpeciality}
@@ -628,7 +713,7 @@ const CheckPatient = () => {
                                                                     تاريخ الميلاد:
                                                                 </span>
                                                                 <span className="text-sm font-medium text-gray-900">
-                                                                    {appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('ar-SA') : '-'}
+                                                                    {appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('en-UK') : '-'}
                                                                 </span>
                                                             </div>
 
@@ -657,10 +742,10 @@ const CheckPatient = () => {
                                                             <div className="flex items-center gap-2">
                                                                 <MapPin className="w-4 h-4 text-gray-500" />
                                                                 <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                                                    القصر:
+                                                                    الإقامة:
                                                                 </span>
                                                                 <span className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
-                                                                    {appointment.residence || '-'}
+                                                                    {appointment.state || '-'} | {appointment.city || '-'}
                                                                 </span>
                                                             </div>
 

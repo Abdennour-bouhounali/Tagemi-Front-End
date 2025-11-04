@@ -56,7 +56,7 @@ const Statistics = () => {
         },
         { 
             label: language === 'en' ? 'People Benefited' : 'عدد المستفيدين', 
-            value: '5000', 
+            value: '50000', 
             icon: faPeopleArrows,
             color: 'from-pink-500 to-pink-600',
             bgColor: 'bg-pink-50',
@@ -243,7 +243,7 @@ const Statistics = () => {
                 )}
 
                 {/* More Statistics Button */}
-                <div className="text-center" data-aos="fade-up">
+                {/* <div className="text-center" data-aos="fade-up">
                     
                       <a  href="/pdfs/statistics-report.pdf"  // Direct path to public folder
                             target="_blank"
@@ -257,7 +257,7 @@ const Statistics = () => {
                             </span>
                             <FontAwesomeIcon icon={faExternalLinkAlt} className="text-sm" />
                         </a>
-                </div>
+                </div> */}
             </div>
 
             {/* Custom Animations */}

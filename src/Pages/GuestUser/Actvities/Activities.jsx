@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { Link, useParams } from "react-router-dom";
 import AboutActvity from "./Components/AboutActvity";
 import Footer from "../HomePage/Components/Footer";
+import ActivityModal from "./Components/ActivityModal";
 import { useLanguage } from "../../../Context/LanguageContext";
+import { AppContext } from "../../../Context/AppContext";
 import { 
     Calendar, 
     MapPin, 
@@ -14,13 +16,18 @@ import {
     Play,
     Eye,
     TrendingUp,
-    Clock
+    Clock,
+    Plus,
+    Edit,
+    Trash2,
+    Shield
 } from 'lucide-react';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function Activities() {
     const { TypeId } = useParams();
+    const { user, token } = useContext(AppContext);
     const [type, setType] = useState({ 
         image_url: '/tagemi_consept.png', 
         description_en: '', 
@@ -30,10 +37,35 @@ export default function Activities() {
     const [filteredActivities, setFilteredActivities] = useState([]);
     const [types, setTypes] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState('grid');
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'title'
+    const [sortBy, setSortBy] = useState('newest');
     const { language } = useLanguage();
+    
+    // Admin state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedActivity, setSelectedActivity] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [activityToDelete, setActivityToDelete] = useState(null);
+
+    // Check if user is super admin
+    const isSuperAdmin = user && user.role_id === 1;
+
+    // Helper function to get correct media URL
+    const getMediaUrl = (url) => {
+        if (!url) return '/tagemi_consept.png';
+        
+        // Remove any leading slashes
+        url = url.replace(/^\/+/, '');
+        
+        // If URL already starts with 'storage/', just prepend apiUrl
+        if (url.startsWith('storage/')) {
+            return `${apiUrl}/${url}`;
+        }
+        
+        // Otherwise, add 'storage/' prefix
+        return `${apiUrl}/storage/${url}`;
+    };
 
     async function getTypes() {
         try {
@@ -60,9 +92,10 @@ export default function Activities() {
     async function getAllActivities() {
         try {
             setLoading(true);
-            const res = await fetch(`${apiUrl}/api/activities/showByActivitiesType/${TypeId}`);
+            const res = await fetch(`${apiUrl}/api/activities/type/${TypeId}`);
             if (res.ok) {
                 const data = await res.json();
+                console.log('Activities data:', data);
                 setActivities(data);
                 setFilteredActivities(data);
             }
@@ -87,7 +120,6 @@ export default function Activities() {
     useEffect(() => {
         let filtered = [...activities];
 
-        // Search filter
         if (searchQuery) {
             filtered = filtered.filter(activity => {
                 const title = language === 'en' ? activity.title_en : activity.title_ar;
@@ -97,7 +129,6 @@ export default function Activities() {
             });
         }
 
-        // Sort
         filtered.sort((a, b) => {
             if (sortBy === 'newest') {
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
@@ -122,6 +153,62 @@ export default function Activities() {
             textContent = textContent.substring(0, maxLength) + '...';
         }
         return textContent;
+    };
+
+    // Admin Functions
+    const handleAddActivity = () => {
+        setSelectedActivity(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEditActivity = (activity, e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedActivity(activity);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteActivity = async (activityId, e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setActivityToDelete(activityId);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        try {
+            const response = await fetch(`${apiUrl}/api/activities/${activityToDelete}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                setActivities(activities.filter(a => a.id !== activityToDelete));
+                setShowDeleteConfirm(false);
+                setActivityToDelete(null);
+            } else {
+                alert('Failed to delete activity');
+            }
+        } catch (error) {
+            console.error('Error deleting activity:', error);
+            alert('Failed to delete activity');
+        }
+    };
+
+    const handleModalSuccess = (savedActivity) => {
+        if (selectedActivity) {
+            // Update existing activity
+            setActivities(activities.map(a => 
+                a.id === savedActivity.id ? savedActivity : a
+            ));
+        } else {
+            // Add new activity
+            setActivities([savedActivity, ...activities]);
+        }
+        getAllActivities(); // Refresh the list
     };
 
     // Skeleton loader component
@@ -167,44 +254,163 @@ export default function Activities() {
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Enhanced Hero Section */}
-            <div className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden">
-                <img 
-                    src={`${apiUrl}/${type.image_url}`} 
-                    className="w-full h-full object-cover"
-                    alt={language === 'en' ? type.name_en : type.name_ar}
-                    onError={(e) => {
-                        e.target.src = '/tagemi_consept.png';
-                    }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
-                
-                {/* Breadcrumb */}
-                <div className="absolute top-6 left-4 sm:left-8 flex items-center gap-2 text-white text-sm font-droid-arabic-kufi">
-                    <Link to="/" className="hover:text-[#E03A6F] transition-colors">
-                        {language === 'en' ? 'Home' : 'الرئيسية'}
-                    </Link>
-                    <span>/</span>
-                    <span className="text-white/80">
-                        {language === 'en' ? type.name_en : type.name_ar}
+{/* Enhanced Hero Section - No Image */}
+<div className="relative w-full bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#2a3d88] overflow-hidden">
+    {/* Decorative Background Elements */}
+    <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-[#E03A6F] rounded-full filter blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#E03A6F] rounded-full filter blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
+    </div>
+
+    {/* Pattern Overlay */}
+    <div className="absolute inset-0" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+    }}></div>
+
+    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-white/80 text-sm font-droid-arabic-kufi mb-8">
+            <Link to="/" className="hover:text-[#E03A6F] transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+                {language === 'en' ? 'Home' : 'الرئيسية'}
+            </Link>
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+            <span className="text-white font-medium">
+                {language === 'en' ? type.name_en : type.name_ar}
+            </span>
+        </nav>
+
+        {/* Admin Badge */}
+        {isSuperAdmin && (
+            <div className="absolute top-6 right-4 sm:right-8">
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg">
+                    <Shield className="w-4 h-4 text-white" />
+                    <span className="text-white text-sm font-droid-arabic-kufi font-medium">
+                        {language === 'en' ? 'Admin Mode' : 'وضع المدير'}
                     </span>
                 </div>
+            </div>
+        )}
 
-                {/* Hero Title */}
-                <div className="absolute bottom-8 left-4 sm:left-8 right-4">
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 font-droid-arabic-kufi drop-shadow-2xl">
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left Side - Text Content */}
+            <div className={language === 'ar' ? 'lg:order-2' : ''}>
+                <div className="space-y-6">
+                    {/* Category Badge */}
+                    <div className="inline-flex items-center gap-2 bg-[#E03A6F]/20 backdrop-blur-sm px-4 py-2 rounded-full border border-[#E03A6F]/30">
+                        <TrendingUp className="w-4 h-4 text-[#E03A6F]" />
+                        <span className="text-[#E03A6F] text-sm font-droid-arabic-kufi font-medium">
+                            {language === 'en' ? 'Activity Category' : 'فئة النشاط'}
+                        </span>
+                    </div>
+
+                    {/* Title */}
+                    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white font-droid-arabic-kufi leading-tight">
                         {language === 'en' ? type.name_en : type.name_ar}
                     </h1>
-                    <div className="flex items-center gap-4 text-white/90">
-                        <div className="flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5" />
-                            <span className="font-droid-arabic-kufi">
-                                {activities.length} {language === 'en' ? 'Activities' : 'نشاط'}
-                            </span>
+
+                    {/* Description Preview */}
+                    {(type.description_en || type.description_ar) && (
+                        <p className="text-lg text-white/80 font-droid-arabic-kufi leading-relaxed max-w-xl">
+                            {truncateHtml(
+                                language === 'en' ? type.description_en : type.description_ar,
+                                150
+                            )}
+                        </p>
+                    )}
+
+                    {/* Stats */}
+                    <div className="flex flex-wrap items-center gap-6 pt-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                <TrendingUp className="w-6 h-6 text-[#E03A6F]" />
+                            </div>
+                            <div>
+                                <div className="text-3xl font-bold text-white">
+                                    {activities.length}
+                                </div>
+                                <div className="text-sm text-white/70 font-droid-arabic-kufi">
+                                    {language === 'en' ? 'Activities' : 'نشاط'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                <Calendar className="w-6 h-6 text-[#E03A6F]" />
+                            </div>
+                            <div>
+                                <div className="text-3xl font-bold text-white">
+                                    {new Date().getFullYear()}
+                                </div>
+                                <div className="text-sm text-white/70 font-droid-arabic-kufi">
+                                    {language === 'en' ? 'Current Year' : 'السنة الحالية'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CTA Button */}
+                    <div className="pt-4">
+                        <button
+                            onClick={() => window.scrollTo({ top: document.getElementById('activities-section')?.offsetTop - 100, behavior: 'smooth' })}
+                            className="group inline-flex items-center gap-3 bg-[#E03A6F] hover:bg-[#c8102e] text-white px-8 py-4 rounded-full font-droid-arabic-kufi font-medium text-lg transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
+                        >
+                            {language === 'en' ? 'Explore Activities' : 'استكشف الأنشطة'}
+                            <ArrowRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${language === 'ar' ? 'rotate-180' : ''}`} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Right Side - Type Image with Better Design */}
+            <div className={`relative ${language === 'ar' ? 'lg:order-1' : ''}`}>
+                <div className="relative">
+                    {/* Decorative Elements */}
+                    <div className="absolute -top-4 -left-4 w-72 h-72 bg-[#E03A6F] rounded-full opacity-20 blur-3xl"></div>
+                    <div className="absolute -bottom-4 -right-4 w-72 h-72 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
+                    
+                    {/* Main Image */}
+                    <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 backdrop-blur-sm transform hover:scale-105 transition-transform duration-500">
+                        <img 
+                            src={`${apiUrl}/${type.image_url}`} 
+                            className="w-full h-[400px] object-cover"
+                            alt={language === 'en' ? type.name_en : type.name_ar}
+                            onError={(e) => {
+                                e.target.src = '/tagemi_consept.png';
+                            }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#101E58]/50 to-transparent"></div>
+                        
+                        {/* Floating Badge on Image */}
+                        <div className="absolute bottom-6 left-6 right-6">
+                            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm text-gray-600 font-droid-arabic-kufi mb-1">
+                                            {language === 'en' ? 'Total Activities' : 'مجموع الأنشطة'}
+                                        </div>
+                                        <div className="text-2xl font-bold text-[#101E58]">
+                                            {activities.length}
+                                        </div>
+                                    </div>
+                                    <div className="w-12 h-12 bg-gradient-to-br from-[#E03A6F] to-[#c8102e] rounded-xl flex items-center justify-center">
+                                        <TrendingUp className="w-6 h-6 text-white" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
 
             {/* About Activity Section */}
             <AboutActvity 
@@ -213,8 +419,11 @@ export default function Activities() {
             />
 
             {/* Search and Filter Section */}
-            <section className="py-8 px-4 sm:px-6 lg:px-8 bg-gray-50 border-b border-gray-200">
-                <div className="max-w-7xl mx-auto">
+                <section 
+                    id="activities-section"
+                    className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white"
+                >               
+                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
                         {/* Search Bar */}
                         <div className="relative flex-1 max-w-md">
@@ -238,6 +447,17 @@ export default function Activities() {
 
                         {/* Controls */}
                         <div className="flex gap-3 items-center">
+                            {/* Add Button (Admin Only) */}
+                            {isSuperAdmin && (
+                                <button
+                                    onClick={handleAddActivity}
+                                    className="px-4 py-3 bg-[#E03A6F] text-white rounded-xl hover:bg-[#c8102e] transition-colors flex items-center gap-2 font-droid-arabic-kufi"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    {language === 'en' ? 'Add Activity' : 'إضافة نشاط'}
+                                </button>
+                            )}
+
                             {/* Sort Dropdown */}
                             <div className="relative">
                                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
@@ -302,19 +522,40 @@ export default function Activities() {
                                     // Grid View Card
                                     <div 
                                         key={activity.id}
-                                        className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 flex flex-col animate-fade-in"
+                                        className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 flex flex-col animate-fade-in relative"
                                         style={{ animationDelay: `${index * 100}ms` }}
                                     >
+                                        {/* Admin Controls */}
+                                        {isSuperAdmin && (
+                                            <div className="absolute top-4 left-4 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => handleEditActivity(activity, e)}
+                                                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                    title={language === 'en' ? 'Edit' : 'تعديل'}
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleDeleteActivity(activity.id, e)}
+                                                    className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                                    title={language === 'en' ? 'Delete' : 'حذف'}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+
                                         {/* Media Section */}
                                         <div className="relative h-56 overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300">
                                             {activity.media && activity.media.length > 0 ? (
                                                 <>
                                                     {activity.media[0].type === 'image' && (
                                                         <img
-                                                            src={`${apiUrl}/${activity.media[0].url}`}
+                                                            src={getMediaUrl(activity.media[0].url)}
                                                             alt={language === 'en' ? activity.title_en : activity.title_ar}
                                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                                             onError={(e) => {
+                                                                console.error('Image failed to load:', e.target.src);
                                                                 e.target.src = '/tagemi_consept.png';
                                                             }}
                                                         />
@@ -322,7 +563,7 @@ export default function Activities() {
                                                     {activity.media[0].type === 'video' && (
                                                         <>
                                                             <video
-                                                                src={`${apiUrl}/${activity.media[0].url}`}
+                                                                src={getMediaUrl(activity.media[0].url)}
                                                                 className="w-full h-full object-cover"
                                                                 muted
                                                                 loop
@@ -348,7 +589,9 @@ export default function Activities() {
                                             {/* Badge */}
                                             <div className="absolute top-4 right-4">
                                                 <span className="px-3 py-1 bg-[#E03A6F] text-white text-xs font-bold rounded-full shadow-lg font-droid-arabic-kufi">
-                                                    {language === 'en' ? 'New' : 'جديد'}
+                                                        {activity.status === 'upcoming' ? language === 'en' ? 'Upcoming' : 'قادم' : ''}
+                                                        {activity.status === 'ongoing' ? language === 'en' ? 'Ongoing' : 'جاري': ''}
+                                                        {activity.status === 'completed' ? language === 'en' ? 'Completed' : 'مكتمل': ''}
                                                 </span>
                                             </div>
                                         </div>
@@ -371,13 +614,13 @@ export default function Activities() {
                                                 {activity.created_at && (
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="w-4 h-4" />
-                                                        <span>{new Date(activity.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-DZ')}</span>
+                                                        <span>{new Date(activity.event_date).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-DZ')}</span>
                                                     </div>
                                                 )}
                                             </div>
 
                                             <Link 
-                                                to={`/actvities/${activity.id}`} 
+                                                to={`/activities/${activity.id}`} 
                                                 className="group/btn inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#101E58] to-[#1a2d78] text-white rounded-full hover:from-[#E03A6F] hover:to-[#c8102e] transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-droid-arabic-kufi font-medium text-sm"
                                             >
                                                 {language === 'en' ? 'Read More' : 'إقرأ المزيد'}
@@ -389,19 +632,38 @@ export default function Activities() {
                                     // List View Card
                                     <div 
                                         key={activity.id}
-                                        className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-300 flex flex-col sm:flex-row animate-fade-in"
+                                        className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-300 flex flex-col sm:flex-row animate-fade-in relative"
                                         style={{ animationDelay: `${index * 100}ms` }}
                                     >
+                                        {/* Admin Controls */}
+                                        {isSuperAdmin && (
+                                            <div className="absolute top-4 left-4 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => handleEditActivity(activity, e)}
+                                                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleDeleteActivity(activity.id, e)}
+                                                    className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+
                                         {/* Media Section */}
                                         <div className="relative w-full sm:w-72 h-56 sm:h-auto overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex-shrink-0">
                                             {activity.media && activity.media.length > 0 ? (
                                                 <>
                                                     {activity.media[0].type === 'image' && (
                                                         <img
-                                                            src={`${apiUrl}/${activity.media[0].url}`}
+                                                            src={getMediaUrl(activity.media[0].url)}
                                                             alt={language === 'en' ? activity.title_en : activity.title_ar}
                                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                                             onError={(e) => {
+                                                                console.error('Image failed to load:', e.target.src);
                                                                 e.target.src = '/tagemi_consept.png';
                                                             }}
                                                         />
@@ -409,7 +671,7 @@ export default function Activities() {
                                                     {activity.media[0].type === 'video' && (
                                                         <>
                                                             <video
-                                                                src={`${apiUrl}/${activity.media[0].url}`}
+                                                                src={getMediaUrl(activity.media[0].url)}
                                                                 className="w-full h-full object-cover"
                                                                 muted
                                                                 loop
@@ -460,7 +722,7 @@ export default function Activities() {
                                             </div>
 
                                             <Link 
-                                                to={`/actvities/${activity.id}`} 
+                                                to={`/activities/${activity.id}`} 
                                                 className="group/btn inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-[#101E58] to-[#1a2d78] text-white rounded-full hover:from-[#E03A6F] hover:to-[#c8102e] transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-droid-arabic-kufi font-medium w-fit"
                                             >
                                                 {language === 'en' ? 'Read More' : 'إقرأ المزيد'}
@@ -474,6 +736,53 @@ export default function Activities() {
                     )}
                 </div>
             </section>
+
+            {/* Activity Modal */}
+            <ActivityModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedActivity(null);
+                }}
+                activity={selectedActivity}
+                typeId={TypeId}
+                onSuccess={handleModalSuccess}
+                token={token}
+            />
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
+                            {language === 'en' ? 'Confirm Delete' : 'تأكيد الحذف'}
+                        </h3>
+                        <p className="text-gray-600 mb-6 font-droid-arabic-kufi">
+                            {language === 'en' 
+                                ? 'Are you sure you want to delete this activity? This action cannot be undone.' 
+                                : 'هل أنت متأكد من حذف هذا النشاط؟ لا يمكن التراجع عن هذا الإجراء.'
+                            }
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteConfirm(false);
+                                    setActivityToDelete(null);
+                                }}
+                                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-droid-arabic-kufi"
+                            >
+                                {language === 'en' ? 'Cancel' : 'إلغاء'}
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-droid-arabic-kufi"
+                            >
+                                {language === 'en' ? 'Delete' : 'حذف'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <Footer types={types} />
 

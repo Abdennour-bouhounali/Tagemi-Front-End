@@ -75,16 +75,16 @@ const AuthNavBar = ({
   if (!mobile) {
     const itemsToShow = user?.role_id === 1 ? filteredItems : filteredItems.slice(0, 3);
     return (
-      <>
+      <div className="flex items-center gap-1 xl:gap-2 flex-wrap">
         {/* Regular visible links */}
         {itemsToShow.map((item, idx) => (
           <Link
             key={idx}
             to={item.href}
-            className="flex items-center gap-2 px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium"
+            className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
           >
-            <item.icon className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm font-droid-arabic-kufi whitespace-nowrap">{item.text}</span>
+            <item.icon className="w-4 h-4 xl:w-5 xl:h-5 flex-shrink-0" />
+            <span className="text-xs xl:text-sm font-droid-arabic-kufi">{item.text}</span>
           </Link>
         ))}
 
@@ -93,12 +93,12 @@ const AuthNavBar = ({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsEventTrackingDesktopOpen(!isEventTrackingDesktopOpen)}
-              className="flex items-center gap-2 px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium"
+              className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
             >
-              <Activity className="w-4 h-4" />
-              <span className="text-sm font-droid-arabic-kufi">متابعة الأحداث</span>
+              <Activity className="w-4 h-4 xl:w-5 xl:h-5" />
+              <span className="text-xs xl:text-sm font-droid-arabic-kufi">متابعة الأحداث</span>
               <ChevronDown
-                className={`w-3 h-3 transition-transform ${isEventTrackingDesktopOpen ? "rotate-180" : ""}`}
+                className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform ${isEventTrackingDesktopOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -114,6 +114,7 @@ const AuthNavBar = ({
                       key={event.id}
                       to={`/admin/event-tracking/${event.id}`}
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi border-b border-gray-100 last:border-0"
+                      onClick={() => setIsEventTrackingDesktopOpen(false)}
                     >
                       <div className="flex items-center justify-between">
                         <span>{event.name}</span>
@@ -121,13 +122,12 @@ const AuthNavBar = ({
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                             نشط
                           </span>
-                          
                         )}
                         {event.is_archived && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                        مؤرشف
-                      </span>
-                    )}
+                          <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                            مؤرشف
+                          </span>
+                        )}
                       </div>
                     </Link>
                   ))
@@ -142,33 +142,35 @@ const AuthNavBar = ({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsGeneralDesktopOpen(!isGeneralDesktopOpen)}
-              className="flex items-center gap-2 px-4 py-2 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium"
+              className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
             >
-              <Settings className="w-4 h-4" />
-              <span className="text-sm font-droid-arabic-kufi">إدارة عامة</span>
+              <Settings className="w-4 h-4 xl:w-5 xl:h-5" />
+              <span className="text-xs xl:text-sm font-droid-arabic-kufi">إدارة عامة</span>
               <ChevronDown
-                className={`w-3 h-3 transition-transform ${isGeneralDesktopOpen ? "rotate-180" : ""}`}
+                className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform ${isGeneralDesktopOpen ? "rotate-180" : ""}`}
               />
             </button>
 
             {isGeneralDesktopOpen && (
               <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-56">
- 
                 <Link
                   to="/admin/rules"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi border-b border-gray-100"
+                  onClick={() => setIsGeneralDesktopOpen(false)}
                 >
                   التحكم في الضوابط
                 </Link>
                 <Link
                   to="/admin/contacts"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi border-b border-gray-100"
+                  onClick={() => setIsGeneralDesktopOpen(false)}
                 >
                   الإتصالات
                 </Link>
                 <Link
                   to="/admin/volunteers"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-droid-arabic-kufi"
+                  onClick={() => setIsGeneralDesktopOpen(false)}
                 >
                   المتطوعون
                 </Link>
@@ -176,9 +178,7 @@ const AuthNavBar = ({
             )}
           </div>
         )}
-
-     
-      </>
+      </div>
     );
   }
 
@@ -266,9 +266,8 @@ const AuthNavBar = ({
                         نشط
                       </span>
                     )}
-
                     {event.is_archived && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
                         مؤرشف
                       </span>
                     )}
@@ -279,40 +278,6 @@ const AuthNavBar = ({
           )}
         </div>
       )}
-
-      {/* لوائح الإنتظار (Waiting List) */}
-      {/* {user && [1, 4, 6].includes(user.role_id) && (
-        <div className="pt-2 mt-2 flex flex-col space-y-1">
-          <button
-            onClick={() => setIsWaitingListOpen(!isWaitingListOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-[#2F3645] hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Users className="w-5 h-5" />
-              <span className="font-medium text-sm font-droid-arabic-kufi">لوائح الإنتظار</span>
-            </div>
-            <ChevronDown
-              className={`w-4 h-4 transition-transform ${isWaitingListOpen ? "rotate-180" : ""}`}
-            />
-          </button>
-
-          {isWaitingListOpen && (
-            <div className="mt-1 flex flex-col space-y-1 bg-gray-50 rounded-lg p-2">
-              {specialities
-                .filter((s) => s.id !== 6)
-                .map((speciality) => (
-                  <Link
-                    key={speciality.id}
-                    to={`/WaitingList/${speciality.id}`}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
-                  >
-                    {speciality.name}
-                  </Link>
-                ))}
-            </div>
-          )}
-        </div>
-      )} */}
 
       {/* إدارة عامة (General Management) */}
       {user && user.role_id === 1 && (
@@ -332,7 +297,6 @@ const AuthNavBar = ({
 
           {isGeneralMenuOpen && (
             <div className="mt-1 flex flex-col space-y-1 bg-gray-50 rounded-lg p-2">
-
               <Link
                 to="/admin/rules"
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"

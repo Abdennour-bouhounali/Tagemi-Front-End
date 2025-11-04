@@ -82,60 +82,70 @@ export default function EditEvent({ event, onClose, onSuccess }) {
     });
   }, []);
 
-  const fetchEventSpecialties = async () => {
-    try {
-      const res = await fetch(`${apiUrl}/api/events/${event.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!res.ok) throw new Error('Failed to fetch event specialties');
-      
-      const data = await res.json();
-      
-      const transformedSpecialties = await Promise.all(
-        (data.event?.event_specialties || []).map(async (es) => {
-          const daysRes = await fetch(
-            `${apiUrl}/api/event-specialties/${es.id}/days`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const daysData = await daysRes.json();
-          
-          const daysWithHours = await Promise.all(
-            (daysData.days || []).map(async (day) => {
-              const hoursRes = await fetch(
-                `${apiUrl}/api/days/${day.id}/hours`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              const hoursData = await hoursRes.json();
-              
-              return {
-                id: day.id,
-                day_date: day.day_date,
-                number_per_hour: day.number_per_hour || 6,
-                hours: (hoursData.hours || []).map(h => ({
-                  id: h.id,
-                  time: h.time
-                }))
-              };
-            })
-          );
-          
-          return {
-            id: es.specialty_id,
-            eventSpecialtyId: es.id,
-            doctors: (es.doctors || []).map(d => d.id),
-            is_saturated: es.is_saturated || false,
-            days: daysWithHours
-          };
-        })
-      );
-      
-      setEventSpecialties(transformedSpecialties);
-    } catch (err) {
-      console.error("Error fetching event specialties:", err);
-      setMessage("❌ خطأ في تحميل تخصصات الحدث");
-    }
-  };
+const fetchEventSpecialties = async () => {
+  try {
+    const res = await fetch(`${apiUrl}/api/events/${event.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!res.ok) throw new Error('Failed to fetch event specialties');
+    
+    const data = await res.json();
+    
+    const transformedSpecialties = await Promise.all(
+      (data.event?.event_specialties || []).map(async (es) => {
+        const daysRes = await fetch(
+          `${apiUrl}/api/event-specialties/${es.id}/days`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const daysData = await daysRes.json();
+        
+        const daysWithHours = await Promise.all(
+          (daysData.days || []).map(async (day) => {
+            const hoursRes = await fetch(
+              `${apiUrl}/api/days/${day.id}/hours`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const hoursData = await hoursRes.json();
+            
+            return {
+              id: day.id,
+              day_date: day.day_date,
+              number_per_hour: day.number_per_hour || 6,
+              hours: (hoursData.hours || []).map(h => ({
+                id: h.id,
+                time: h.time
+              }))
+            };
+          })
+        );
+        
+        return {
+          id: es.specialty_id,
+          eventSpecialtyId: es.id,
+          description: es.description || "", // ADD THIS
+          doctors: (es.doctors || []).map(d => d.id),
+          is_saturated: es.is_saturated || false,
+          days: daysWithHours
+        };
+      })
+    );
+    
+    setEventSpecialties(transformedSpecialties);
+  } catch (err) {
+    console.error("Error fetching event specialties:", err);
+    setMessage("❌ خطأ في تحميل تخصصات الحدث");
+  }
+};
+
+// 2. Add handler for description updates
+const updateSpecialtyDescription = useCallback((index, description) => {
+  setEventSpecialties(prev => {
+    const updated = [...prev];
+    updated[index].description = description;
+    return updated;
+  });
+}, []);
 
   const handleChange = useCallback((e) => {
     const { name, type, checked, value } = e.target;
@@ -230,20 +240,20 @@ export default function EditEvent({ event, onClose, onSuccess }) {
       return updated;
     });
   }, []);
-
-  const addSpecialty = useCallback(() => {
-    setEventSpecialties(prev => [
-      ...prev,
-      {
-        id: "",
-        eventSpecialtyId: null,
-        doctors: [],
-        is_saturated: false,
-        days: [],
-        isNew: true
-      },
-    ]);
-  }, []);
+const addSpecialty = useCallback(() => {
+  setEventSpecialties(prev => [
+    ...prev,
+    {
+      id: "",
+      eventSpecialtyId: null,
+      description: "", // ADD THIS
+      doctors: [],
+      is_saturated: false,
+      days: [],
+      isNew: true
+    },
+  ]);
+}, []);
 
   const removeHour = useCallback((specIndex, dayIndex, hourIndex) => {
     setEventSpecialties(prev => {
@@ -547,6 +557,22 @@ export default function EditEvent({ event, onClose, onSuccess }) {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2 text-gray-700 font-droid-arabic-kufi">
+                    وصف التخصص (اختياري)
+                  </label>
+                  <textarea
+                    value={spec.description || ""}
+                    onChange={(e) => updateSpecialtyDescription(specIndex, e.target.value)}
+                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    rows="3"
+                    placeholder="أضف وصفاً للتخصص (مثال: متطلبات خاصة، ملاحظات، إلخ)"
+                    maxLength="500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1 font-droid-arabic-kufi">
+                    الحد الأقصى: 500 حرف ({spec.description?.length || 0}/500)
+                  </p>
                 </div>
 
                 <div className="mb-4">

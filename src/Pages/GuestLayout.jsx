@@ -22,7 +22,7 @@ export default function GuestLayout() {
             const headers = new Headers();
             headers.append('Content-Type', 'application/json');
             headers.append('Accept', 'application/json');
-            headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+            headers.append('Access-Control-Allow-Origin', apiUrl);
             headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
 
             const res = await fetch(`${apiUrl}/api/types`, { headers });
@@ -38,7 +38,7 @@ export default function GuestLayout() {
             const headers = new Headers();
             headers.append('Content-Type', 'application/json');
             headers.append('Accept', 'application/json');
-            headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
+            headers.append('Access-Control-Allow-Origin', apiUrl);
             headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
 
             const res = await fetch(`${apiUrl}/api/specialty`, { headers });

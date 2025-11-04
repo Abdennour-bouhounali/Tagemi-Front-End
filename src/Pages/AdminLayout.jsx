@@ -81,6 +81,7 @@ export default function AdminLayout() {
   }
 
   return (
+    
     <div className="flex min-h-screen overflow-x-hidden bg-gray-50">
       {loggedIns ? (
         // Rules Modal
@@ -182,7 +183,7 @@ export default function AdminLayout() {
           </div>
 
           {/* Center: Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-center max-w-4xl">
+          <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-center max-w-full">
             {user.role_id === 2 && <GuestNavBar />}
             <AuthNavBar 
               user={user} 

@@ -15,7 +15,7 @@ const Footer = ({ types }) => {
     ];
 
     return (
-        <footer className="bg-[#1e293b] text-white relative overflow-hidden">
+        <footer className="bg-[#1e293b] text-white relative overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
             {/* Subtle background gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-slate-800/50 via-transparent to-slate-900/50 pointer-events-none"></div>
 
@@ -30,7 +30,7 @@ const Footer = ({ types }) => {
                                 <h2 className="text-2xl md:text-3xl font-bold font-droid-arabic-kufi text-blue-400 mb-3">
                                     {language === 'en' ? 'Tagemi Foundation' : 'مؤسسة تجمي'}
                                 </h2>
-                                <div className={`w-16 h-1 bg-blue-500 rounded-full ${isRTL ? 'mr-0' : 'ml-0'}`}></div>
+                                <div className="w-16 h-1 bg-blue-500 rounded-full"></div>
                             </div>
                             
                             <p className="text-gray-300 font-droid-arabic-kufi leading-relaxed text-base">
@@ -44,7 +44,7 @@ const Footer = ({ types }) => {
                                 <h3 className="text-sm font-semibold font-droid-arabic-kufi text-gray-400 mb-4">
                                     {language === 'en' ? 'Follow Us' : 'تابعنا'}
                                 </h3>
-                                <div className={`flex ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'} gap-4`}>
+                                <div className="flex gap-4">
                                     <a 
                                         href="https://www.facebook.com/p/%D8%AC%D9%85%D8%B9%D9%8A%D8%A9-%D8%AA%D8%AC%D9%85%D9%91%D9%8A-Association-TAGEMI-100070312232969/"
                                         target="_blank"
@@ -74,7 +74,7 @@ const Footer = ({ types }) => {
                                 <h3 className="text-xl md:text-2xl font-bold font-droid-arabic-kufi text-white mb-3">
                                     {language === 'en' ? 'Quick Links' : 'روابط سريعة'}
                                 </h3>
-                                <div className={`w-16 h-1 bg-blue-500 rounded-full ${isRTL ? 'mr-0' : 'ml-0'}`}></div>
+                                <div className="w-16 h-1 bg-blue-500 rounded-full"></div>
                             </div>
                             
                             <ul className="space-y-4">
@@ -82,7 +82,7 @@ const Footer = ({ types }) => {
                                     <li key={index}>
                                         <Link 
                                             to={link.to}
-                                            className={`group flex items-center ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'} gap-3 text-gray-300 hover:text-blue-400 font-droid-arabic-kufi transition-all duration-300 text-base`}
+                                            className="group flex items-center gap-3 text-gray-300 hover:text-blue-400 font-droid-arabic-kufi transition-all duration-300 text-base"
                                         >
                                             {isRTL ? (
                                                 <FaChevronLeft className="text-xs text-blue-500 transform transition-transform duration-300 group-hover:-translate-x-1" />
@@ -104,14 +104,14 @@ const Footer = ({ types }) => {
                                 <h3 className="text-xl md:text-2xl font-bold font-droid-arabic-kufi text-white mb-3">
                                     {language === 'en' ? 'Contact Us' : 'تواصل معنا'}
                                 </h3>
-                                <div className={`w-16 h-1 bg-blue-500 rounded-full ${isRTL ? 'mr-0' : 'ml-0'}`}></div>
+                                <div className="w-16 h-1 bg-blue-500 rounded-full"></div>
                             </div>
                             
                             <div className="space-y-5">
                                 {/* Phone */}
                                 <a 
                                     href="tel:+213550645465" 
-                                    className={`group flex items-start ${isRTL ? 'flex-row-reverse' : ''} gap-4 text-gray-300 hover:text-blue-400 transition-all duration-300`}
+                                    className="group flex items-start gap-4 text-gray-300 hover:text-blue-400 transition-all duration-300"
                                 >
                                     <div className="flex-shrink-0">
                                         <FaPhoneAlt className="text-blue-400 text-lg" />
@@ -130,7 +130,7 @@ const Footer = ({ types }) => {
                                 {/* Email */}
                                 <a 
                                     href="mailto:tagem.ass@gmail.com" 
-                                    className={`group flex items-start ${isRTL ? 'flex-row-reverse' : ''} gap-4 text-gray-300 hover:text-blue-400 transition-all duration-300`}
+                                    className="group flex items-start gap-4 text-gray-300 hover:text-blue-400 transition-all duration-300"
                                 >
                                     <div className="flex-shrink-0">
                                         <FaEnvelope className="text-purple-400 text-lg" />
@@ -146,7 +146,7 @@ const Footer = ({ types }) => {
                                 </a>
 
                                 {/* Address */}
-                                <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''} gap-4 text-gray-300`}>
+                                <div className="flex items-start gap-4 text-gray-300">
                                     <div className="flex-shrink-0">
                                         <FaMapMarkerAlt className="text-pink-400 text-lg" />
                                     </div>
@@ -171,7 +171,7 @@ const Footer = ({ types }) => {
 
                 {/* Footer Bottom */}
                 <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-6">
-                    <div className={`flex flex-col md:flex-row ${isRTL ? 'md:flex-row-reverse' : ''} justify-between items-center gap-4 text-sm`}>
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
                         <p className="text-gray-400 font-droid-arabic-kufi flex items-center gap-2">
                             {language === 'en' ? (
                                 <>

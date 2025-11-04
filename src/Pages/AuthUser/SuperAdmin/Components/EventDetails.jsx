@@ -194,62 +194,70 @@ const  EventDetails = ({ event, onClose }) => {
           </div>
 
           {/* Specialties */}
-          {eventDetails?.event_specialties && eventDetails.event_specialties.length > 0 && (
+        {eventDetails?.event_specialties && eventDetails.event_specialties.length > 0 && (
+  <div>
+    <h3 className="text-lg font-bold text-gray-800 mb-3 font-droid-arabic-kufi flex items-center gap-2">
+      <Users size={20} />
+      التخصصات
+    </h3>
+    <div className="space-y-3">
+      {eventDetails.event_specialties.map((es, index) => (
+        <div 
+          key={index} 
+          className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+        >
+          <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 font-droid-arabic-kufi flex items-center gap-2">
-                <Users size={20} />
-                التخصصات
-              </h3>
-              <div className="space-y-3">
-                {eventDetails.event_specialties.map((es, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-gray-50 border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-bold text-gray-800 font-droid-arabic-kufi">
-                          {es.specialty?.name || 'غير محدد'}
-                        </h4>
-                        <p className="text-sm text-gray-600 mt-1 font-droid-arabic-kufi">
-                             الأيام: {es.days?.length || 0}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-blue-600">
-                          {es.appointments?.length || 0}
-                        </div>
-                        <div className="text-xs text-gray-500 font-droid-arabic-kufi">
-                          مواعيد
-                        </div>
-                      </div>
-                    </div>
+              <h4 className="font-bold text-gray-800 font-droid-arabic-kufi">
+                {es.specialty?.name || 'غير محدد'}
+              </h4>
+              
+              {/* ADD THIS - Display description if exists */}
+              {es.description && (
+                <p className="text-sm text-gray-600 mt-2 font-droid-arabic-kufi bg-blue-50 p-2 rounded border border-blue-100">
+                  {es.description}
+                </p>
+              )}
+              
+              <p className="text-sm text-gray-600 mt-1 font-droid-arabic-kufi">
+                الأيام: {es.days?.length || 0}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-blue-600">
+                {es.appointments?.length || 0}
+              </div>
+              <div className="text-xs text-gray-500 font-droid-arabic-kufi">
+                مواعيد
+              </div>
+            </div>
+          </div>
 
-                    {/* Days */}
-                    {es.days && es.days.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-300">
-                        <div className="flex flex-wrap gap-2">
-                          {es.days.map((day, dayIndex) => (
-                            <div 
-                              key={dayIndex}
-                              className="bg-white px-3 py-1 rounded border border-gray-300 text-xs"
-                            >
-                              <div className="font-semibold text-gray-700">
-                                {new Date(day.day_date).toLocaleDateString("ar-DZ")}
-                              </div>
-                              <div className="text-gray-500 font-droid-arabic-kufi">
-                                {day.hours?.length || 0} ساعات
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+          {/* Days section continues... */}
+          {es.days && es.days.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-300">
+              <div className="flex flex-wrap gap-2">
+                {es.days.map((day, dayIndex) => (
+                  <div 
+                    key={dayIndex}
+                    className="bg-white px-3 py-1 rounded border border-gray-300 text-xs"
+                  >
+                    <div className="font-semibold text-gray-700">
+                      {new Date(day.day_date).toLocaleDateString("ar-DZ")}
+                    </div>
+                    <div className="text-gray-500 font-droid-arabic-kufi">
+                      {day.hours?.length || 0} ساعات
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
           {/* Type and Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

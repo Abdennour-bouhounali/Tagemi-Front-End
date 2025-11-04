@@ -21,6 +21,7 @@ import {
   Star,
   Stethoscope,
     FileText, // ✅ Add this
+    Download
 
 } from "lucide-react";
 import { Select, Input } from '../../Common/FormInputs';
@@ -31,7 +32,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const CheckPresence = () => {
   const { eventId } = useParams();
   const { token, user } = useContext(AppContext);
-
+const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
   // State management
   const [event, setEvent] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -980,7 +981,119 @@ const CheckPresence = () => {
       </div>
     );
   }
+const handleDownloadCSV = () => {
+  // Filter appointments by selected specialty
+  let appointmentsToExport = appointments;
+  
+  if (downloadSpecialtyFilter !== "all") {
+    appointmentsToExport = appointments.filter(
+      (apt) => apt.event_specialty?.specialty?.id?.toString() === downloadSpecialtyFilter
+    );
+  }
 
+  if (appointmentsToExport.length === 0) {
+    setError("لا توجد مواعيد للتصدير");
+    setTimeout(() => setError(""), 3000);
+    return;
+  }
+
+  // CSV Headers in Arabic
+  const headers = [
+    'رقم المريض',
+    'الاسم الكامل',
+    'التخصص',
+    'اليوم',
+    'الساعة',
+    'الحالة',
+    'تاريخ الميلاد',
+    'الهاتف',
+    'هاتف ثانوي',
+    'الولاية',
+    'البلدية',
+    'الجنس',
+    'الأمراض',
+    'الطبيب',
+    'حالة خاصة'
+  ];
+
+  // Map status to Arabic
+  const statusMap = {
+    Present: 'حاضر',
+    Waiting: 'في الانتظار',
+    Pending: 'لم يحضر بعد',
+    Completed: 'مكتمل',
+    Commingsoon: 'قادم قريباً',
+    Absent: 'غائب'
+  };
+
+  // Convert appointments to CSV rows
+  const csvRows = appointmentsToExport.map(appointment => {
+    const status = appointment.is_special 
+      ? 'حالة خاصة' 
+      : (statusMap[appointment.status] || appointment.status);
+    const birthday = appointment.birthday 
+      ? new Date(appointment.birthday).toLocaleDateString('en-UK') 
+      : '-';
+    const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
+    const diseases = appointment.diseases && appointment.diseases !== 'nothing' 
+      ? appointment.diseases 
+      : '-';
+    const isSpecial = appointment.is_special ? 'نعم' : 'لا';
+    
+    return [
+      appointment.patient_id || '-',
+      appointment.full_name || '-',
+      appointment.event_specialty?.specialty?.name || '-',
+      appointment.day?.day_date || appointment.day?.date || '-',
+      appointment.hour?.time || appointment.hour?.hour || '-',
+      status,
+      birthday,
+      appointment.phone || '-',
+      appointment.phone2 || '-',
+      appointment.state || '-',
+      appointment.city || '-',
+      sex,
+      diseases,
+      appointment.doctor?.name || 'غير محدد',
+      isSpecial
+    ];
+  });
+
+  // Create CSV content with BOM for proper Arabic encoding
+  const BOM = '\uFEFF';
+  const csvContent = [
+    headers.join(','),
+    ...csvRows.map(row => row.map(cell => {
+      // Escape commas and quotes in cell content
+      const cellStr = String(cell).replace(/"/g, '""');
+      return `"${cellStr}"`;
+    }).join(','))
+  ].join('\n');
+
+  // Create blob and download
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  // Generate filename
+  const specialtyName = downloadSpecialtyFilter === "all" 
+    ? "جميع_التخصصات" 
+    : specialties.find(s => s.id.toString() === downloadSpecialtyFilter)?.name || "تخصص";
+  const eventName = event?.name?.replace(/\s+/g, '_') || 'الحدث';
+  const filename = `${eventName}_${specialtyName}_${new Date().toLocaleDateString('en-UK').replace(/\//g, '-')}.csv`;
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  // Show success message
+  setSuccess(`تم تحميل ${appointmentsToExport.length} موعد بنجاح`);
+  setTimeout(() => setSuccess(''), 3000);
+};
   return (
     <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-7xl mb-4">
@@ -1007,38 +1120,72 @@ const CheckPresence = () => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                {event?.is_current && (
-                  <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold font-droid-arabic-kufi flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    حدث نشط
-                  </span>
-                )}
-                
-                <button
-                  onClick={exportBySpecialty}
-                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
-                  title="طباعة حسب التخصص"
-                >
-                  <Stethoscope className="w-4 h-4" />
-                  طباعة حسب التخصص
-                </button>
-                
-                <button
-                  onClick={exportToPDF}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
-                >
-                  <Printer className="w-4 h-4" />
-                  طباعة PDF
-                </button>
+              <div className="flex items-center gap-3 flex-wrap">
+  {event?.is_current && (
+    <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold font-droid-arabic-kufi flex items-center gap-2">
+      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+      حدث نشط
+    </span>
+  )}
+  
+  {/* CSV Download Section */}
+  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+    <Select
+      icon={Stethoscope}
+      value={downloadSpecialtyFilter}
+      onChange={(e) => setDownloadSpecialtyFilter(e.target.value)}
+      options={[
+        { value: "all", label: "جميع التخصصات" },
+        ...specialties.map((specialty) => ({
+          value: specialty.id.toString(),
+          label: specialty.name,
+        })),
+      ]}
+      className="min-w-[200px]"
+    />
+    
+    <button
+      onClick={handleDownloadCSV}
+      disabled={appointments.length === 0}
+      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi whitespace-nowrap"
+      title="تحميل CSV"
+    >
+      <Download className="w-4 h-4" />
+      تحميل CSV
+      {appointments.length > 0 && (
+        <span className="bg-green-800 px-2 py-0.5 rounded text-xs">
+          {downloadSpecialtyFilter === "all" 
+            ? appointments.length 
+            : appointments.filter(a => a.event_specialty?.specialty?.id?.toString() === downloadSpecialtyFilter).length}
+        </span>
+      )}
+    </button>
+  </div>
+  
+  <button
+    onClick={exportBySpecialty}
+    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+    title="طباعة حسب التخصص"
+  >
+    <Stethoscope className="w-4 h-4" />
+    طباعة حسب التخصص
+  </button>
+  
+  <button
+    onClick={exportToPDF}
+    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+  >
+    <Printer className="w-4 h-4" />
+    طباعة PDF
+  </button>
 
-                <button
-                  onClick={fetchAppointments}
-                  className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              </div>
+  <button
+    onClick={fetchAppointments}
+    className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+  >
+    <RefreshCw className="w-4 h-4" />
+  </button>
+</div>
             </div>
           </div>
         </div>

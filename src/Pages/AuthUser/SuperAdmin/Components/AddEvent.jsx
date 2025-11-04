@@ -105,27 +105,33 @@ export default function AddEvent({ getEvents }) {
   }, []);
 
   // Specialty operations
-  const addSpecialty = useCallback(() => {
-    // Create default hours from 8:00 to 17:00
-    const defaultHours = Array.from({ length: 10 }, (_, i) => ({
-      time: `${String(8 + i).padStart(2, '0')}:00:00`
-    }));
+const addSpecialty = useCallback(() => {
+  const defaultHours = Array.from({ length: 10 }, (_, i) => ({
+    time: `${String(8 + i).padStart(2, '0')}:00:00`
+  }));
 
-    setEventSpecialties(prev => [
-      ...prev,
-      {
-        id: "",
-        doctors: [],
-        is_saturated: false,
-        days: [{
-          day_date: form.date,
-          number_per_hour: 20,
-          hours: defaultHours,
-        }],
-      },
-    ]);
-  }, [form.date]);
-
+  setEventSpecialties(prev => [
+    ...prev,
+    {
+      id: "",
+      description: "", // ADD THIS
+      doctors: [],
+      is_saturated: false,
+      days: [{
+        day_date: form.date,
+        number_per_hour: 20,
+        hours: defaultHours,
+      }],
+    },
+  ]);
+}, [form.date]);
+const updateSpecialtyDescription = useCallback((index, description) => {
+  setEventSpecialties(prev => {
+    const updated = [...prev];
+    updated[index].description = description;
+    return updated;
+  });
+}, []);
   const addDay = useCallback((specIndex) => {
     // Create default hours from 8:00 to 17:00
     const defaultHours = Array.from({ length: 10 }, (_, i) => ({
@@ -780,6 +786,22 @@ export default function AddEvent({ getEvents }) {
                   ))}
                 </select>
               </div>
+              <div className="mb-4">
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                وصف التخصص (اختياري)
+              </label>
+              <textarea
+                value={spec.description || ""}
+                onChange={(e) => updateSpecialtyDescription(specIndex, e.target.value)}
+                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                rows="3"
+                placeholder="أضف وصفاً للتخصص (مثال: متطلبات خاصة، ملاحظات، إلخ)"
+                maxLength="500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                الحد الأقصى: 500 حرف ({spec.description?.length || 0}/500)
+              </p>
+            </div>
 
               {/* Saturation */}
               <div className="mb-4">

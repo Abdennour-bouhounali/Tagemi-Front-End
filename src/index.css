@@ -605,3 +605,87 @@ html {
     display: block;
   }
 }
+
+/* Quill Editor Custom Styles */
+.ql-snow .ql-editor h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor h2 {
+    font-size: 1.75em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor h3 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor h4 {
+    font-size: 1.25em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor h5 {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor h6 {
+    font-size: 1em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor ul,
+.ql-snow .ql-editor ol {
+    margin-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.ql-snow .ql-editor ul li,
+.ql-snow .ql-editor ol li {
+    margin-bottom: 0.5em;
+}
+
+.ql-snow .ql-editor blockquote {
+    border-left: 4px solid #E03A6F;
+    padding-left: 1em;
+    margin-left: 0;
+    margin-bottom: 1em;
+    font-style: italic;
+    color: #6b7280;
+}
+
+.ql-snow .ql-editor code-block {
+    background-color: #f3f4f6;
+    padding: 1em;
+    border-radius: 0.5rem;
+    margin-bottom: 1em;
+    font-family: 'Courier New', monospace;
+}
+
+.ql-snow .ql-editor a {
+    color: #E03A6F;
+    text-decoration: underline;
+}
+
+.ql-snow .ql-editor a:hover {
+    color: #c8102e;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.whitespace-pre-line {
+  white-space: pre-line;
+}

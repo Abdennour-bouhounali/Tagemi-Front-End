@@ -42,6 +42,7 @@ import GeographicStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/Geographi
 import PatientsList from './Pages/AuthUser/SuperAdmin/ArchivedStats/PatientsList';
 import ComprehensiveReport from './Pages/AuthUser/SuperAdmin/ArchivedStats/ComprehensiveReport';
 import EventReport from './Pages/AuthUser/SuperAdmin/Components/EventReport';
+import ActivityMore from './Pages/GuestUser/Actvities/Components/ActivityMore';
 
 export default function App() {
   const [specialities, setSpecialities] = useState([]);
@@ -69,8 +70,8 @@ export default function App() {
             <Route path="volunteer" element={<VolunteerForm />} />
             
             {/* Activities & Projects */}
-            <Route path="activities/showByActivitiesType/:TypeId" element={<Activities />} />
-            <Route path="actvities/:Actvityid" element={<ActivityDetails />} />
+            <Route path="activities/type/:TypeId" element={<Activities />} />
+            <Route path="activities/:Actvityid" element={<ActivityMore />} />
             <Route path="futureProjects" element={<FuturProjects />} />
             <Route path="future-prjects/:Projectid" element={<ProjectDetails />} />
 

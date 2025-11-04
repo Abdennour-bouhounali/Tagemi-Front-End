@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../Context/AppContext";
 import 'flag-icons/css/flag-icons.min.css';
@@ -22,7 +22,9 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const GuestNavBar = ({ user, types }) => {
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isActivitiesDropdownOpen, setIsActivitiesDropdownOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const dropdownRef = useRef(null);
     const navigate = useNavigate();
 
     const { token, setToken, setUser } = useContext(AppContext);
@@ -39,9 +41,14 @@ const GuestNavBar = ({ user, types }) => {
         setIsDropdownOpen(!isDropdownOpen);
     };
 
+    const toggleActivitiesDropdown = () => {
+        setIsActivitiesDropdownOpen(!isActivitiesDropdownOpen);
+    };
+
     const closeNav = () => {
         setIsNavOpen(false);
         setIsDropdownOpen(false);
+        setIsActivitiesDropdownOpen(false);
     };
 
     // Handle scroll effect
@@ -88,6 +95,18 @@ const GuestNavBar = ({ user, types }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isNavOpen]);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsActivitiesDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // Prevent body scroll when mobile menu is open
     useEffect(() => {
         if (isNavOpen) {
@@ -105,18 +124,96 @@ const GuestNavBar = ({ user, types }) => {
             scrolled ? 'shadow-lg' : 'shadow-md'
         }`}>
             <nav className='max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8'>
-                <div className='flex items-center justify-between h-14 sm:h-16 md:h-18 lg:h-20'>
-                    {/* Logo */}
-                    <Link 
-                        to={user ? "/home" : "/"} 
-                        className="flex-shrink-0 mx-3 transform transition-transform hover:scale-105 duration-200"
-                    >
-                        <img 
-                            src="/tagemi_logo.png" 
-                            className="h-8 sm:h-10 md:h-11 lg:h-12 w-auto" 
-                            alt="TAGEMI Logo" 
-                        />
-                    </Link>
+                <div className='flex items-center justify-between h-14 sm:h-16 md:h-18 lg:h-20 gap-4'>
+                    {/* Logo - Always on one side */}
+                    <div className="flex-shrink-0">
+                        <Link 
+                            to={user ? "/home" : "/"} 
+                            className="block transform transition-transform hover:scale-105 duration-200"
+                        >
+                            <img 
+                                src="/tagemi_logo.png" 
+                                className="h-8 sm:h-10 md:h-11 lg:h-12 w-auto" 
+                                alt="TAGEMI Logo" 
+                            />
+                        </Link>
+                    </div>
+
+                    {/* Desktop Navigation Links - Center */}
+                    <div className="hidden lg:flex lg:items-center lg:gap-1 xl:gap-2 flex-1 justify-center">
+                        {/* Main Navigation Links */}
+                        <NavLink to={user ? "/home" : "/"} language={language}>
+                            <HomeIcon className="w-4 h-4" />
+                            <span>{language === 'en' ? 'Home' : 'الرئيسية'}</span>
+                        </NavLink>
+                        <NavLink to="/about" language={language}>
+                            <Info className="w-4 h-4" />
+                            <span>{language === 'en' ? 'About' : 'من نحن'}</span>
+                        </NavLink>
+
+                        {/* Activity Types Dropdown */}
+                        {user && user.role_id === 1 && types && types.length > 0 && (
+                            <div ref={dropdownRef} className="relative">
+                                <button
+                                    onClick={toggleActivitiesDropdown}
+                                    className="group flex items-center gap-2 px-3 py-2 text-sm xl:text-base text-gray-700 hover:text-[#E03A6F] font-droid-arabic-kufi transition-all duration-200 rounded-lg hover:bg-gray-50 whitespace-nowrap"
+                                >
+                                    <Calendar className="w-4 h-4" />
+                                    <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isActivitiesDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {isActivitiesDropdownOpen && (
+                                    <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                        {types.map((type) => (
+                                            <Link
+                                                key={type.id}
+                                                to={`activities/type/${type.id}`}
+                                                onClick={() => setIsActivitiesDropdownOpen(false)}
+                                                className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 transition-colors font-droid-arabic-kufi first:rounded-t-lg last:rounded-b-lg"
+                                            >
+                                                <Calendar className="w-4 h-4" />
+                                                <span>{language === 'en' ? type.name_en : type.name_ar}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <NavLink to="/contact" language={language}>
+                            <Phone className="w-4 h-4" />
+                            <span>{language === 'en' ? 'Contact' : 'اتصل'}</span>
+                        </NavLink>
+                        <NavLink to="/volunteer" language={language}>
+                            <Heart className="w-4 h-4" />
+                            <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
+                        </NavLink>
+
+                        {/* Manage Events Link - Only for Super Admin */}
+                        {isSuperAdmin && (
+                            <NavLink to="admin/manage-events" language={language}>
+                                <Calendar className="w-4 h-4" />
+                                <span>{language === 'en' ? 'Manage' : 'إدارة'}</span>
+                            </NavLink>
+                        )}
+                    </div>
+
+                    {/* Desktop Right Side - Language & Auth */}
+                    <div className="hidden lg:flex lg:items-center lg:gap-2 xl:gap-3 flex-shrink-0">
+                        {/* Language Selector */}
+                        <LanguageSelector />
+
+                        {/* Divider */}
+                        <div className="h-8 w-px bg-gray-300"></div>
+
+                        {/* User Actions */}
+                        {user ? (
+                            <UserMenu user={user} language={language} handleLogout={handleLogout} />
+                        ) : (
+                            <AuthLinks language={language} />
+                        )}
+                    </div>
 
                     {/* Mobile menu button */}
                     <button
@@ -133,53 +230,6 @@ const GuestNavBar = ({ user, types }) => {
                             <Menu className="h-6 w-6" strokeWidth={2.5} />
                         )}
                     </button>
-
-                    {/* Desktop Navigation */}
-                    <div className="hidden lg:flex lg:items-center lg:gap-1 xl:gap-2">
-                        {/* Main Navigation Links */}
-                        <NavLink to={user ? "/home" : "/"} language={language}>
-                            <HomeIcon className="w-4 h-4 lg:inline hidden" />
-                            <span>{language === 'en' ? 'Home' : 'الرئيسية'}</span>
-                        </NavLink>
-
-                        <NavLink to="/volunteer" language={language}>
-                            <Heart className="w-4 h-4 lg:inline hidden" />
-                            <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
-                        </NavLink>
-
-                        <NavLink to="/about" language={language}>
-                            <Info className="w-4 h-4 lg:inline hidden" />
-                            <span>{language === 'en' ? 'About' : 'من نحن'}</span>
-                        </NavLink>
-
-                        <NavLink to="/contact" language={language}>
-                            <Phone className="w-4 h-4 lg:inline hidden" />
-                            <span>{language === 'en' ? 'Contact' : 'اتصل'}</span>
-                        </NavLink>
-
-                        {/* Manage Events Link - Only for Super Admin */}
-                        {isSuperAdmin && (
-                            <NavLink to="admin/manage-events" language={language}>
-                                <Calendar className="w-4 h-4 lg:inline hidden" />
-                                <span>{language === 'en' ? 'Manage' : 'إدارة'}</span>
-                            </NavLink>
-                        )}
-
-                        {/* Divider */}
-                        <div className="h-8 w-px bg-gray-300 mx-2"></div>
-
-                        {/* Language Selector */}
-                        <div className="flex-shrink-0">
-                            <LanguageSelector />
-                        </div>
-
-                        {/* User Actions */}
-                        {user ? (
-                            <UserMenu user={user} language={language} handleLogout={handleLogout} />
-                        ) : (
-                            <AuthLinks language={language} />
-                        )}
-                    </div>
                 </div>
 
                 {/* Mobile Navigation Overlay */}
@@ -218,22 +268,51 @@ const GuestNavBar = ({ user, types }) => {
                                     <HomeIcon className="w-5 h-5" />
                                     <span>{language === 'en' ? 'Home' : 'الرئيسية'}</span>
                                 </MobileNavLink>
-
-                                <MobileNavLink to="/volunteer" language={language} onClick={closeNav}>
-                                    <Heart className="w-5 h-5" />
-                                    <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
-                                </MobileNavLink>
-
                                 <MobileNavLink to="/about" language={language} onClick={closeNav}>
                                     <Info className="w-5 h-5" />
                                     <span>{language === 'en' ? 'About' : 'من نحن'}</span>
                                 </MobileNavLink>
 
+                                {/* Mobile Activity Types Dropdown */}
+                                {user && user.role_id === 1 && types && types.length > 0 && (
+                                    <div>
+                                        <button
+                                            onClick={toggleActivitiesDropdown}
+                                            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 rounded-xl font-droid-arabic-kufi transition-all duration-200"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Calendar className="w-5 h-5" />
+                                                <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
+                                            </div>
+                                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isActivitiesDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        
+                                        {isActivitiesDropdownOpen && (
+                                            <div className="mt-2 ml-4 space-y-1">
+                                                {types.map((type) => (
+                                                    <Link
+                                                        key={type.id}
+                                                        to={`activities/type/${type.id}`}
+                                                        onClick={closeNav}
+                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
+                                                    >
+                                                        <Calendar className="w-4 h-4" />
+                                                        <span>{language === 'en' ? type.name_en : type.name_ar}</span>
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 <MobileNavLink to="/contact" language={language} onClick={closeNav}>
                                     <Phone className="w-5 h-5" />
                                     <span>{language === 'en' ? 'Contact' : 'اتصل'}</span>
                                 </MobileNavLink>
-
+                                <MobileNavLink to="/volunteer" language={language} onClick={closeNav}>
+                                    <Heart className="w-5 h-5" />
+                                    <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
+                                </MobileNavLink>
                                 {/* Manage Events Link - Only for Super Admin */}
                                 {isSuperAdmin && (
                                     <MobileNavLink to="/admin/manage-events" language={language} onClick={closeNav}>
@@ -283,6 +362,9 @@ const GuestNavBar = ({ user, types }) => {
         </header>
     );
 };
+
+// Rest of the components remain the same...
+// (NavLink, MobileNavLink, UserMenu, MobileUserMenu, AuthLinks, MobileAuthLinks)
 
 // Desktop Nav Link Component
 const NavLink = ({ to, children }) => (
@@ -456,16 +538,10 @@ const AuthLinks = ({ language }) => (
     <div className="flex items-center gap-2">
         <Link
             to="/login"
-            className="px-3 xl:px-4 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-[#E03A6F] font-droid-arabic-kufi transition-colors rounded-lg hover:bg-gray-50"
+            className="px-4 xl:px-5 py-2 text-sm xl:text-base font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] hover:shadow-lg rounded-full transition-all duration-300 font-droid-arabic-kufi hover:scale-105 transform"
         >
             {language === 'en' ? 'Login' : 'دخول'}
         </Link>
-        {/* <Link
-            to="/register"
-            className="px-3 xl:px-4 py-2 text-xs xl:text-sm font-medium text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] hover:shadow-lg rounded-full transition-all duration-200 font-droid-arabic-kufi hover:scale-105 transform"
-        >
-            {language === 'en' ? 'Register' : 'تسجيل'}
-        </Link> */}
     </div>
 );
 
@@ -474,20 +550,12 @@ const MobileAuthLinks = ({ language, onClick }) => (
     <div className="space-y-3 px-3">
         <Link
             to="/login"
-            className="flex items-center justify-center gap-2 px-4 py-3.5 text-base font-medium text-gray-700 border-2 border-gray-300 hover:border-[#E03A6F] hover:text-[#E03A6F] rounded-xl font-droid-arabic-kufi transition-all duration-200"
+            className="flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] rounded-xl font-droid-arabic-kufi transition-all duration-200 hover:shadow-lg active:scale-95 transform"
             onClick={onClick}
         >
             <UserIcon className="w-5 h-5" />
             <span>{language === 'en' ? 'Log In' : 'دخول'}</span>
         </Link>
-        {/* <Link
-            to="/register"
-            className="flex items-center justify-center gap-2 px-4 py-3.5 text-base font-medium text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] rounded-xl font-droid-arabic-kufi transition-all duration-200 hover:shadow-lg active:scale-95 transform"
-            onClick={onClick}
-        >
-            <UserIcon className="w-5 h-5" />
-            <span>{language === 'en' ? 'Register' : 'تسجيل'}</span>
-        </Link> */}
     </div>
 );
 

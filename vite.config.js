@@ -20,5 +20,13 @@ export default defineConfig({
         }
       }
     }
+  },
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        pure_funcs: ['console.log', 'console.info', 'console.debug']
+      }
+    }
   }
 })
