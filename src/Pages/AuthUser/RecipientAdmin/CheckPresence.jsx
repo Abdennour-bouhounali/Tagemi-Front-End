@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import {
@@ -22,9 +22,10 @@ import {
   Stethoscope,
   FileText,
   Download,
-  Edit, // ✅ Edit icon
-  Save,  // ✅ Save icon
-  Trash2, // ✅ NEW: Delete icon
+  Edit,
+  Save,
+  Trash2,
+  Users,
 } from "lucide-react";
 import { Select, Input } from '../../Common/FormInputs';
 import AppointmentDocuments from '../SuperAdmin/AppointmentDocuments';
@@ -53,14 +54,381 @@ const CheckPresence = () => {
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [dayFilter, setDayFilter] = useState("all");
+  const [sexFilter, setSexFilter] = useState("all"); // NEW: Sex filter
 
-  // ✅ Edit mode states
+  // Edit mode states
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({});
   
-  // ✅ NEW: Delete confirmation states
+  // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+
+  // Helper function to determine patient sex
+  const getPatientSex = (appointment) => {
+    const sex = String(appointment?.sex || '').toLowerCase().trim();
+    
+    if (sex == 0 || sex === 'ذكر' || sex === 'm' || sex === 'male') {
+      return 'male';
+    } else if (sex == 1 || sex === 'أنثى' || sex === 'f' || sex === 'female') {
+      return 'female';
+    }
+    return 'unknown';
+  };
+
+  // Render gender icon
+  const renderGenderIcon = (appointment) => {
+    const sex = getPatientSex(appointment);
+    
+    if (sex === 'male') {
+      return (
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 flex-shrink-0" title="ذكر">
+          <User className="w-3.5 h-3.5 text-blue-600" />
+        </div>
+      );
+    } else if (sex === 'female') {
+      return (
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-pink-100 flex-shrink-0" title="أنثى">
+          <User className="w-3.5 h-3.5 text-pink-600" />
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 flex-shrink-0" title="غير محدد">
+        <User className="w-3.5 h-3.5 text-gray-400" />
+      </div>
+    );
+  };
+
+  // FIXED: Get unique days by day_date
+  const days = useMemo(() => {
+    const daysMap = new Map();
+    
+    appointments.forEach(apt => {
+      if (apt.day && apt.day.day_date) {
+        // Use day_date as key to ensure uniqueness
+        if (!daysMap.has(apt.day.day_date)) {
+          daysMap.set(apt.day.day_date, apt.day);
+        }
+      }
+    });
+    
+    // Convert to array and sort by date
+    return Array.from(daysMap.values()).sort((a, b) => {
+      return new Date(a.day_date) - new Date(b.day_date);
+    });
+  }, [appointments]);
+
+  // Get unique specialties
+  const specialties = useMemo(() => {
+    const specialtiesMap = new Map();
+    
+    appointments.forEach(apt => {
+      const specialty = apt.event_specialty?.specialty;
+      if (specialty && specialty.id) {
+        if (!specialtiesMap.has(specialty.id)) {
+          specialtiesMap.set(specialty.id, specialty);
+        }
+      }
+    });
+    
+    return Array.from(specialtiesMap.values());
+  }, [appointments]);
+
+
+  const handleDownloadPDF = (patientData) => {
+  const appointments = patientData.all_appointments || [patientData];
+  const primaryAppointment = patientData;
+  
+  const printWindow = window.open("", "_blank");
+  const eventName = event?.name || "الحدث";
+  const date = new Date().toLocaleDateString("ar-SA");
+  const logoUrl = `${window.location.origin}/tagemi_logo.png`;
+  
+  const full_name = primaryAppointment.full_name;
+  const birthday = primaryAppointment.birthday 
+    ? new Date(primaryAppointment.birthday).toLocaleDateString("en-UK") 
+    : "-";
+  const gender = primaryAppointment.sex === '0' || primaryAppointment.sex === 0 ? 'ذكر' : 'أنثى';
+  const diseases = primaryAppointment.diseases && primaryAppointment.diseases !== 'nothing' 
+    ? primaryAppointment.diseases 
+    : 'لا يوجد';
+  
+  const allMedicalDocs = [];
+  appointments.forEach(apt => {
+    if (apt.medical_document_urls && apt.medical_document_urls.length > 0) {
+      allMedicalDocs.push(...apt.medical_document_urls);
+    }
+  });
+  
+  const appointmentsList = appointments.map(apt => ({
+    specialty: apt.event_specialty?.specialty?.name || "-",
+    date: apt.day?.day_date || apt.day?.date || "-",
+    time: apt.hour?.time || apt.hour?.hour || "-"
+  }));
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <title>تأكيد الحجز - ${full_name}</title>
+      <style>
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+        }
+        @page {
+          size: A4 portrait;
+          margin: 15mm;
+        }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          direction: rtl;
+          line-height: 1.4;
+          color: #333;
+          font-size: 12px;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 15px;
+          padding-bottom: 10px;
+          border-bottom: 2px solid #2563eb;
+        }
+        .logo {
+          height: 60px;
+          max-width: 150px;
+          margin: 0 auto 8px;
+          display: block;
+        }
+        .header h1 {
+          color: #16a34a;
+          font-size: 22px;
+          margin-bottom: 5px;
+        }
+        .header .event-name {
+          color: #1e40af;
+          font-size: 16px;
+          font-weight: bold;
+          margin-bottom: 3px;
+        }
+        .header .date {
+          color: #64748b;
+          font-size: 11px;
+        }
+        .screenshot-note {
+          background: #fee2e2;
+          border: 2px solid #dc2626;
+          color: #991b1b;
+          padding: 8px;
+          border-radius: 6px;
+          text-align: center;
+          font-weight: bold;
+          margin-bottom: 12px;
+          font-size: 12px;
+        }
+        .section {
+          margin-bottom: 12px;
+          background: #f8fafc;
+          padding: 10px;
+          border-radius: 6px;
+          border: 1px solid #e2e8f0;
+        }
+        .section-title {
+          font-size: 14px;
+          font-weight: bold;
+          color: #1e40af;
+          margin-bottom: 8px;
+          padding-bottom: 5px;
+          border-bottom: 2px solid #dbeafe;
+        }
+        .info-line {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15px;
+          margin-bottom: 5px;
+        }
+        .info-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+        }
+        .info-label {
+          font-weight: 600;
+          color: #475569;
+        }
+        .info-value {
+          color: #1e293b;
+        }
+        .divider {
+          color: #cbd5e1;
+          margin: 0 5px;
+        }
+        .documents-info {
+          background: #dcfce7;
+          border: 2px solid #16a34a;
+          padding: 8px;
+          border-radius: 6px;
+          text-align: center;
+          color: #166534;
+          font-weight: 600;
+          margin-bottom: 12px;
+          font-size: 12px;
+        }
+        .appointments-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 10px;
+        }
+        .appointment-card {
+          background: white;
+          padding: 10px;
+          border-radius: 6px;
+          border: 2px solid #3b82f6;
+        }
+        .appointment-header {
+          background: #3b82f6;
+          color: white;
+          padding: 5px 10px;
+          border-radius: 4px;
+          margin-bottom: 8px;
+          font-weight: bold;
+          text-align: center;
+          font-size: 12px;
+        }
+        .appointment-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 4px 0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .appointment-row:last-child {
+          border-bottom: none;
+        }
+        .appointment-label {
+          color: #64748b;
+          font-size: 11px;
+        }
+        .appointment-value {
+          font-weight: 600;
+          color: #1e293b;
+          font-size: 11px;
+        }
+        .footer {
+          margin-top: 15px;
+          text-align: center;
+          padding-top: 10px;
+          border-top: 1px solid #e2e8f0;
+          color: #64748b;
+          font-size: 10px;
+        }
+        @media print {
+          body { 
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'" />
+        <h1>✓ تم الحجز بنجاح</h1>
+        <div class="event-name">${eventName}</div>
+        <div class="date">تاريخ الطباعة: ${date}</div>
+      </div>
+
+      <div class="screenshot-note">
+        📸 يرجى حفظ هذا المستند وإحضاره عند الحضور للفحص
+      </div>
+
+      ${allMedicalDocs.length > 0 ? `
+        <div class="documents-info">
+          ✓ تم تحميل ${allMedicalDocs.length} مستند طبي بنجاح
+        </div>
+      ` : ''}
+
+      <div class="section">
+        <div class="section-title">معلومات المريض</div>
+        <div class="info-line">
+          <div class="info-item">
+            <span class="info-label">الاسم:</span>
+            <span class="info-value">${full_name}</span>
+          </div>
+          <span class="divider">|</span>
+          <div class="info-item">
+            <span class="info-label">تاريخ الميلاد:</span>
+            <span class="info-value">${birthday}</span>
+          </div>
+          <span class="divider">|</span>
+          <div class="info-item">
+            <span class="info-label">الجنس:</span>
+            <span class="info-value">${gender}</span>
+          </div>
+        </div>
+        <div class="info-line">
+          <div class="info-item">
+            <span class="info-label">الهاتف:</span>
+            <span class="info-value">${primaryAppointment.phone}</span>
+          </div>
+          <span class="divider">|</span>
+          <div class="info-item">
+            <span class="info-label">هاتف ثانوي:</span>
+            <span class="info-value">${primaryAppointment.phone2 || "-"}</span>
+          </div>
+          <span class="divider">|</span>
+          <div class="info-item">
+            <span class="info-label">العنوان:</span>
+            <span class="info-value">${primaryAppointment.state} - ${primaryAppointment.city}</span>
+          </div>
+        </div>
+        <div class="info-line">
+          <div class="info-item">
+            <span class="info-label">الأمراض المزمنة:</span>
+            <span class="info-value">${diseases}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">تفاصيل المواعيد (${appointmentsList.length})</div>
+        <div class="appointments-grid">
+          ${appointmentsList.map((apt, index) => `
+            <div class="appointment-card">
+              ${appointmentsList.length > 1 ? `
+                <div class="appointment-header">الموعد ${index + 1}</div>
+              ` : ''}
+              <div class="appointment-row">
+                <span class="appointment-label">التخصص:</span>
+                <span class="appointment-value">${apt.specialty}</span>
+              </div>
+              <div class="appointment-row">
+                <span class="appointment-label">التاريخ:</span>
+                <span class="appointment-value">${apt.date}</span>
+              </div>
+              <div class="appointment-row">
+                <span class="appointment-label">الوقت:</span>
+                <span class="appointment-value">${apt.time}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>تم إصدار هذا المستند في: ${new Date().toLocaleString("ar-DZ")} | نظام إدارة المواعيد © ${new Date().getFullYear()}</p>
+      </div>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 250);
+};
 
   // Group appointments by patient_id and get primary appointment
   const getUniquePatients = (appointments) => {
@@ -98,7 +466,7 @@ const CheckPresence = () => {
       filtered = filtered.filter(
         (apt) =>
           apt.patient_id?.toString().includes(searchTerm) ||
-          apt.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          apt.full_name?.includes(searchTerm) ||
           apt.phone?.includes(searchTerm)
       );
     }
@@ -113,10 +481,19 @@ const CheckPresence = () => {
       );
     }
 
+    // FIXED: Filter by day_date instead of day id
     if (dayFilter !== "all") {
       filtered = filtered.filter(
-        (apt) => apt.day?.id?.toString() === dayFilter
+        (apt) => apt.day?.day_date === dayFilter
       );
+    }
+
+    // NEW: Filter by sex
+    if (sexFilter !== "all") {
+      filtered = filtered.filter((apt) => {
+        const patientSex = getPatientSex(apt);
+        return patientSex === sexFilter;
+      });
     }
 
     const uniquePatients = getUniquePatients(filtered);
@@ -130,7 +507,7 @@ const CheckPresence = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter]);
+  }, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter, sexFilter]);
 
   const fetchEventDetails = async () => {
     try {
@@ -174,7 +551,7 @@ const CheckPresence = () => {
     }
   };
 
-  // ✅ Initialize edit mode
+  // Initialize edit mode
   const startEditing = () => {
     if (!selectedAppointment) {
       console.error('Cannot start editing: selectedAppointment is null');
@@ -196,13 +573,13 @@ const CheckPresence = () => {
     });
   };
 
-  // ✅ Cancel editing
+  // Cancel editing
   const cancelEditing = () => {
     setIsEditing(false);
     setEditedData({});
   };
 
-  // ✅ Save edited data
+  // Save edited data
   const saveEditedAppointment = async () => {
     setUpdating(true);
     setError("");
@@ -223,13 +600,8 @@ const CheckPresence = () => {
       if (res.ok) {
         setSuccess("تم تحديث معلومات المريض بنجاح");
         
-        // Update local state
         await fetchAppointments();
-        
-        // Update selected appointment
         setSelectedAppointment(data.appointment);
-        
-        // Exit edit mode
         setIsEditing(false);
         setEditedData({});
         
@@ -245,7 +617,7 @@ const CheckPresence = () => {
     }
   };
 
-  // ✅ NEW: Delete appointment
+  // Delete appointment
   const deleteAppointment = async (appointmentId) => {
     setUpdating(true);
     setError("");
@@ -264,10 +636,7 @@ const CheckPresence = () => {
       if (res.ok) {
         setSuccess("تم حذف الموعد بنجاح");
         
-        // Refresh appointments list
         await fetchAppointments();
-        
-        // Close modal and confirmation
         setShowDetailsModal(false);
         setShowDeleteConfirm(false);
         setAppointmentToDelete(null);
@@ -514,223 +883,272 @@ const CheckPresence = () => {
     }, 250);
   };
 
-  // Print individual patient card (A5 size)
-  const printPatientCard = (appointment) => {
-    const printWindow = window.open("", "_blank");
-    const eventName = event?.name || "الحدث";
-    const patientAppts = appointment.all_appointments || [appointment];
-    const logoUrl = `${window.location.origin}/tagemi_logo.png`;
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html dir="rtl">
-      <head>
-        <meta charset="UTF-8">
-        <title>بطاقة المريض - ${appointment.full_name}</title>
-        <style>
-          * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-          }
-          @page {
-            size: A5 portrait;
-            margin: 0;
-          }
+// Print individual patient card (A5 size)
+const printPatientCard = (appointment) => {
+  const printWindow = window.open("", "_blank");
+  const eventName = event?.name || "الحدث";
+  const patientAppts = appointment.all_appointments || [appointment];
+  const logoUrl = `${window.location.origin}/tagemi_logo.png`;
+  
+  const fullName = appointment.full_name || "-";
+  const birthday = appointment.birthday 
+    ? new Date(appointment.birthday).toLocaleDateString('en-UK')
+    : "-";
+  const gender = appointment.sex == '0' ? 'ذكر' : appointment.sex == '1' ? 'أنثى' : '-';
+  const phone = appointment.phone || "-";
+  const phone2 = appointment.phone2 || "-";
+  const state = appointment.state || "-";
+  const city = appointment.city || "-";
+  const diseases = appointment.chronic_diseases || "لا يوجد";
+  
+  const appointments = patientAppts.map(apt => ({
+    specialty: apt.event_specialty?.specialty?.name || "-",
+    date: apt.date || "-",
+    time: apt.time_slot?.start_time || "-"
+  }));
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <title>بطاقة المريض - ${fullName}</title>
+      <style>
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+        }
+        @page {
+          size: A5 landscape;
+          margin: 0;
+        }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          direction: rtl;
+          width: 210mm;
+          height: 148mm;
+          margin: 0;
+          padding: 0;
+          background: white;
+        }
+        .card {
+          width: 100%;
+          height: 100%;
+          padding: 8mm;
+          display: flex;
+          flex-direction: column;
+        }
+        .header {
+          text-align: center;
+          border-bottom: 3px solid #2563eb;
+          padding-bottom: 5mm;
+          margin-bottom: 5mm;
+        }
+        .logo {
+          height: 15mm;
+          max-width: 60%;
+          margin: 0 auto 2mm;
+          display: block;
+        }
+        .event-name {
+          font-size: 16px;
+          font-weight: bold;
+          color: #1e40af;
+          margin-bottom: 1mm;
+        }
+        .card-title {
+          font-size: 20px;
+          color: #1e40af;
+        }
+        .content {
+          display: flex;
+          gap: 6mm;
+          flex: 1;
+          overflow: hidden;
+        }
+        .right-side {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 4mm;
+        }
+        .left-side {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        .section {
+          background: #f8fafc;
+          padding: 4mm;
+          border-radius: 6px;
+          border: 2px solid #e2e8f0;
+        }
+        .section-title {
+          font-size: 12px;
+          font-weight: bold;
+          color: #1e40af;
+          margin-bottom: 3mm;
+          padding: 2mm;
+          background: #dbeafe;
+          border-radius: 4px;
+          text-align: center;
+        }
+        .info-line {
+          margin-bottom: 2mm;
+          font-size: 10px;
+        }
+        .info-item {
+          display: flex;
+          align-items: center;
+          gap: 2mm;
+          margin-bottom: 1.5mm;
+        }
+        .info-label {
+          font-weight: bold;
+          color: #475569;
+          min-width: 25mm;
+        }
+        .info-value {
+          color: #1e40af;
+          font-weight: 600;
+        }
+        .appointments-section {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        .table-wrapper {
+          flex: 1;
+          overflow: auto;
+        }
+        .checklist {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .checklist th,
+        .checklist td {
+          border: 2px solid #475569;
+          padding: 2mm;
+          text-align: center;
+          font-size: 10px;
+        }
+        .checklist th {
+          background-color: #2563eb;
+          color: white;
+          font-weight: bold;
+        }
+        .checklist tr:nth-child(even) {
+          background-color: #f8fafc;
+        }
+        .checkbox-cell {
+          width: 30mm;
+          height : 20mm;
+        }
+        .checkbox {
+          width: 4mm;
+          height: 4mm;
+          border: 2px solid #475569;
+          border-radius: 2px;
+          display: inline-block;
+          background: white;
+        }
+        .specialty-name {
+          text-align: right;
+          font-weight: 200;
+          padding-right: 1mm !important;
+        }
+        .footer {
+          text-align: center;
+          font-size: 8px;
+          color: #64748b;
+          padding-top: 2mm;
+          border-top: 1px solid #e2e8f0;
+          margin-top: 3mm;
+        }
+        @media print {
           body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            direction: rtl;
-            width: 148mm;
-            height: 210mm;
-            margin: 0;
-            padding: 0;
-            background: white;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          .card {
-            width: 100%;
-            height: 100%;
-            padding: 10mm;
-            display: flex;
-            flex-direction: column;
-          }
-          .header {
-            text-align: center;
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 8mm;
-            margin-bottom: 6mm;
-          }
-          .logo {
-            height: 20mm;
-            max-width: 80%;
-            margin: 0 auto 3mm;
-            display: block;
-          }
-          .event-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1e40af;
-            margin-bottom: 2mm;
-          }
-          .card-title {
-            font-size: 14px;
-            color: #64748b;
-          }
-          .patient-info {
-            background: #f8fafc;
-            padding: 5mm;
-            border-radius: 6px;
-            margin-bottom: 5mm;
-            border: 2px solid #e2e8f0;
-          }
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 3mm 0;
-            border-bottom: 1px solid #e2e8f0;
-          }
-          .info-row:last-child {
-            border-bottom: none;
-          }
-          .info-label {
-            font-weight: bold;
-            color: #475569;
-            font-size: 13px;
-          }
-          .info-value {
-            color: #1e40af;
-            font-weight: 600;
-            font-size: 13px;
-          }
-          .appointments-section {
-            flex: 1;
-            margin-bottom: 4mm;
-          }
-          .section-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #1e40af;
-            margin-bottom: 3mm;
-            padding: 2mm;
-            background: #dbeafe;
-            border-radius: 4px;
-            text-align: center;
-          }
-          .checklist {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          .checklist th,
-          .checklist td {
-            border: 2px solid #475569;
-            padding: 3mm;
-            text-align: center;
-            font-size: 12px;
-          }
-          .checklist th {
-            background-color: #2563eb;
-            color: white;
-            font-weight: bold;
-          }
-          .checklist tr:nth-child(even) {
-            background-color: #f8fafc;
-          }
-          .checkbox-cell {
-            width: 18mm;
-          }
-          .checkbox {
-            width: 5mm;
-            height: 5mm;
-            border: 2px solid #475569;
-            border-radius: 2px;
-            display: inline-block;
-            background: white;
-          }
-          .specialty-name {
-            text-align: right;
-            font-weight: 600;
-          }
-          .footer {
-            text-align: center;
-            font-size: 9px;
-            color: #64748b;
-            padding-top: 3mm;
-            border-top: 1px solid #e2e8f0;
-          }
-          .special-badge {
-            background: #f3e8ff;
-            color: #6b21a8;
-            padding: 1mm 2mm;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: bold;
-            display: inline-block;
-            margin-right: 2mm;
-          }
-          @media print {
-            body { 
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <div class="header">
-            <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'" />
-            <div class="event-name">${eventName}</div>
-            <div class="card-title">بطاقة متابعة المريض</div>
-          </div>
+        }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="header">
+          <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'" />
+          <div class="event-name">${eventName}</div>
+          <div class="card-title">بطاقة المتابعة</div>
+        </div>
 
-          <div class="patient-info">
-            <div class="info-row">
-              <span class="info-label">رقم المريض:</span>
-              <span class="info-value">#${appointment.patient_id || "-"}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">الاسم:</span>
-              <span class="info-value">${appointment.full_name || "-"}${appointment.is_special ? ' <span class="special-badge">⭐ حالة خاصة</span>' : ''}</span>
+        <div class="content">
+          <div class="right-side">
+            <div class="section">
+              <div class="section-title">المعلومات الشخصية</div>
+              <div class="info-line">
+                <div class="info-item">
+                  <span class="info-label">الاسم:</span>
+                  <span class="info-value">${fullName}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">تاريخ الميلاد:</span>
+                  <span class="info-value">${birthday}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">الجنس:</span>
+                  <span class="info-value">${gender}</span>
+                </div>
+          
+                <div class="info-item">
+                  <span class="info-label">الأمراض المزمنة:</span>
+                  <span class="info-value">${diseases}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="appointments-section">
-            <div class="section-title">التخصصات والمتابعة (${patientAppts.length})</div>
-            <table class="checklist">
-              <thead>
-                <tr>
-                  <th>التخصص</th>
-                  <th>حضر</th>
-                  <th>غاب</th>
-                  <th>إجتاز</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${patientAppts.map(apt => `
-                  <tr>
-                    <td class="specialty-name">${apt.event_specialty?.specialty?.name || "-"}</td>
-                    <td class="checkbox-cell"><span class="checkbox"></span></td>
-                    <td class="checkbox-cell"><span class="checkbox"></span></td>
-                    <td class="checkbox-cell"><span class="checkbox"></span></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="footer">
-            <p>تاريخ الطباعة: ${new Date().toLocaleDateString("ar-SA")} | نظام إدارة المواعيد © ${new Date().getFullYear()}</p>
+          <div class="left-side">
+            <div class="appointments-section">
+              <div class="section-title">التخصصات والمتابعة </div>
+              <div class="table-wrapper">
+                <table class="checklist">
+                  <thead>
+                    <tr>
+                      <th>التخصص</th>
+                      <th>القاعة الكبيرة</th>
+                      <th>اجتاز</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${patientAppts.map(apt => `
+                      <tr>
+                        <td class="specialty-name">${apt.event_specialty?.specialty?.name || "-"}</td>
+                        <td class="checkbox-cell"></td>
+                        <td class="checkbox-cell"></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
-      </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
-  };
+
+        <div class="footer">
+          <p>تاريخ الطباعة: ${new Date().toLocaleDateString("en-UK")} | نظام إدارة المواعيد © ${new Date().getFullYear()}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 250);
+};
 
   const updatePresenceStatus = async (appointmentId, status) => {
     setUpdating(true);
@@ -1049,30 +1467,6 @@ const CheckPresence = () => {
     );
   };
 
-  const specialties = Array.from(
-    new Set(
-      appointments
-        .map((apt) => apt.event_specialty?.specialty)
-        .filter((s) => s)
-        .map((s) => JSON.stringify(s))
-    )
-  ).map((s) => JSON.parse(s));
-  
-  const days = Array.from(
-    new Set(
-      appointments
-        .map((apt) => apt.day)
-        .filter((d) => d)
-        .map((d) => JSON.stringify(d))
-    )
-  ).map((d) => JSON.parse(d))
-    .sort((a, b) => {
-      if (a.day_date && b.day_date) {
-        return new Date(a.day_date) - new Date(b.day_date);
-      }
-      return 0;
-    });
-
   const stats = {
     total: filteredAppointments.length,
     totalAppointments: filteredAppointments.reduce((sum, p) => sum + (p.appointment_count || 1), 0),
@@ -1203,8 +1597,9 @@ const CheckPresence = () => {
     <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-7xl mb-4">
         {/* Header */}
+        {user.role_id === 1 && (
         <div className="mb-6">
-          {user.role_id === 1 && (
+          
             <Link
               to={`/admin/event-tracking/${eventId}`}
               className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-droid-arabic-kufi transition-colors"
@@ -1212,7 +1607,7 @@ const CheckPresence = () => {
               <ArrowLeft className="w-4 h-4" />
               العودة إلى متابعة الحدث
             </Link>
-          )}
+          
 
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -1293,7 +1688,7 @@ const CheckPresence = () => {
             </div>
           </div>
         </div>
-
+      )}
         {/* Alert Messages */}
         {error && (
           <div className="mb-6 bg-red-50 border-r-4 border-red-500 p-4 rounded-lg">
@@ -1394,7 +1789,7 @@ const CheckPresence = () => {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <Input
               icon={Search}
               type="text"
@@ -1430,6 +1825,7 @@ const CheckPresence = () => {
               ]}
             />
 
+            {/* FIXED: Days filter now uses day_date as value */}
             <Select
               icon={Calendar}
               value={dayFilter}
@@ -1437,11 +1833,59 @@ const CheckPresence = () => {
               options={[
                 { value: "all", label: "جميع الأيام" },
                 ...days.map((day) => ({
-                  value: day.id.toString(),
-                  label: day.day_date || day.name || `يوم ${day.id}`,
+                  value: day.day_date,
+                  label: new Date(day.day_date).toLocaleDateString("ar-DZ"),
                 })),
               ]}
             />
+          </div>
+
+          {/* NEW: Sex Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-gray-600" />
+              <span className="text-gray-700 font-droid-arabic-kufi font-semibold">تصفية حسب الجنس:</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSexFilter('all')}
+                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                  sexFilter === 'all'
+                    ? 'bg-gray-700 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                الكل
+              </button>
+              <button
+                onClick={() => setSexFilter('male')}
+                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                  sexFilter === 'male'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                ذكور
+              </button>
+              <button
+                onClick={() => setSexFilter('female')}
+                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                  sexFilter === 'female'
+                    ? 'bg-pink-600 text-white shadow-md'
+                    : 'bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                إناث
+              </button>
+            </div>
+            {sexFilter !== 'all' && (
+              <span className="text-sm text-gray-500 font-droid-arabic-kufi">
+                ({filteredAppointments.length} نتيجة)
+              </span>
+            )}
           </div>
         </div>
 
@@ -1515,7 +1959,10 @@ const CheckPresence = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
-                        {appointment.full_name || "-"}
+                        <div className="flex items-center gap-2">
+                          <span>{appointment.full_name || "-"}</span>
+                          {renderGenderIcon(appointment)}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
                         {appointment.event_specialty?.specialty?.name || "-"}
@@ -1574,14 +2021,11 @@ const CheckPresence = () => {
                             <Eye className="w-4 h-4" />
                           </button>
                           
-                          {/* ✅ Edit button in table */}
                           <button
                             onClick={() => {
                               setSelectedAppointment(appointment);
                               setPatientAllAppointments(appointment.all_appointments || [appointment]);
                               setShowDetailsModal(true);
-                              // Don't automatically start editing - let user do it manually
-                              // setTimeout(() => startEditing(), 100);
                             }}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                             title="تعديل المعلومات"
@@ -1589,7 +2033,6 @@ const CheckPresence = () => {
                             <Edit className="w-4 h-4" />
                           </button>
                           
-                          {/* ✅ NEW: Delete button in table */}
                           {user.role_id === 1 && (
                             <button
                               onClick={() => {
@@ -1648,7 +2091,6 @@ const CheckPresence = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* ✅ Edit/Save button */}
                   {!isEditing ? (
                     <button
                       onClick={startEditing}
@@ -1679,6 +2121,15 @@ const CheckPresence = () => {
                       </button>
                     </>
                   )}
+
+                  <button
+                    onClick={() => handleDownloadPDF(selectedAppointment)}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi"
+                    title="تحميل الموعد"
+                  >
+                    <Printer className="w-4 h-4" />
+                    تحميل الموعد
+                  </button>
                   
                   <button
                     onClick={() => printPatientCard(selectedAppointment)}
@@ -1686,7 +2137,7 @@ const CheckPresence = () => {
                     title="طباعة بطاقة المريض"
                   >
                     <Printer className="w-4 h-4" />
-                    طباعة البطاقة
+                     طباعة بطاقة المتابعة
                   </button>
                   <button
                     onClick={() => {
@@ -1708,7 +2159,6 @@ const CheckPresence = () => {
                     معلومات المريض
                   </h4>
                   
-                  {/* ✅ Edit mode vs View mode */}
                   {!isEditing ? (
                     // View Mode
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1721,8 +2171,9 @@ const CheckPresence = () => {
                             <p className="text-sm text-gray-600 font-droid-arabic-kufi">
                               الاسم الكامل
                             </p>
-                            <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
+                            <p className="font-semibold text-gray-900 font-droid-arabic-kufi flex items-center gap-2">
                               {selectedAppointment.full_name}
+                              {renderGenderIcon(selectedAppointment)}
                             </p>
                           </div>
                         </div>
@@ -1752,7 +2203,17 @@ const CheckPresence = () => {
                               الإقامة
                             </p>
                             <p className="font-semibold text-gray-900 font-droid-arabic-kufi">
-                              {selectedAppointment.state || "-"} | {selectedAppointment.city || "-"}
+                              {selectedAppointment.state || "-"} | {
+                                selectedAppointment.city === "tajnint" ? "تاجنينت" :
+                                selectedAppointment.city === "bonora" ? "آت بونور" :
+                                selectedAppointment.city === "taghardait" ? "تغردايت" :
+                                selectedAppointment.city === "mlichat" ? "آت مليشت" :
+                                selectedAppointment.city === "yazgan" ? "آت يزجن" :
+                                selectedAppointment.city === "berian" ? "آت برقان" :
+                                selectedAppointment.city === "karara" ? "القرارة" :
+                                selectedAppointment.city === "warglen" ? "وارجلان" :
+                                selectedAppointment.city || "-"
+                              }
                             </p>
                           </div>
                         </div>
@@ -2013,7 +2474,7 @@ const CheckPresence = () => {
           </div>
         )}
 
-        {/* ✅ NEW: Delete Confirmation Modal */}
+        {/* Delete Confirmation Modal */}
         {showDeleteConfirm && appointmentToDelete && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">

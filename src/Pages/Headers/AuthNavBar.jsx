@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Calendar,
@@ -43,6 +43,13 @@ const AuthNavBar = ({
   const [events, setEvents] = useState([]);
   const { token } = useContext(AppContext);
 
+  // 🔗 Refs for click outside detection
+  const eventTrackingDesktopRef = useRef(null);
+  const generalDesktopRef = useRef(null);
+  const moreMenuRef = useRef(null);
+  const eventTrackingMobileRef = useRef(null);
+  const generalMobileRef = useRef(null);
+
   // Fetch all events
   useEffect(() => {
     const fetchEvents = async () => {
@@ -62,8 +69,51 @@ const AuthNavBar = ({
     }
   }, [token]);
 
+  // 🖱️ Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Desktop dropdowns
+      if (
+        eventTrackingDesktopRef.current &&
+        !eventTrackingDesktopRef.current.contains(event.target)
+      ) {
+        setIsEventTrackingDesktopOpen(false);
+      }
+      if (
+        generalDesktopRef.current &&
+        !generalDesktopRef.current.contains(event.target)
+      ) {
+        setIsGeneralDesktopOpen(false);
+      }
+      // Mobile dropdowns
+      if (
+        moreMenuRef.current &&
+        !moreMenuRef.current.contains(event.target)
+      ) {
+        setIsMoreMenuOpen(false);
+      }
+      if (
+        eventTrackingMobileRef.current &&
+        !eventTrackingMobileRef.current.contains(event.target)
+      ) {
+        setIsEventTrackingOpen(false);
+      }
+      if (
+        generalMobileRef.current &&
+        !generalMobileRef.current.contains(event.target)
+      ) {
+        setIsGeneralMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const navItems = [
-    { icon: Home, text: "الصفحة الرئيسية", href: "/home", roles: [1,2,3,4,5] },
+    { icon: Home, text: "الصفحة الرئيسية", href: "/home", roles: [1, 2, 3, 4, 5] },
     { icon: Calendar, text: "تسيير الفعاليات", href: "/admin/manage-events", roles: [1] },
     { icon: Plus, text: "إضافة مواعيد متعددة", href: "/admin/add-multiple-appointments", roles: [1] },
     { icon: FileText, text: "تسيير التخصصات", href: "/admin/speciality", roles: [1] },
@@ -90,9 +140,12 @@ const AuthNavBar = ({
 
         {/* متابعة الأحداث (Event Tracking) Dropdown */}
         {user?.role_id === 1 && (
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative" ref={eventTrackingDesktopRef}>
             <button
-              onClick={() => setIsEventTrackingDesktopOpen(!isEventTrackingDesktopOpen)}
+              onClick={() => {
+                setIsEventTrackingDesktopOpen(!isEventTrackingDesktopOpen);
+                setIsGeneralDesktopOpen(false); // Close other dropdown
+              }}
               className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
             >
               <Activity className="w-4 h-4 xl:w-5 xl:h-5" />
@@ -139,9 +192,12 @@ const AuthNavBar = ({
 
         {/* إدارة عامة (General Management) Dropdown */}
         {user?.role_id === 1 && (
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative" ref={generalDesktopRef}>
             <button
-              onClick={() => setIsGeneralDesktopOpen(!isGeneralDesktopOpen)}
+              onClick={() => {
+                setIsGeneralDesktopOpen(!isGeneralDesktopOpen);
+                setIsEventTrackingDesktopOpen(false); // Close other dropdown
+              }}
               className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
             >
               <Settings className="w-4 h-4 xl:w-5 xl:h-5" />
@@ -202,9 +258,13 @@ const AuthNavBar = ({
 
       {/* المزيد (More) */}
       {moreMobileLinks.length > 0 && (
-        <div className="pt-2 mt-2">
+        <div className="pt-2 mt-2" ref={moreMenuRef}>
           <button
-            onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+            onClick={() => {
+              setIsMoreMenuOpen(!isMoreMenuOpen);
+              setIsEventTrackingOpen(false);
+              setIsGeneralMenuOpen(false);
+            }}
             className="w-full flex items-center justify-between px-4 py-3 text-[#2F3645] hover:bg-gray-100 rounded-lg transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -233,9 +293,13 @@ const AuthNavBar = ({
 
       {/* متابعة الأحداث (Event Tracking) Mobile */}
       {user?.role_id === 1 && (
-        <div className="pt-2 mt-2">
+        <div className="pt-2 mt-2" ref={eventTrackingMobileRef}>
           <button
-            onClick={() => setIsEventTrackingOpen(!isEventTrackingOpen)}
+            onClick={() => {
+              setIsEventTrackingOpen(!isEventTrackingOpen);
+              setIsMoreMenuOpen(false);
+              setIsGeneralMenuOpen(false);
+            }}
             className="w-full flex items-center justify-between px-4 py-3 text-[#2F3645] hover:bg-gray-100 rounded-lg transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -259,6 +323,7 @@ const AuthNavBar = ({
                     key={event.id}
                     to={`/admin/event-tracking/${event.id}`}
                     className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+                    onClick={() => setIsEventTrackingOpen(false)}
                   >
                     <span>{event.name}</span>
                     {event.is_active && (
@@ -281,9 +346,13 @@ const AuthNavBar = ({
 
       {/* إدارة عامة (General Management) */}
       {user && user.role_id === 1 && (
-        <div className="pt-2 mt-2">
+        <div className="pt-2 mt-2" ref={generalMobileRef}>
           <button
-            onClick={() => setIsGeneralMenuOpen(!isGeneralMenuOpen)}
+            onClick={() => {
+              setIsGeneralMenuOpen(!isGeneralMenuOpen);
+              setIsMoreMenuOpen(false);
+              setIsEventTrackingOpen(false);
+            }}
             className="w-full flex items-center justify-between px-4 py-3 text-[#2F3645] hover:bg-gray-100 rounded-lg transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -300,6 +369,7 @@ const AuthNavBar = ({
               <Link
                 to="/admin/rules"
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+                onClick={() => setIsGeneralMenuOpen(false)}
               >
                 <FileText className="w-4 h-4 flex-shrink-0" />
                 <span>التحكم في الضوابط</span>
@@ -307,6 +377,7 @@ const AuthNavBar = ({
               <Link
                 to="/admin/contacts"
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+                onClick={() => setIsGeneralMenuOpen(false)}
               >
                 <Phone className="w-4 h-4 flex-shrink-0" />
                 <span>الإتصالات</span>
@@ -314,6 +385,7 @@ const AuthNavBar = ({
               <Link
                 to="/admin/volunteers"
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-droid-arabic-kufi"
+                onClick={() => setIsGeneralMenuOpen(false)}
               >
                 <UserPlus className="w-4 h-4 flex-shrink-0" />
                 <span>المتطوعون</span>

@@ -21,8 +21,9 @@ import {
     User,
     Activity,
     Filter,
-    Download  // Add this
-
+    Download,
+    FileText,
+    Users
 } from 'lucide-react';
 import { Select, Input, Textarea } from '../../Common/FormInputs';
 
@@ -44,6 +45,45 @@ const CheckPatient = () => {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('all');
+    const [sexFilter, setSexFilter] = useState('all');
+    const [patientAppointments, setPatientAppointments] = useState({});
+    const [loadingAppointments, setLoadingAppointments] = useState({});
+
+    // Helper function to determine patient sex
+    const getPatientSex = (appointment) => {
+        const sex = String(appointment?.sex ?? '').toLowerCase().trim();
+        
+        if (sex == 0 || sex === 'ذكر' || sex === 'm' || sex === 'male') {
+            return 'male';
+        } else if (sex == 1 || sex === 'أنثى' || sex === 'f' || sex === 'female') {
+            return 'female';
+        }
+        return 'unknown';
+    };
+
+    // Render gender icon component
+    const renderGenderIcon = (appointment) => {
+        const sex = getPatientSex(appointment);
+        
+        if (sex === 'male') {
+            return (
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 flex-shrink-0" title="ذكر">
+                    <User className="w-3.5 h-3.5 text-blue-600" />
+                </div>
+            );
+        } else if (sex === 'female') {
+            return (
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-pink-100 flex-shrink-0" title="أنثى">
+                    <User className="w-3.5 h-3.5 text-pink-600" />
+                </div>
+            );
+        }
+        return (
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 flex-shrink-0" title="غير محدد">
+                <User className="w-3.5 h-3.5 text-gray-400" />
+            </div>
+        );
+    };
 
     useEffect(() => {
         if (eventId && specialityId) {
@@ -87,11 +127,43 @@ const CheckPatient = () => {
         }
     };
 
+    const fetchPatientAppointments = async (patientId) => {
+        if (patientAppointments[patientId]) {
+            return;
+        }
+
+        setLoadingAppointments(prev => ({ ...prev, [patientId]: true }));
+
+        try {
+            const res = await fetch(`${apiUrl}/api/appointment/patient-appointments/${patientId}/${eventId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                setPatientAppointments(prev => ({
+                    ...prev,
+                    [patientId]: data.appointments || []
+                }));
+            }
+        } catch (error) {
+            console.error("Error fetching patient appointments:", error);
+        } finally {
+            setLoadingAppointments(prev => ({ ...prev, [patientId]: false }));
+        }
+    };
+
     const toggleRow = (patientId) => {
+        const isExpanding = !expandedRows[patientId];
+        
         setExpandedRows((prev) => ({
             ...prev,
-            [patientId]: !prev[patientId],
+            [patientId]: isExpanding,
         }));
+
+        if (isExpanding) {
+            fetchPatientAppointments(patientId);
+        }
     };
 
     const handleSearchChange = (e) => setSearchTerm(e.target.value);
@@ -103,7 +175,16 @@ const CheckPatient = () => {
         
         const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
         
-        return matchesSearch && matchesStatus;
+        const matchesSex = sexFilter === 'all' || getPatientSex(appointment) === sexFilter;
+        
+        return matchesSearch && matchesStatus && matchesSex;
+    });
+
+    // Get displayed appointments (only allowed statuses)
+    const displayedAppointments = filteredAppointments.filter(appointment => {
+        const allowedStatuses = ['present', 'commingsoon', 'dilatation'];
+        const currentStatus = appointment.status?.toLowerCase();
+        return allowedStatuses.includes(currentStatus);
     });
 
     const handleAbsent = async (e, appointmentId) => {
@@ -294,11 +375,9 @@ const CheckPatient = () => {
         );
     };
 
-    // Check if specialty is eye (for dilatation buttons)
     const isEyeSpecialty = speciality?.toLowerCase().includes('عيون') || 
                              speciality?.toLowerCase().includes('eye');
 
-    // Statistics
     const stats = {
         total: appointments.length,
         present: appointments.filter(a => a.status === 'Present').length,
@@ -309,7 +388,6 @@ const CheckPatient = () => {
         absent: appointments.filter(a => a.status === 'Absent').length,
     };
 
-    // Prepare status filter options
     const statusOptions = [
         { value: 'all', label: 'جميع الحالات' },
         { value: 'Present', label: 'حاضر' },
@@ -330,96 +408,90 @@ const CheckPatient = () => {
             </div>
         );
     }
-const handleDownloadCSV = () => {
-    // CSV Headers in Arabic
-    const headers = [
-        'رقم المريض',
-        'الاسم الكامل',
-        'الحالة',
-        'الساعة',
-        'الترتيب',
-        'تاريخ الميلاد',
-        'الهاتف',
-        'هاتف ثانوي',
-        'الولاية',
-        'البلدية',
-        'الجنس',
-        'الأمراض',
-        'الملاحظات'
-    ];
 
-    // Map status to Arabic
-    const statusMap = {
-        Present: 'حاضر',
-        Waiting: 'في الانتظار',
-        Commingsoon: 'قادم قريباً',
-        Dilatation: 'في التمدد',
-        Absent: 'غائب',
-        Completed: 'مكتمل'
+    const handleDownloadCSV = () => {
+        const headers = [
+            'رقم المريض',
+            'الاسم الكامل',
+            'الحالة',
+            'الساعة',
+            'الترتيب',
+            'تاريخ الميلاد',
+            'الهاتف',
+            'هاتف ثانوي',
+            'الولاية',
+            'البلدية',
+            'الجنس',
+            'الأمراض',
+            'الملاحظات'
+        ];
+
+        const statusMap = {
+            Present: 'حاضر',
+            Waiting: 'في الانتظار',
+            Commingsoon: 'قادم قريباً',
+            Dilatation: 'في التمدد',
+            Absent: 'غائب',
+            Completed: 'مكتمل'
+        };
+
+        const csvRows = filteredAppointments.map(appointment => {
+            const status = statusMap[appointment.status] || appointment.status;
+            const time = appointment.is_special === 1 ? 'حالة خاصة' : (appointment.hour?.time || 'غير محدد');
+            const birthday = appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('en-UK') : '-';
+            const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
+            const diseases = appointment.diseases && appointment.diseases !== 'nothing' ? appointment.diseases : '-';
+            
+            return [
+                appointment.patient_id,
+                appointment.full_name,
+                status,
+                time,
+                appointment.orderList,
+                birthday,
+                appointment.phone || '-',
+                appointment.phone2 || '-',
+                appointment.state || '-',
+                appointment.city || '-',
+                sex,
+                diseases,
+                appointment.comment || '-'
+            ];
+        });
+
+        const BOM = '\uFEFF';
+        const csvContent = [
+            headers.join(','),
+            ...csvRows.map(row => row.map(cell => {
+                const cellStr = String(cell).replace(/"/g, '""');
+                return `"${cellStr}"`;
+            }).join(','))
+        ].join('\n');
+
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const filename = `قائمة_الانتظار_${speciality}_${new Date().toLocaleDateString('ar-SA').replace(/\//g, '-')}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setMessage({ 
+            type: 'success', 
+            text: `تم تحميل ${filteredAppointments.length} موعد بنجاح` 
+        });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     };
 
-    // Convert appointments to CSV rows
-    const csvRows = filteredAppointments.map(appointment => {
-        const status = statusMap[appointment.status] || appointment.status;
-        const time = appointment.is_special === 1 ? 'حالة خاصة' : (appointment.hour?.time || 'غير محدد');
-        const birthday = appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('en-UK') : '-';
-        const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
-        const diseases = appointment.diseases && appointment.diseases !== 'nothing' ? appointment.diseases : '-';
-        
-        return [
-            appointment.patient_id,
-            appointment.full_name,
-            status,
-            time,
-            appointment.orderList,
-            birthday,
-            appointment.phone || '-',
-            appointment.phone2 || '-',
-            appointment.state || '-',
-            appointment.city || '-',
-            sex,
-            diseases,
-            appointment.comment || '-'
-        ];
-    });
-
-    // Create CSV content with BOM for proper Arabic encoding
-    const BOM = '\uFEFF';
-    const csvContent = [
-        headers.join(','),
-        ...csvRows.map(row => row.map(cell => {
-            // Escape commas and quotes in cell content
-            const cellStr = String(cell).replace(/"/g, '""');
-            return `"${cellStr}"`;
-        }).join(','))
-    ].join('\n');
-
-    // Create blob and download
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    // Generate filename with event name, specialty, and date
-    const filename = `قائمة_الانتظار_${speciality}_${new Date().toLocaleDateString('ar-SA').replace(/\//g, '-')}.csv`;
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    // Show success message
-    setMessage({ 
-        type: 'success', 
-        text: `تم تحميل ${filteredAppointments.length} موعد بنجاح` 
-    });
-    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-};
     return (
-    <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-7xl mb-4">
+        <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
+            <div className="w-full max-w-7xl mb-4">
                 {/* Header */}
                 <div className="mb-6">
                     {user.role_id === 1 && 
@@ -432,7 +504,10 @@ const handleDownloadCSV = () => {
                     </Link>
                     }
                     <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                       <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">{speciality}</h1>
+
+                            {user.role_id === 1 && 
                             <button
                                 onClick={handleDownloadCSV}
                                 disabled={filteredAppointments.length === 0}
@@ -445,7 +520,7 @@ const handleDownloadCSV = () => {
                                         {filteredAppointments.length}
                                     </span>
                                 )}
-                            </button>
+                            </button>}
 
                             <button
                                 onClick={getWaitingListBySpeciality}
@@ -525,8 +600,7 @@ const handleDownloadCSV = () => {
                         </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Search Input */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <Input
                             icon={Search}
                             type="text"
@@ -535,13 +609,60 @@ const handleDownloadCSV = () => {
                             placeholder="ابحث برقم المريض، الاسم، أو رقم الهاتف..."
                         />
 
-                        {/* Status Filter */}
                         <Select
                             icon={Activity}
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                             options={statusOptions}
                         />
+                    </div>
+
+                    {/* Sex Filter Buttons */}
+                    <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-200">
+                        <div className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-gray-600" />
+                            <span className="text-gray-700 font-droid-arabic-kufi font-semibold">تصفية حسب الجنس:</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setSexFilter('all')}
+                                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                                    sexFilter === 'all'
+                                        ? 'bg-gray-700 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                <Users className="w-4 h-4" />
+                                الكل
+                            </button>
+                            <button
+                                onClick={() => setSexFilter('male')}
+                                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                                    sexFilter === 'male'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                                }`}
+                            >
+                                <User className="w-4 h-4" />
+                                ذكور
+                            </button>
+                            <button
+                                onClick={() => setSexFilter('female')}
+                                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                                    sexFilter === 'female'
+                                        ? 'bg-pink-600 text-white shadow-md'
+                                        : 'bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200'
+                                }`}
+                            >
+                                <User className="w-4 h-4" />
+                                إناث
+                            </button>
+                        </div>
+                        {sexFilter !== 'all' && (
+                            <span className="text-sm text-gray-500 font-droid-arabic-kufi">
+                                ({displayedAppointments.length} نتيجة)
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -564,24 +685,27 @@ const handleDownloadCSV = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {filteredAppointments.length === 0 ? (
+                                {displayedAppointments.length === 0 ? (
                                     <tr>
                                         <td colSpan="8" className="px-4 py-8 text-center">
                                             <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                             <p className="text-gray-500 font-droid-arabic-kufi">
-                                                {searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد مواعيد في قائمة الانتظار'}
+                                                {searchTerm || sexFilter !== 'all' ? 'لا توجد نتائج للبحث' : 'لا توجد مواعيد في قائمة الانتظار'}
                                             </p>
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredAppointments.map((appointment) => (
+                                    displayedAppointments.map((appointment) => (
                                         <React.Fragment key={appointment.id}>
                                             <tr className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                                     #{appointment.patient_id}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
-                                                    {appointment.full_name}
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <span>{appointment.full_name}</span>
+                                                        {renderGenderIcon(appointment)}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {getStatusBadge(appointment.status)}
@@ -613,7 +737,6 @@ const handleDownloadCSV = () => {
                                                     <div className="flex flex-wrap gap-2 justify-center">
                                                         {(user.role_id === 1 || user.role_id === 4) && (
                                                             <>
-                                                                {/* Dilatation buttons - only for eye specialty */}
                                                                 {isEyeSpecialty && (
                                                                     <>
                                                                         {appointment.status === 'Dilatation' ? (
@@ -634,7 +757,6 @@ const handleDownloadCSV = () => {
                                                                     </>
                                                                 )}
 
-                                                                {/* Coming soon button */}
                                                                 {appointment.status !== 'Commingsoon' && (
                                                                     <button
                                                                         onClick={(e) => handleCommingsoon(e, appointment.id, appointment.orderList + 10)}
@@ -644,7 +766,6 @@ const handleDownloadCSV = () => {
                                                                     </button>
                                                                 )}
 
-                                                                {/* Alter specialty button */}
                                                                 <button
                                                                     onClick={(e) => handleAlterSpeciality(e, appointment.id)}
                                                                     className="text-amber-700 hover:text-white border font-droid-arabic-kufi border-amber-700 hover:bg-amber-800 focus:ring-4 focus:outline-none focus:ring-amber-300 font-medium rounded-lg text-xs px-2 py-1"
@@ -652,7 +773,6 @@ const handleDownloadCSV = () => {
                                                                     تبديل
                                                                 </button>
 
-                                                                {/* Absent button - only show for coming soon */}
                                                                 {appointment.status === 'Commingsoon' && (
                                                                     <button
                                                                         onClick={(e) => handleAbsent(e, appointment.id)}
@@ -662,7 +782,6 @@ const handleDownloadCSV = () => {
                                                                     </button>
                                                                 )}
 
-                                                                {/* Complete button */}
                                                                 <button
                                                                     onClick={(e) => handleComplete(e, appointment.id)}
                                                                     className="text-green-700 hover:text-white border font-droid-arabic-kufi border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-xs px-2 py-1"
@@ -672,7 +791,6 @@ const handleDownloadCSV = () => {
                                                             </>
                                                         )}
 
-                                                        {/* Add comment button */}
                                                         {(user.role_id === 1 || user.role_id === 6) && (
                                                             <button
                                                                 onClick={(e) => {
@@ -706,72 +824,113 @@ const handleDownloadCSV = () => {
                                             {expandedRows[appointment.patient_id] && (
                                                 <tr className="bg-gray-50">
                                                     <td colSpan="8" className="px-6 py-4">
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-right">
-                                                            <div className="flex items-center gap-2">
-                                                                <Calendar className="w-4 h-4 text-gray-500" />
-                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                                                    تاريخ الميلاد:
-                                                                </span>
-                                                                <span className="text-sm font-medium text-gray-900">
-                                                                    {appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('en-UK') : '-'}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-2">
-                                                                <Phone className="w-4 h-4 text-gray-500" />
-                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                                                    الهاتف:
-                                                                </span>
-                                                                <span className="text-sm font-medium text-gray-900" dir="ltr">
-                                                                    {appointment.phone || '-'}
-                                                                </span>
-                                                            </div>
-
-                                                            {appointment.phone2 && (
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            <div className="space-y-3">
+                                                                <h4 className="text-sm font-bold text-gray-900 font-droid-arabic-kufi mb-3 flex items-center gap-2">
+                                                                    <User className="w-4 h-4" />
+                                                                    معلومات المريض
+                                                                </h4>
+                                                                
                                                                 <div className="flex items-center gap-2">
-                                                                    <Phone className="w-4 h-4 text-gray-500" />
+                                                                    {renderGenderIcon(appointment)}
                                                                     <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                                                        هاتف ثانوي:
+                                                                        الجنس:
                                                                     </span>
-                                                                    <span className="text-sm font-medium text-gray-900" dir="ltr">
-                                                                        {appointment.phone2}
+                                                                    <span className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
+                                                                        {appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى'}
                                                                     </span>
                                                                 </div>
-                                                            )}
 
-                                                            <div className="flex items-center gap-2">
-                                                                <MapPin className="w-4 h-4 text-gray-500" />
-                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                                                    الإقامة:
-                                                                </span>
-                                                                <span className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
-                                                                    {appointment.state || '-'} | {appointment.city || '-'}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-2">
-                                                                <User className="w-4 h-4 text-gray-500" />
-                                                                <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                                                    الجنس:
-                                                                </span>
-                                                                <span className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
-                                                                    {appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى'}
-                                                                </span>
-                                                            </div>
-
-                                                            {appointment.diseases && appointment.diseases !== 'nothing' && (
-                                                                <div className="flex items-start gap-2 lg:col-span-3">
-                                                                    <Heart className="w-4 h-4 text-gray-500 mt-1" />
-                                                                    <div>
-                                                                        <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                                                            الأمراض:
-                                                                        </span>
-                                                                        <p className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
-                                                                            {appointment.diseases}
-                                                                        </p>
+                                                                {appointment.diseases && appointment.diseases !== 'nothing' && (
+                                                                    <div className="flex items-start gap-2">
+                                                                        <Heart className="w-4 h-4 text-gray-500 mt-1" />
+                                                                        <div>
+                                                                            <span className="text-sm text-gray-600 font-droid-arabic-kufi">
+                                                                                الأمراض:
+                                                                            </span>
+                                                                            <p className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
+                                                                                {appointment.diseases}
+                                                                            </p>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            )}
+                                                                )}
+                                                            </div>
+
+                                                            <div className="space-y-3">
+                                                                <h4 className="text-sm font-bold text-gray-900 font-droid-arabic-kufi mb-3 flex items-center gap-2">
+                                                                    <FileText className="w-4 h-4" />
+                                                                    جميع مواعيد المريض في هذا الحدث
+                                                                </h4>
+                                                                
+                                                                {loadingAppointments[appointment.patient_id] ? (
+                                                                    <div className="flex items-center gap-2 text-gray-500">
+                                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                                                                        <span className="text-sm font-droid-arabic-kufi">جاري التحميل...</span>
+                                                                    </div>
+                                                                ) : patientAppointments[appointment.patient_id] && patientAppointments[appointment.patient_id].length > 0 ? (
+                                                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                                        {patientAppointments[appointment.patient_id].map((appt, index) => {
+                                                                            const isCurrentAppointment = appt.id === appointment.id;
+                                                                            
+                                                                            return (
+                                                                                <div 
+                                                                                    key={index}
+                                                                                    className={`border rounded-lg p-3 hover:shadow-sm transition-shadow ${
+                                                                                        isCurrentAppointment 
+                                                                                            ? 'bg-blue-50 border-blue-300' 
+                                                                                            : 'bg-white border-gray-200'
+                                                                                    }`}
+                                                                                >
+                                                                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-sm font-medium text-gray-900 font-droid-arabic-kufi">
+                                                                                                {appt.speciality_name}
+                                                                                            </span>
+                                                                                            {isCurrentAppointment && (
+                                                                                                <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded font-droid-arabic-kufi">
+                                                                                                    الحالي
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        {getStatusBadge(appt.status)}
+                                                                                    </div>
+                                                                                    
+                                                                                    <div className="flex items-center gap-4 text-xs text-gray-600 flex-wrap">
+                                                                                        <div className="flex items-center gap-1">
+                                                                                            <Clock className="w-3 h-3" />
+                                                                                            <span className="font-droid-arabic-kufi">
+                                                                                                {appt.is_special === 1 ? 'حالة خاصة' : (appt.hour || 'غير محدد')}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-1">
+                                                                                            <Activity className="w-3 h-3" />
+                                                                                            <span className="font-droid-arabic-kufi">
+                                                                                                الترتيب: {appt.orderList}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    {appt.comment && (
+                                                                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                                                                            <div className="flex items-start gap-1">
+                                                                                                <MessageSquare className="w-3 h-3 text-gray-400 mt-0.5" />
+                                                                                                <p className="text-xs text-gray-600 font-droid-arabic-kufi">
+                                                                                                    {appt.comment}
+                                                                                                </p>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-sm text-gray-500 font-droid-arabic-kufi flex items-center gap-2">
+                                                                        <AlertCircle className="w-4 h-4" />
+                                                                        لا توجد مواعيد أخرى لهذا المريض في هذا الحدث
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>

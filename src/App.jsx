@@ -74,6 +74,9 @@ export default function App() {
             <Route path="activities/:Actvityid" element={<ActivityMore />} />
             <Route path="futureProjects" element={<FuturProjects />} />
             <Route path="future-prjects/:Projectid" element={<ProjectDetails />} />
+            <Route path="waiting-list/:eventId" element={<WaitingList />} />
+
+
 
 
             

@@ -473,7 +473,7 @@ const Contact = ({ project, projectName }) => {
                                 <h3 className="text-lg font-bold mb-2 font-droid-arabic-kufi text-gray-900">
                                     {language === 'en' ? 'Phone' : 'الهاتف'}
                                 </h3>
-                                <p className="text-gray-600 font-droid-arabic-kufi" dir="ltr">029 254 300 / 0549 8885 459</p>
+                                <p className="text-gray-600 font-droid-arabic-kufi" dir="ltr">029 254 300 / 0549 88 54 59</p>
                             </div>
 
                             <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-right">

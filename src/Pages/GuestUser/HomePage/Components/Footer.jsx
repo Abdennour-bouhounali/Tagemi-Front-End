@@ -110,7 +110,7 @@ const Footer = ({ types }) => {
                             <div className="space-y-5">
                                 {/* Phone */}
                                 <a 
-                                    href="tel:+213550645465" 
+                                    href="tel:+213549885459" 
                                     className="group flex items-start gap-4 text-gray-300 hover:text-blue-400 transition-all duration-300"
                                 >
                                     <div className="flex-shrink-0">

@@ -14,7 +14,8 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
-  Download
+  Download,
+  Building2
 } from 'lucide-react';
 
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -29,6 +30,7 @@ const VisitsStatistics = () => {
     const [statistics, setStatistics] = useState([]);
     const [totals, setTotals] = useState({});
     const [residenceCounts, setResidenceCounts] = useState([]);
+    const [cityCounts, setCityCounts] = useState([]); // NEW: City statistics
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -134,7 +136,7 @@ const VisitsStatistics = () => {
                     return age < 10;
                 }).length;
 
-                // Count by residence
+                // Count by residence (state)
                 const residenceMap = new Map();
                 uniqueAppointments.forEach(apt => {
                     const residence = apt.state || 'unknown';
@@ -147,6 +149,20 @@ const VisitsStatistics = () => {
                 })).sort((a, b) => b.count - a.count);
 
                 setResidenceCounts(residenceArray);
+
+                // NEW: Count by city
+                const cityMap = new Map();
+                uniqueAppointments.forEach(apt => {
+                    const city = apt.city || 'unknown';
+                    cityMap.set(city, (cityMap.get(city) || 0) + 1);
+                });
+
+                const cityArray = Array.from(cityMap.entries()).map(([city, count]) => ({
+                    city,
+                    count
+                })).sort((a, b) => b.count - a.count);
+
+                setCityCounts(cityArray);
 
                 // Update totals with demographic data
                 setTotals(prev => ({
@@ -292,7 +308,7 @@ const VisitsStatistics = () => {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div className="bg-white rounded-lg shadow p-6 border-r-4 border-blue-500">
                         <div className="flex items-center justify-between">
                             <div>
@@ -300,6 +316,17 @@ const VisitsStatistics = () => {
                                 <p className="text-3xl font-bold text-gray-900">{totals.total || 0}</p>
                             </div>
                             <Users className="w-12 h-12 text-blue-500 opacity-20" />
+                        </div>
+                    </div>
+
+                    {/* NEW: Total Patients Card */}
+                    <div className="bg-white rounded-lg shadow p-6 border-r-4 border-purple-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-gray-600 font-droid-arabic-kufi mb-1">عدد المرضى</p>
+                                <p className="text-3xl font-bold text-purple-600">{totals.total_patients || 0}</p>
+                            </div>
+                            <User className="w-12 h-12 text-purple-500 opacity-20" />
                         </div>
                     </div>
 
@@ -415,8 +442,8 @@ const VisitsStatistics = () => {
                     </div>
                 </div>
 
-                {/* Demographics Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Demographics Section - Updated Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* General Demographics */}
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
                         <div className="p-6 bg-gradient-to-r from-purple-600 to-purple-700 border-b border-purple-800">
@@ -514,6 +541,60 @@ const VisitsStatistics = () => {
                                             </tr>
                                         ))
                                     )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* NEW: City Statistics */}
+                    <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+                        <div className="p-6 bg-gradient-to-r from-teal-600 to-teal-700 border-b border-teal-800">
+                            <h2 className="text-xl font-bold text-white font-droid-arabic-kufi flex items-center gap-2">
+                                <Building2 className="w-6 h-6" />
+                                إحصائيات حسب المدينة
+                            </h2>
+                        </div>
+                        <div className="p-6 max-h-96 overflow-y-auto">
+                            <table className="w-full text-center">
+                                <thead className="border-b border-gray-200 sticky top-0 bg-white">
+                                    <tr>
+                                        <th className="px-4 py-3 text-sm font-semibold text-gray-700 font-droid-arabic-kufi">
+                                            المدينة
+                                        </th>
+                                        <th className="px-4 py-3 text-sm font-semibold text-gray-700 font-droid-arabic-kufi">
+                                            العدد
+                                        </th>
+                                    </tr>
+                                </thead>
+                               <tbody className="divide-y divide-gray-200">
+                                {cityCounts.length === 0 ? (
+                                    <tr>
+                                    <td colSpan="2" className="px-4 py-8 text-center text-gray-500 font-droid-arabic-kufi">
+                                        لا توجد بيانات متاحة
+                                    </td>
+                                    </tr>
+                                ) : (
+                                    cityCounts.map((cityItem, index) => (
+                                    <tr key={index} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 text-sm text-gray-900 font-droid-arabic-kufi">
+                                        {cityItem.city === 'unknown' ? 'غير معروف' : 
+                                            cityItem.city === "tajnint" ? "تاجنينت" :
+                                            cityItem.city === "bonora" ? "آت بونور" :
+                                            cityItem.city === "taghardait" ? "تغردايت" :
+                                            cityItem.city === "mlichat" ? "آت مليشت" :
+                                            cityItem.city === "yazgan" ? "آت يزجن" :
+                                            cityItem.city === "berian" ? "آت برقان" :
+                                            cityItem.city === "karara" ? "القرارة" :
+                                            cityItem.city === "warglen" ? "وارجلان" :
+                                            cityItem.city
+                                        }
+                                        </td>
+                                        <td className="px-4 py-3 text-sm font-bold text-gray-900">
+                                        {cityItem.count}
+                                        </td>
+                                    </tr>
+                                    ))
+                                )}
                                 </tbody>
                             </table>
                         </div>

@@ -1,27 +1,63 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AppContext } from "../../../Context/AppContext";
-import { useLocation, useParams, Link } from "react-router-dom";
-import { ArrowLeft, RefreshCw, AlertCircle, Star, Clock } from 'lucide-react';
+import React, { useEffect, useState, useContext } from 'react';
+import { useParams, Link } from "react-router-dom";
+import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle } from 'lucide-react';
 
 const apiUrl = import.meta.env.VITE_API_URL;
+import { AppContext } from "../../../Context/AppContext";
 
 const WaitingList = () => {
   const { eventId } = useParams();
+  const { user } = useContext(AppContext);
   
   const [event, setEvent] = useState(null);
   const [specialities, setSpecialities] = useState([]);
   const [waitingList, setWaitingList] = useState({});
+  const [filteredWaitingList, setFilteredWaitingList] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
-  const { token } = useContext(AppContext);
+  const [sexFilter, setSexFilter] = useState('all'); // 'all', 'male', 'female'
 
-  // Fetch event details
+  // Helper function to determine patient sex
+  const getPatientSex = (patient) => {
+    const sex = String(patient?.sex || '').toLowerCase().trim();
+    
+    if (sex ==  0 || sex === 'ذكر' || sex === 'm' || sex === 'male') {
+      return 'male';
+    } else if (sex == 1 || sex === 'أنثى' || sex === 'f' || sex === 'female') {
+      return 'female';
+    }
+    return 'unknown';
+  };
+
+  // Render gender icon
+  const renderGenderIcon = (patient) => {
+    const sex = getPatientSex(patient);
+    
+    if (sex === 'male') {
+      return (
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100" title="ذكر">
+          <User className="w-4 h-4 text-blue-600" />
+        </div>
+      );
+    } else if (sex === 'female') {
+      return (
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-pink-100" title="أنثى">
+          <User className="w-4 h-4 text-pink-600" />
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100" title="غير محدد">
+        <User className="w-4 h-4 text-gray-400" />
+      </div>
+    );
+  };
+
+  // Fetch event details (PUBLIC)
   async function getEventDetails() {
     try {
-      const res = await fetch(`${apiUrl}/api/events/${eventId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${apiUrl}/api/public/events/${eventId}`);
       
       if (!res.ok) {
         setError('فشل في تحميل تفاصيل الحدث');
@@ -36,12 +72,10 @@ const WaitingList = () => {
     }
   }
 
-  // Fetch waiting list for specific event
+  // Fetch waiting list for specific event (PUBLIC)
   async function getWaitingList() {
     try {
-      const res = await fetch(`${apiUrl}/api/waitinglist/getwaitinglist?event_id=${eventId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${apiUrl}/api/public/waitinglist?event_id=${eventId}`);
       
       if (!res.ok) {
         console.error('Failed to fetch waiting list');
@@ -51,7 +85,6 @@ const WaitingList = () => {
       
       const data = await res.json();
       
-      // The API returns { data: { specialty_id: [patients], ... } }
       if (data.data) {
         setWaitingList(data.data);
         setLastUpdated(new Date());
@@ -65,12 +98,10 @@ const WaitingList = () => {
     }
   }
 
-  // Fetch specialities for this event
+  // Fetch specialities for this event (PUBLIC)
   async function getEventSpecialities() {
     try {
-      const res = await fetch(`${apiUrl}/api/events/${eventId}/specialties`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${apiUrl}/api/public/events/${eventId}/specialties`);
       
       if (!res.ok) {
         console.error('Failed to fetch event specialities');
@@ -79,7 +110,6 @@ const WaitingList = () => {
       
       const data = await res.json();
       
-      // Extract unique specialties from event_specialties
       const uniqueSpecialties = [];
       const seenIds = new Set();
       
@@ -92,7 +122,6 @@ const WaitingList = () => {
         });
       }
       
-      // Filter out NoSpeciality
       const filtered = uniqueSpecialties.filter(s => s.name !== 'NoSpeciality');
       setSpecialities(filtered);
       setLoading(false);
@@ -103,46 +132,55 @@ const WaitingList = () => {
     }
   }
 
+  // Apply sex filter to waiting list
+  useEffect(() => {
+    if (sexFilter === 'all') {
+      setFilteredWaitingList(waitingList);
+    } else {
+      const filtered = {};
+      Object.keys(waitingList).forEach(specialityId => {
+        const patients = waitingList[specialityId] || [];
+        filtered[specialityId] = patients.filter(patient => {
+          const patientSex = getPatientSex(patient);
+          return patientSex === sexFilter;
+        });
+      });
+      setFilteredWaitingList(filtered);
+    }
+  }, [waitingList, sexFilter]);
+
   // Initial load
   useEffect(() => {
-    if (token && eventId) {
+    if (eventId) {
       setLoading(true);
       getEventDetails();
       getEventSpecialities();
       getWaitingList();
     }
-  }, [token, eventId]);
+  }, [eventId]);
 
   // Auto-refresh every 10 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      if (token && eventId) {
+      if (eventId) {
         getWaitingList();
       }
     }, 10000);
     
     return () => clearInterval(interval);
-  }, [token, eventId]);
+  }, [eventId]);
 
   // Manual refresh
   const handleRefresh = () => {
     getWaitingList();
   };
 
-  // Check if patient is special case
-  const isSpecialCase = (patient) => {
-    if (!patient) return false;
-    
-    return (
-      patient.is_special || 
-      patient.is_priority || 
-      patient.order === 0 ||
-      patient.full_name?.includes('خاصة') || 
-      patient.full_name?.includes('حالة')
-    );
+  // Get counts for statistics
+  const getTotalCount = () => {
+    return Object.values(filteredWaitingList).reduce((sum, arr) => sum + (arr?.length || 0), 0);
   };
 
-  const maxRows = Math.max(...Object.values(waitingList).map(arr => arr?.length || 0), 0);
+  const maxRows = Math.max(...Object.values(filteredWaitingList).map(arr => arr?.length || 0), 0);
 
   if (loading) {
     return (
@@ -158,15 +196,16 @@ const WaitingList = () => {
   return (
     <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
       {/* Back Button */}
+      {user &&
       <div className="w-full max-w-7xl mb-4">
         <Link
-          to={`/admin/event-tracking/${eventId}`}
+          to={`/`}
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 font-droid-arabic-kufi transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          العودة إلى متابعة الحدث
+          العودة إلى الصفحة الرئيسية
         </Link>
-      </div>
+      </div>}
 
       {/* Error Alert */}
       {error && (
@@ -200,13 +239,73 @@ const WaitingList = () => {
         </p>
       </div>
 
+      {/* Sex Filter */}
+      <div className="w-full max-w-7xl mb-6">
+        <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-gray-600" />
+              <span className="text-gray-700 font-droid-arabic-kufi font-semibold">تصفية حسب الجنس:</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSexFilter('all')}
+                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                  sexFilter === 'all'
+                    ? 'bg-gray-700 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                الكل
+              </button>
+              <button
+                onClick={() => setSexFilter('male')}
+                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                  sexFilter === 'male'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                ذكور
+              </button>
+              <button
+                onClick={() => setSexFilter('female')}
+                className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-2 ${
+                  sexFilter === 'female'
+                    ? 'bg-pink-600 text-white shadow-md'
+                    : 'bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                إناث
+              </button>
+            </div>
+            {sexFilter !== 'all' && (
+              <span className="text-sm text-gray-500 font-droid-arabic-kufi">
+                ({getTotalCount()} نتيجة)
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Legend */}
-      <div className="w-full max-w-7xl mb-6 flex items-center justify-center gap-6 text-sm font-droid-arabic-kufi">
+      <div className="w-full max-w-7xl mb-6 flex flex-wrap items-center justify-center gap-6 text-sm font-droid-arabic-kufi">
         <div className="flex items-center gap-2">
-          <Star className="w-4 h-4 text-purple-600" />
-          <span className="text-gray-700">حالة خاصة (أولوية)</span>
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100">
+            <User className="w-4 h-4 text-blue-600" />
+          </div>
+          <span className="text-gray-700">ذكر</span>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-pink-100">
+            <User className="w-4 h-4 text-pink-600" />
+          </div>
+          <span className="text-gray-700">أنثى</span>
+        </div>
+        <div className="flex items-center gap-2 border-r pr-6 mr-2">
           <Clock className="w-4 h-4 text-green-500 animate-pulse" />
           <span className="text-gray-700">تحديث تلقائي كل 10 ثوانٍ</span>
         </div>
@@ -224,7 +323,7 @@ const WaitingList = () => {
                   </th>
                 ) : (
                   specialities.map((speciality) => {
-                    const count = waitingList[speciality.id]?.length || 0;
+                    const count = filteredWaitingList[speciality.id]?.length || 0;
                     
                     return (
                       <th
@@ -232,7 +331,7 @@ const WaitingList = () => {
                         className="px-6 py-3 text-sm font-bold text-indigo-900 border-b border-gray-200 font-droid-arabic-kufi"
                       >
                         <span className="block mb-2 text-lg">{speciality.name}</span>
-                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                        <div className="flex justify-between text-xs text-gray-600 mb-1 px-2">
                           <span>ID</span>
                           <span>الاسم الكامل</span>
                         </div>
@@ -253,8 +352,18 @@ const WaitingList = () => {
                     className="px-6 py-8 text-center text-gray-500 font-droid-arabic-kufi"
                   >
                     <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="font-semibold mb-1">لا توجد مواعيد في قائمة الإنتظار حالياً</p>
-                    <p className="text-xs text-gray-400">سيتم عرض المرضى هنا عند تأكيد حضورهم</p>
+                    <p className="font-semibold mb-1">
+                      {sexFilter !== 'all' 
+                        ? 'لا توجد نتائج للفلتر المحدد'
+                        : 'لا توجد مواعيد في قائمة الإنتظار حالياً'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {sexFilter !== 'all'
+                        ? 'جرب تغيير الفلتر أو اختر "الكل"'
+                        : 'سيتم عرض المرضى هنا عند تأكيد حضورهم'
+                      }
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -266,41 +375,33 @@ const WaitingList = () => {
                     } hover:bg-indigo-50 transition-colors`}
                   >
                     {specialities.map((speciality) => {
-                      const patients = waitingList[speciality.id] || [];
+                      const patients = filteredWaitingList[speciality.id] || [];
                       const patient = patients[rowIndex] || null;
-                      const isSpecial = isSpecialCase(patient);
                       
                       return (
                         <td 
                           key={speciality.id} 
-                          className={`px-6 py-4 border-b border-gray-200 font-droid-arabic-kufi transition-all ${
-                            isSpecial ? 'bg-purple-50' : ''
-                          }`}
+                          className="px-4 py-3 border-b border-gray-200 font-droid-arabic-kufi transition-all"
                         >
                           {patient ? (
-                            <div className="flex justify-between items-center">
-                              <div className="w-1/3 text-sm font-semibold text-gray-700 flex items-center gap-1">
-                                {isSpecial && (
-                                  <Star className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                                )}
-                                <span className={isSpecial ? 'text-purple-700' : ''}>
-                                  TJM_{patient.patient_id}
-                                </span>
+                            <div className="flex items-center justify-between gap-2">
+                              {/* Patient ID */}
+                              <div className="w-1/3 text-sm font-semibold text-gray-700">
+                                {patient.patient_id}
                               </div>
-                              <div 
-                                className={`w-2/3 text-right font-medium ${
-                                  isSpecial
-                                    ? 'text-purple-700 font-bold' 
-                                    : 'text-gray-800'
-                                }`}
-                              >
-                                {patient.full_name || `${patient.name || ''} ${patient.lastName || ''}`.trim()}
+                              
+                              {/* Patient Name with Gender Icon */}
+                              <div className="w-2/3 flex items-center justify-end gap-2">
+                                <span className="font-medium text-gray-800">
+                                  {patient.full_name}
+                                </span>
+                                {renderGenderIcon(patient)}
                               </div>
                             </div>
                           ) : (
-                            <div className="flex justify-between">
+                            <div className="flex items-center justify-between gap-2">
                               <div className="w-1/3 text-gray-300">-</div>
-                              <div className="w-2/3 text-gray-300">-</div>
+                              <div className="w-2/3 text-gray-300 text-right">-</div>
                             </div>
                           )}
                         </td>
@@ -333,8 +434,13 @@ const WaitingList = () => {
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
             <h3 className="text-lg font-bold text-gray-900 font-droid-arabic-kufi mb-4 text-center">
               إحصائيات سريعة
+              {sexFilter !== 'all' && (
+                <span className="text-sm font-normal text-gray-500 mr-2">
+                  ({sexFilter === 'male' ? 'ذكور فقط' : 'إناث فقط'})
+                </span>
+              )}
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <p className="text-2xl font-bold text-blue-600">
                   {specialities.length}
@@ -343,17 +449,9 @@ const WaitingList = () => {
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
                 <p className="text-2xl font-bold text-green-600">
-                  {Object.values(waitingList).reduce((sum, arr) => sum + (arr?.length || 0), 0)}
+                  {getTotalCount()}
                 </p>
                 <p className="text-sm text-gray-600 font-droid-arabic-kufi">مرضى في الإنتظار</p>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <p className="text-2xl font-bold text-purple-600">
-                  {Object.values(waitingList).reduce((sum, arr) => 
-                    sum + (arr?.filter(p => isSpecialCase(p)).length || 0), 0
-                  )}
-                </p>
-                <p className="text-sm text-gray-600 font-droid-arabic-kufi">حالات خاصة</p>
               </div>
               <div className="text-center p-3 bg-orange-50 rounded-lg">
                 <p className="text-2xl font-bold text-orange-600">

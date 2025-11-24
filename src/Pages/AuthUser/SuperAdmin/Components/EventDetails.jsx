@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from "react";
-import { X, Calendar, MapPin, Users, Clock, Link as LinkIcon, Copy, CheckCircle, Eye } from "lucide-react";
+import { X, Calendar, MapPin, Users, Clock, Link as LinkIcon, Copy, CheckCircle, Eye, Monitor } from "lucide-react";
 import { AppContext } from "../../../../Context/AppContext";
 
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -9,6 +9,7 @@ const  EventDetails = ({ event, onClose }) => {
   const [eventDetails, setEventDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [copiedWaitingList, setCopiedWaitingList] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -32,11 +33,53 @@ const  EventDetails = ({ event, onClose }) => {
   }
 
   const appointmentLink = `${window.location.origin}/appointment/${event.id}`;
+  const waitingListLink = `${window.location.origin}/waiting-list/${event.id}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(appointmentLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyWaitingListLink = () => {
+    navigator.clipboard.writeText(waitingListLink);
+    setCopiedWaitingList(true);
+    setTimeout(() => setCopiedWaitingList(false), 2000);
+  };
+
+  // Helper function to get unique days across all specialties
+  const getUniqueDays = () => {
+    if (!eventDetails?.event_specialties) return [];
+    
+    const allDays = eventDetails.event_specialties.flatMap(es => es.days || []);
+    const uniqueDaysMap = new Map();
+    
+    allDays.forEach(day => {
+      if (day.day_date && !uniqueDaysMap.has(day.day_date)) {
+        uniqueDaysMap.set(day.day_date, day);
+      }
+    });
+    
+    return Array.from(uniqueDaysMap.values()).sort((a, b) => 
+      new Date(a.day_date) - new Date(b.day_date)
+    );
+  };
+
+  // Helper function to get unique days for a specific specialty
+  const getUniqueDaysForSpecialty = (days) => {
+    if (!days || days.length === 0) return [];
+    
+    const uniqueDaysMap = new Map();
+    
+    days.forEach(day => {
+      if (day.day_date && !uniqueDaysMap.has(day.day_date)) {
+        uniqueDaysMap.set(day.day_date, day);
+      }
+    });
+    
+    return Array.from(uniqueDaysMap.values()).sort((a, b) => 
+      new Date(a.day_date) - new Date(b.day_date)
+    );
   };
 
   if (loading) {
@@ -49,6 +92,8 @@ const  EventDetails = ({ event, onClose }) => {
       </div>
     );
   }
+
+  const uniqueDays = getUniqueDays();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -104,38 +149,77 @@ const  EventDetails = ({ event, onClose }) => {
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Appointment Link */}
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-            <label className="block text-sm font-bold text-blue-900 mb-2 font-droid-arabic-kufi">
-              رابط التسجيل
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={appointmentLink}
-                readOnly
-                className="flex-1 p-3 bg-white border border-blue-300 rounded-lg font-mono text-sm"
-              />
-              <button
-                onClick={copyLink}
-                className="flex items-center gap-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-droid-arabic-kufi"
-              >
-                {copied ? (
-                  <>
-                    <CheckCircle size={18} />
-                    تم النسخ
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} />
-                    نسخ
-                  </>
-                )}
-              </button>
+          {/* Links Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Appointment Link */}
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+              <label className="block text-sm font-bold text-blue-900 mb-2 font-droid-arabic-kufi flex items-center gap-2">
+                <LinkIcon size={16} />
+                رابط التسجيل
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={appointmentLink}
+                  readOnly
+                  className="flex-1 p-3 bg-white border border-blue-300 rounded-lg font-mono text-xs"
+                />
+                <button
+                  onClick={copyLink}
+                  className="flex items-center gap-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-droid-arabic-kufi text-sm"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle size={18} />
+                      تم
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} />
+                      نسخ
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-blue-700 mt-2 font-droid-arabic-kufi">
+                شارك هذا الرابط مع المرضى للتسجيل في الحدث
+              </p>
             </div>
-            <p className="text-xs text-blue-700 mt-2 font-droid-arabic-kufi">
-              شارك هذا الرابط مع المرضى للتسجيل في الحدث
-            </p>
+
+            {/* Waiting List Link */}
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+              <label className="block text-sm font-bold text-purple-900 mb-2 font-droid-arabic-kufi flex items-center gap-2">
+                <Monitor size={16} />
+                قاعة الانتظار الكبيرة
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={waitingListLink}
+                  readOnly
+                  className="flex-1 p-3 bg-white border border-purple-300 rounded-lg font-mono text-xs"
+                />
+                <button
+                  onClick={copyWaitingListLink}
+                  className="flex items-center gap-2 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-droid-arabic-kufi text-sm"
+                >
+                  {copiedWaitingList ? (
+                    <>
+                      <CheckCircle size={18} />
+                      تم
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} />
+                      نسخ
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-purple-700 mt-2 font-droid-arabic-kufi">
+                رابط شاشة العرض لقاعة الانتظار
+              </p>
+            </div>
           </div>
 
           {/* Description */}
@@ -171,10 +255,10 @@ const  EventDetails = ({ event, onClose }) => {
               </div>
             </div>
 
+            {/* FIXED: Unique days count */}
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
               <div className="text-3xl font-bold text-purple-600 mb-1">
-                {eventDetails?.event_specialties?.reduce((sum, es) => 
-                  sum + (es.days?.length || 0), 0) || 0}
+                {uniqueDays.length}
               </div>
               <div className="text-sm text-purple-800 font-droid-arabic-kufi">
                 الأيام
@@ -201,7 +285,11 @@ const  EventDetails = ({ event, onClose }) => {
       التخصصات
     </h3>
     <div className="space-y-3">
-      {eventDetails.event_specialties.map((es, index) => (
+      {eventDetails.event_specialties.map((es, index) => {
+        // Get unique days for this specialty
+        const uniqueSpecialtyDays = getUniqueDaysForSpecialty(es.days);
+        
+        return (
         <div 
           key={index} 
           className="bg-gray-50 border border-gray-200 rounded-lg p-4"
@@ -220,7 +308,7 @@ const  EventDetails = ({ event, onClose }) => {
               )}
               
               <p className="text-sm text-gray-600 mt-1 font-droid-arabic-kufi">
-                الأيام: {es.days?.length || 0}
+                الأيام: {uniqueSpecialtyDays.length}
               </p>
             </div>
             <div className="text-right">
@@ -233,13 +321,13 @@ const  EventDetails = ({ event, onClose }) => {
             </div>
           </div>
 
-          {/* Days section continues... */}
-          {es.days && es.days.length > 0 && (
+          {/* Days section - FIXED: Show only unique days */}
+          {uniqueSpecialtyDays.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-300">
               <div className="flex flex-wrap gap-2">
-                {es.days.map((day, dayIndex) => (
+                {uniqueSpecialtyDays.map((day, dayIndex) => (
                   <div 
-                    key={dayIndex}
+                    key={day.day_date || dayIndex}
                     className="bg-white px-3 py-1 rounded border border-gray-300 text-xs"
                   >
                     <div className="font-semibold text-gray-700">
@@ -254,7 +342,7 @@ const  EventDetails = ({ event, onClose }) => {
             </div>
           )}
         </div>
-      ))}
+      )})}
     </div>
   </div>
 )}
