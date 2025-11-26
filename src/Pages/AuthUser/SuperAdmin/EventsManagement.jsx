@@ -30,10 +30,14 @@ export default function EventsManagement() {
 
   const handleViewDistribution = (event) => {
     setSelectedEventForDistribution(event);
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
   };
 
   const handleCloseDistribution = () => {
     setSelectedEventForDistribution(null);
+    // Restore body scroll
+    document.body.style.overflow = 'unset';
   };
 
   const handleOpenAddEvent = () => {
@@ -56,19 +60,21 @@ export default function EventsManagement() {
 
   return(
     <div className="flex-grow container min-h-screen">
-      {/* Header with Add Button */}
-      <div className="flex justify-between items-center mb-6 px-4 pt-6">
-        <h1 className="text-2xl font-bold text-gray-800 font-droid-arabic-kufi">
+      {/* Header with Add Button - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6 px-3 sm:px-4 pt-4 sm:pt-6">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 font-droid-arabic-kufi">
           إدارة الأحداث
         </h1>
         <button
           onClick={handleOpenAddEvent}
-          className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 
-                     text-white px-6 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 
-                     transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5
-                     font-droid-arabic-kufi"
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 
+                     text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl 
+                     hover:from-indigo-700 hover:to-purple-700 
+                     transition-all duration-300 shadow-lg hover:shadow-xl 
+                     transform hover:-translate-y-0.5 active:translate-y-0
+                     font-droid-arabic-kufi text-sm sm:text-base"
         >
-          <Plus size={22} />
+          <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
           <span>إضافة حدث جديد</span>
         </button>
       </div>
@@ -79,15 +85,49 @@ export default function EventsManagement() {
         onViewDistribution={handleViewDistribution}
       />
 
-      {/* Appointment Distribution Modal */}
+      {/* Appointment Distribution Modal - Mobile Responsive */}
       {selectedEventForDistribution && (
-        <AppointmentDistribution
-          eventId={selectedEventForDistribution.id}
-          onClose={handleCloseDistribution}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={handleCloseDistribution}
+          />
+          
+          {/* Modal Container - Full screen on mobile, centered on desktop */}
+          <div className="relative w-full h-full sm:h-auto sm:max-w-6xl sm:max-h-[90vh] 
+                          bg-white sm:rounded-2xl shadow-2xl overflow-hidden
+                          animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {/* Modal Header - Sticky */}
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-purple-600 
+                            px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center
+                            shadow-lg">
+              <h2 className="text-base sm:text-xl font-bold text-white font-droid-arabic-kufi">
+                توزيع المواعيد
+              </h2>
+              <button
+                onClick={handleCloseDistribution}
+                className="text-white/80 hover:text-white hover:bg-white/20 
+                           p-1.5 sm:p-2 rounded-lg transition-all duration-200
+                           flex-shrink-0"
+                title="إغلاق"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            
+            {/* Modal Content - Scrollable */}
+            <div className="overflow-y-auto h-[calc(100vh-56px)] sm:h-auto sm:max-h-[calc(90vh-72px)]">
+              <AppointmentDistribution
+                eventId={selectedEventForDistribution.id}
+                onClose={handleCloseDistribution}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Add Event Modal */}
+      {/* Add Event Modal - Mobile Responsive */}
       {isAddEventOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center">
           {/* Backdrop */}
@@ -96,29 +136,33 @@ export default function EventsManagement() {
             onClick={handleCloseAddEvent}
           />
           
-          {/* Modal Container */}
-          <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto 
-                          mt-4 mb-4 mx-4 bg-gray-50 rounded-2xl shadow-2xl
+          {/* Modal Container - Full screen on mobile, with margins on desktop */}
+          <div className="relative w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[95vh] 
+                          overflow-y-auto sm:mt-4 sm:mb-4 sm:mx-4 
+                          bg-gray-50 sm:rounded-2xl shadow-2xl
                           animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {/* Modal Header */}
+            {/* Modal Header - Sticky */}
             <div className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-purple-600 
-                            px-6 py-4 rounded-t-2xl flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white font-droid-arabic-kufi flex items-center gap-2">
-                <Plus size={24} />
+                            px-3 sm:px-6 py-3 sm:py-4 sm:rounded-t-2xl 
+                            flex justify-between items-center shadow-lg">
+              <h2 className="text-base sm:text-xl font-bold text-white font-droid-arabic-kufi 
+                             flex items-center gap-2">
+                <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                 إضافة حدث جديد
               </h2>
               <button
                 onClick={handleCloseAddEvent}
                 className="text-white/80 hover:text-white hover:bg-white/20 
-                           p-2 rounded-lg transition-all duration-200"
+                           p-1.5 sm:p-2 rounded-lg transition-all duration-200
+                           flex-shrink-0"
                 title="إغلاق"
               >
-                <X size={24} />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
             
             {/* Modal Content */}
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               <AddEvent 
                 getEvents={handleEventCreated}
                 onClose={handleCloseAddEvent}

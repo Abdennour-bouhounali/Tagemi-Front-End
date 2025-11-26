@@ -112,11 +112,13 @@ const AuthNavBar = ({
     };
   }, []);
 
+  // Shortened text for compact display
   const navItems = [
-    { icon: Home, text: "الصفحة الرئيسية", href: "/home", roles: [1, 2, 3, 4, 5] },
-    { icon: Calendar, text: "تسيير الفعاليات", href: "/admin/manage-events", roles: [1] },
-    { icon: Plus, text: "إضافة مواعيد متعددة", href: "/admin/add-multiple-appointments", roles: [1] },
-    { icon: FileText, text: "تسيير التخصصات", href: "/admin/speciality", roles: [1] },
+    { icon: Home, text: "الرئيسية", href: "/home", roles: [1, 2, 3, 4, 5] },
+    { icon: Calendar, text: "الفعاليات", href: "/admin/manage-events", roles: [1] },
+    { icon: Users, text: "المستخدمين", href: "/admin/users", roles: [1] },
+    { icon: Plus, text: "إضافة مواعيد", href: "/admin/add-multiple-appointments", roles: [1] },
+    { icon: FileText, text: "التخصصات", href: "/admin/speciality", roles: [1] },
   ];
 
   const filteredItems = navItems.filter((item) => item.roles.includes(user?.role_id));
@@ -125,16 +127,16 @@ const AuthNavBar = ({
   if (!mobile) {
     const itemsToShow = user?.role_id === 1 ? filteredItems : filteredItems.slice(0, 3);
     return (
-      <div className="flex items-center gap-1 xl:gap-2 flex-wrap">
+      <div className="flex items-center gap-0.5 lg:gap-1 xl:gap-1.5 2xl:gap-2">
         {/* Regular visible links */}
         {itemsToShow.map((item, idx) => (
           <Link
             key={idx}
             to={item.href}
-            className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
+            className="flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 xl:px-3 2xl:px-4 py-1.5 lg:py-2 xl:py-2.5 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
           >
-            <item.icon className="w-4 h-4 xl:w-5 xl:h-5 flex-shrink-0" />
-            <span className="text-xs xl:text-sm font-droid-arabic-kufi">{item.text}</span>
+            <item.icon className="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-shrink-0" />
+            <span className="text-[10px] lg:text-[11px] xl:text-xs 2xl:text-sm font-droid-arabic-kufi">{item.text}</span>
           </Link>
         ))}
 
@@ -144,14 +146,14 @@ const AuthNavBar = ({
             <button
               onClick={() => {
                 setIsEventTrackingDesktopOpen(!isEventTrackingDesktopOpen);
-                setIsGeneralDesktopOpen(false); // Close other dropdown
+                setIsGeneralDesktopOpen(false);
               }}
-              className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
+              className="flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 xl:px-3 2xl:px-4 py-1.5 lg:py-2 xl:py-2.5 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
             >
-              <Activity className="w-4 h-4 xl:w-5 xl:h-5" />
-              <span className="text-xs xl:text-sm font-droid-arabic-kufi">متابعة الأحداث</span>
+              <Activity className="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-shrink-0" />
+              <span className="text-[10px] lg:text-[11px] xl:text-xs 2xl:text-sm font-droid-arabic-kufi">متابعة</span>
               <ChevronDown
-                className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform ${isEventTrackingDesktopOpen ? "rotate-180" : ""}`}
+                className={`w-3 h-3 transition-transform flex-shrink-0 ${isEventTrackingDesktopOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -196,14 +198,14 @@ const AuthNavBar = ({
             <button
               onClick={() => {
                 setIsGeneralDesktopOpen(!isGeneralDesktopOpen);
-                setIsEventTrackingDesktopOpen(false); // Close other dropdown
+                setIsEventTrackingDesktopOpen(false);
               }}
-              className="flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-2.5 xl:py-3 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
+              className="flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 xl:px-3 2xl:px-4 py-1.5 lg:py-2 xl:py-2.5 text-[#2F3645] hover:bg-[#131842] hover:text-white rounded-full transition-all duration-200 font-medium whitespace-nowrap"
             >
-              <Settings className="w-4 h-4 xl:w-5 xl:h-5" />
-              <span className="text-xs xl:text-sm font-droid-arabic-kufi">إدارة عامة</span>
+              <Settings className="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-shrink-0" />
+              <span className="text-[10px] lg:text-[11px] xl:text-xs 2xl:text-sm font-droid-arabic-kufi">إدارة</span>
               <ChevronDown
-                className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform ${isGeneralDesktopOpen ? "rotate-180" : ""}`}
+                className={`w-3 h-3 transition-transform flex-shrink-0 ${isGeneralDesktopOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -239,8 +241,8 @@ const AuthNavBar = ({
   }
 
   // 📱 MOBILE VERSION
-  const mainMobileLinks = filteredItems.slice(0, 2);
-  const moreMobileLinks = filteredItems.slice(2);
+  const mainMobileLinks = filteredItems.slice(0, 3);
+  const moreMobileLinks = filteredItems.slice(3);
 
   return (
     <div className="flex flex-col space-y-2 w-full">

@@ -130,7 +130,7 @@ export default function Login() {
                       placeholder="example@email.com"
                       required
                     />
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                   </div>
                   {errors.email && (
                     <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
@@ -161,7 +161,6 @@ export default function Login() {
                       placeholder="••••••••"
                       required
                     />
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
