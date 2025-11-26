@@ -45,7 +45,7 @@ export default function ActivityMore() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     
-    const isSuperAdmin = user && user.role_id === 1;
+    const isSuperAdmin = user && (user.role_id === 1 || user.role_id === 7);
 
     // Helper function to get correct media URL
     const getMediaUrl = (url) => {

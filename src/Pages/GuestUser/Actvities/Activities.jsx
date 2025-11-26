@@ -49,7 +49,7 @@ export default function Activities() {
     const [activityToDelete, setActivityToDelete] = useState(null);
 
     // Check if user is super admin
-    const isSuperAdmin = user && user.role_id === 1;
+    const isSuperContentAdmin = user && (user.role_id === 1 || user.role_id === 7);
 
     // Helper function to get correct media URL
     const getMediaUrl = (url) => {
@@ -285,7 +285,7 @@ export default function Activities() {
         </nav>
 
         {/* Admin Badge */}
-        {isSuperAdmin && (
+        {isSuperContentAdmin && (
             <div className="absolute top-6 right-4 sm:right-8">
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg">
                     <Shield className="w-4 h-4 text-white" />
@@ -448,7 +448,7 @@ export default function Activities() {
                         {/* Controls */}
                         <div className="flex gap-3 items-center">
                             {/* Add Button (Admin Only) */}
-                            {isSuperAdmin && (
+                            {isSuperContentAdmin && (
                                 <button
                                     onClick={handleAddActivity}
                                     className="px-4 py-3 bg-[#E03A6F] text-white rounded-xl hover:bg-[#c8102e] transition-colors flex items-center gap-2 font-droid-arabic-kufi"
@@ -526,7 +526,7 @@ export default function Activities() {
                                         style={{ animationDelay: `${index * 100}ms` }}
                                     >
                                         {/* Admin Controls */}
-                                        {isSuperAdmin && (
+                                        {isSuperContentAdmin && (
                                             <div className="absolute top-4 left-4 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={(e) => handleEditActivity(activity, e)}
@@ -636,7 +636,7 @@ export default function Activities() {
                                         style={{ animationDelay: `${index * 100}ms` }}
                                     >
                                         {/* Admin Controls */}
-                                        {isSuperAdmin && (
+                                        {isSuperContentAdmin && (
                                             <div className="absolute top-4 left-4 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={(e) => handleEditActivity(activity, e)}

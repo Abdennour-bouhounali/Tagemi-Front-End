@@ -153,7 +153,7 @@ const  EventDetails = ({ event, onClose }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Appointment Link */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-              <label className="block text-sm font-bold text-blue-900 mb-2 font-droid-arabic-kufi flex items-center gap-2">
+              <label className="block text-sm font-bold text-blue-900 mb-2 font-droid-arabic-kufi items-center gap-2">
                 <LinkIcon size={16} />
                 رابط التسجيل
               </label>
@@ -188,7 +188,7 @@ const  EventDetails = ({ event, onClose }) => {
 
             {/* Waiting List Link */}
             <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
-              <label className="block text-sm font-bold text-purple-900 mb-2 font-droid-arabic-kufi flex items-center gap-2">
+              <label className="block text-sm font-bold text-purple-900 mb-2 font-droid-arabic-kufi items-center gap-2">
                 <Monitor size={16} />
                 قاعة الانتظار الكبيرة
               </label>

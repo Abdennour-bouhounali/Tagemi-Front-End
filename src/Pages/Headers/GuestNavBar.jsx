@@ -152,7 +152,7 @@ const GuestNavBar = ({ user, types }) => {
                         </NavLink>
 
                         {/* Activity Types Dropdown */}
-                        {user && user.role_id === 1 && types && types.length > 0 && (
+                        {user && (user.role_id === 1 || user.role_id === 7) && types && types.length > 0 && (
                             <div ref={dropdownRef} className="relative">
                                 <button
                                     onClick={toggleActivitiesDropdown}
@@ -274,36 +274,7 @@ const GuestNavBar = ({ user, types }) => {
                                 </MobileNavLink>
 
                                 {/* Mobile Activity Types Dropdown */}
-                                {user && user.role_id === 1 && types && types.length > 0 && (
-                                    <div>
-                                        <button
-                                            onClick={toggleActivitiesDropdown}
-                                            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 rounded-xl font-droid-arabic-kufi transition-all duration-200"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Calendar className="w-5 h-5" />
-                                                <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
-                                            </div>
-                                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isActivitiesDropdownOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        
-                                        {isActivitiesDropdownOpen && (
-                                            <div className="mt-2 ml-4 space-y-1">
-                                                {types.map((type) => (
-                                                    <Link
-                                                        key={type.id}
-                                                        to={`activities/type/${type.id}`}
-                                                        onClick={closeNav}
-                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
-                                                    >
-                                                        <Calendar className="w-4 h-4" />
-                                                        <span>{language === 'en' ? type.name_en : type.name_ar}</span>
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                
 
                                 <MobileNavLink to="/contact" language={language} onClick={closeNav}>
                                     <Phone className="w-5 h-5" />
@@ -331,6 +302,49 @@ const GuestNavBar = ({ user, types }) => {
                                     <LanguageSelector />
                                 </div>
                             </div>
+                            {user && user.role_id === 1 && types && types.length > 0 && (
+                                    <div>
+                                        <button
+                                            onClick={toggleActivitiesDropdown}
+                                            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 rounded-xl font-droid-arabic-kufi transition-all duration-200"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Calendar className="w-5 h-5" />
+                                                <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
+                                            </div>
+                                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isActivitiesDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        
+                                        {isActivitiesDropdownOpen && (
+                                            <div className="mt-2 ml-4 space-y-1">
+                                                {types.map((type) => (
+                                                    <MobileNavLink
+                                                        key={type.id}
+                                                        to={`activities/type/${type.id}`}
+                                                        onClick={closeNav}
+                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
+                                                    >
+                                                        <Calendar className="w-4 h-4" />
+                                                        <span>{language === 'en' ? type.name_en : type.name_ar}</span>
+                                                    </MobileNavLink>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                { user && (user.role_id === 3 || user.role_id === 5) && 
+                                        <MobileNavLink
+                                            to={`/admin/check-presence/${user.event_id}`}
+                                            className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r  from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
+                                        >
+                                            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                                            <span className="relative flex items-center gap-1.5 xl:gap-2">
+                                                <Calendar className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+                                                <span className="hidden xl:inline">{language === 'en' ? 'Appointments' : 'المواعيد'}</span>
+                                                <span className="xl:hidden">{language === 'en' ? 'Appt' : 'مواعيد'}</span>
+                                            </span>
+                                        </MobileNavLink>
+                                    }
 
                             {/* Mobile User Actions */}
                             <div className="mt-6 pt-6 border-t border-gray-200">
