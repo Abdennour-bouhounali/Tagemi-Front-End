@@ -154,6 +154,13 @@ export default function Events({ events, getEvents, onViewDetails }) {
     setTimeout(() => setCopiedEventId(null), 2000);
   };
 
+    const copyEvaluationLink = (eventId) => {
+    const link = `${window.location.origin}/evaluation/${eventId}`;
+    navigator.clipboard.writeText(link);
+    setCopiedEventId(eventId);
+    setTimeout(() => setCopiedEventId(null), 2000);
+  };
+
   // Open modals/panels
   const handleViewAdmins = (event) => {
     setSelectedEvent(event);
@@ -366,6 +373,27 @@ export default function Events({ events, getEvents, onViewDetails }) {
                         </button>
                       )}
 
+                                            {/* Copy Link Button */}
+                      {!event.is_archived && (
+                        <button
+                          onClick={() => copyEvaluationLink(event.id)}
+                          className="flex items-center gap-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-droid-arabic-kufi transition"
+                          title="نسخ رابط التقييم"
+                        >
+                          {copiedEventId === event.id ? (
+                            <>
+                              <CheckCircle className="w-4 h-4" />
+                              تم النسخ
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4" />
+                              نسخ الرابط
+                            </>
+                          )}
+                        </button>
+                      )}
+
                       {/* Details Button */}
                       <button
                         onClick={() => handleViewDetails(event)}
@@ -414,6 +442,7 @@ export default function Events({ events, getEvents, onViewDetails }) {
                         </button>
                       )}
 
+
                       {/* Archive Button */}
                       {!event.is_archived && (
                         <button
@@ -448,7 +477,13 @@ export default function Events({ events, getEvents, onViewDetails }) {
                       تقرير الحدث
                     </Link></>
                   )}
-                     
+                      <Link 
+                      to={`/admin/evaluation_stats/${event.id}`}
+                      className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white  hover:bg-blue-600  rounded-lg text-sm font-droid-arabic-kufi transition"
+                    >
+                      <FileText className="w-4 h-4" />
+                      تقييم المستفيدين
+                    </Link>
                     </div>
                   </td>
                 </tr>

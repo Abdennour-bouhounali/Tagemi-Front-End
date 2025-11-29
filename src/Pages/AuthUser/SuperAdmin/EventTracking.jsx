@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { AppContext } from "../../Context/AppContext";
+import { AppContext } from "../../../Context/AppContext";
 import {
   Calendar,
   Users,
@@ -218,8 +218,9 @@ const EventTracking = () => {
   const trackingPages = event?.is_archived ? archivedStatisticsPages : activeTrackingPages;
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-7xl mb-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white">
+      <div className="w-screen max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-10">
+
         {/* Header Section */}
         <div className="mb-8">
           <Link

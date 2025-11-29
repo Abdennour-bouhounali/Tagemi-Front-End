@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
+
 import {
   Search,
   CheckCircle,
@@ -29,6 +30,7 @@ import {
   MoreVertical,
   ChevronDown,
   Menu,
+  MessageCircle,
 } from "lucide-react";
 import { Select, Input } from '../../Common/FormInputs';
 import AppointmentDocuments from '../SuperAdmin/AppointmentDocuments';
@@ -39,7 +41,7 @@ const CheckPresence = () => {
   const { eventId } = useParams();
   const { token, user } = useContext(AppContext);
   const [downloadSpecialtyFilter, setDownloadSpecialtyFilter] = useState("all");
-  
+
   // State management
   const [event, setEvent] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -50,7 +52,7 @@ const CheckPresence = () => {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -59,12 +61,13 @@ const CheckPresence = () => {
   const [dayFilter, setDayFilter] = useState("all");
   const [sexFilter, setSexFilter] = useState("all");
   const [hourFilter, setHourFilter] = useState("all");
-  const [showFilters, setShowFilters] = useState(false); // Mobile filter toggle
+  const [showFilters, setShowFilters] = useState(false);
+  const [reminderFilter, setReminderFilter] = useState("all"); // NEW: Reminder filter
 
   // Edit mode states
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({});
-  
+
   // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
@@ -77,7 +80,204 @@ const CheckPresence = () => {
 
   // Mobile action menu state
   const [activeActionMenu, setActiveActionMenu] = useState(null);
-  const [menuPosition, setMenuPosition] = useState('bottom'); // 'up' or 'down'
+  const [menuPosition, setMenuPosition] = useState('bottom');
+
+  // NEW: Reminder stats state
+  const [reminderStats, setReminderStats] = useState({ total: 0, reminded: 0, not_reminded: 0 });
+
+  // NEW: Fetch reminder statistics
+  const fetchReminderStats = async () => {
+    try {
+      const res = await fetch(
+        `${apiUrl}/api/appointments/reminder-stats/${eventId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
+
+      if (res.ok && data.stats) {
+        setReminderStats(data.stats);
+      }
+    } catch (err) {
+      console.error("Error fetching reminder stats:", err);
+    }
+  };
+
+  // NEW: Updated sendWhatsAppReminder with database update
+  // تحديث دالة sendWhatsAppReminder
+  const sendWhatsAppReminder = async (appointment) => {
+    const eventName = event?.name || "الحدث";
+    const patientName = appointment.full_name || "المريض";
+    const phone = appointment.phone?.replace(/[^0-9]/g, '');
+    const phoneNumber = formatPhoneForWhatsApp(phone);
+
+    if (!phoneNumber || phoneNumber.length < 10) {
+      alert('رقم الهاتف غير صحيح. الرجاء التحقق من الرقم.');
+      return;
+    }
+
+    const allAppointments = appointment.all_appointments || [appointment];
+    const appointmentCount = allAppointments.length;
+
+    let appointmentsList = "";
+    allAppointments.forEach((apt, index) => {
+      const specialty = apt.event_specialty?.specialty?.name || "غير محدد";
+      const date = apt.day?.day_date || apt.day?.date || "-";
+      const time = apt.hour?.time || apt.hour?.hour || "-";
+      appointmentsList += `\n${index + 1}. التخصص: ${specialty}\n   التاريخ: ${date}\n   التوقيت: ${time}\n`;
+    });
+
+    const message = `السلام عليكم ${patientName}،
+
+نذكر سيادتكم المحترمة ${appointmentCount === 1 ? 'بموعد' : 'بمواعيد'} الفحوصات الطبية:
+
+*${eventName}*
+${appointmentsList}
+*الحضور بمحرم إجباري بالنسبة للنساء*
+
+نرجو الحضور ربع ساعة قبل الموعد ${appointmentCount === 1 ? 'الموعد' : ''} لضمان السيرورة الحسنة للفحوصات.
+
+يرجى منكم تقييم الحملة عبر الرابط التالي:
+${window.location.origin}/evaluation/${eventId}/${appointment.id}
+
+فريق مؤسسة تجمي للتنمية الإنسانية`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    // فتح WhatsApp
+    window.open(whatsappUrl, '_blank');
+
+    // تحديث حالة is_reminded في قاعدة البيانات
+    try {
+      const res = await fetch(
+        `${apiUrl}/api/appointments/mark-multiple-reminded`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            patient_id: appointment.patient_id,
+            event_id: eventId,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        const currentTime = new Date().toISOString();
+
+        // تحديث appointments state محلياً
+        setAppointments(prevAppointments =>
+          prevAppointments.map(apt => {
+            // تحديث جميع المواعيد التي لها نفس patient_id
+            if (apt.patient_id === appointment.patient_id) {
+              return {
+                ...apt,
+                is_reminded: 1,
+                reminded_at: currentTime
+              };
+            }
+            return apt;
+          })
+        );
+
+        // تحديث filteredAppointments state محلياً
+        setFilteredAppointments(prevFiltered =>
+          prevFiltered.map(apt => {
+            if (apt.patient_id === appointment.patient_id) {
+              return {
+                ...apt,
+                is_reminded: 1,
+                reminded_at: currentTime,
+                // تحديث all_appointments أيضاً
+                all_appointments: apt.all_appointments?.map(subApt => ({
+                  ...subApt,
+                  is_reminded: 1,
+                  reminded_at: currentTime
+                }))
+              };
+            }
+            return apt;
+          })
+        );
+
+        // تحديث selectedAppointment إذا كان مفتوحاً
+        if (selectedAppointment && selectedAppointment.patient_id === appointment.patient_id) {
+          setSelectedAppointment(prev => ({
+            ...prev,
+            is_reminded: 1,
+            reminded_at: currentTime
+          }));
+
+          setPatientAllAppointments(prev =>
+            prev.map(apt => ({
+              ...apt,
+              is_reminded: 1,
+              reminded_at: currentTime
+            }))
+          );
+        }
+
+        // تحديث reminderStats محلياً
+        setReminderStats(prev => ({
+          total: prev.total,
+          reminded: prev.reminded + 1,
+          not_reminded: prev.not_reminded > 0 ? prev.not_reminded - 1 : 0
+        }));
+
+        setSuccess("تم إرسال التذكير بنجاح");
+        setTimeout(() => setSuccess(""), 3000);
+      }
+    } catch (err) {
+      console.error("Error updating reminder status:", err);
+      setError("حدث خطأ أثناء تحديث حالة التذكير");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
+  const generateEvaluationLink = (eventId, appointmentId) => {
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/evaluation/${eventId}/${appointmentId}`;
+  };
+
+  const sendEvaluationLinkViaWhatsApp = (appointment, eventId) => {
+    const evaluationLink = generateEvaluationLink(eventId, appointment.id);
+    const message = `مرحباً ${appointment.patient_name}،
+
+  شكراً لمشاركتك في الحملة الطبية. نأمل أن تكون قد حصلت على خدمة طبية جيدة.
+
+  نرجو منك تقييم تجربتك من خلال الرابط التالي:
+  ${evaluationLink}
+
+  تقييمك يساعدنا على تحسين خدماتنا في المستقبل.
+
+  شكراً لوقتك 🌟`;
+
+    const phoneNumber = appointment.phone.replace(/[^0-9]/g, "");
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
+  // NEW: Get reminder badge
+  const getReminderBadge = (appointment) => {
+    if (appointment.is_reminded === true || appointment.is_reminded === 1) {
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"
+          title={`تم الإرسال: ${appointment.reminded_at ? new Date(appointment.reminded_at).toLocaleString('ar-DZ') : ''}`}
+        >
+          <MessageCircle className="w-3 h-3" />
+          تم التذكير
+        </span>
+      );
+    }
+    return null;
+  };
 
   // Fetch available specialties
   const fetchAvailableSpecialties = async (appointmentId) => {
@@ -152,7 +352,7 @@ const CheckPresence = () => {
   // Helper function to determine patient sex
   const getPatientSex = (appointment) => {
     const sex = String(appointment?.sex || '').toLowerCase().trim();
-    
+
     if (sex == 0 || sex === 'ذكر' || sex === 'm' || sex === 'male') {
       return 'male';
     } else if (sex == 1 || sex === 'أنثى' || sex === 'f' || sex === 'female') {
@@ -161,10 +361,31 @@ const CheckPresence = () => {
     return 'unknown';
   };
 
+  const formatPhoneForWhatsApp = (phone) => {
+    if (!phone) return '';
+
+    let cleaned = phone.toString().replace(/\D/g, '');
+
+    if (cleaned.startsWith('213')) {
+      return cleaned;
+    } else if (cleaned.startsWith('0') && cleaned.length === 10) {
+      return '213' + cleaned.substring(1);
+    } else if (cleaned.length === 9) {
+      return '213' + cleaned;
+    } else if (cleaned.startsWith('00213')) {
+      return cleaned.substring(2);
+    } else {
+      if (cleaned.length >= 9 && cleaned.length <= 10) {
+        return '213' + cleaned.replace(/^0+/, '');
+      }
+      return cleaned;
+    }
+  };
+
   // Render gender icon
   const renderGenderIcon = (appointment) => {
     const sex = getPatientSex(appointment);
-    
+
     if (sex === 'male') {
       return (
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 flex-shrink-0" title="ذكر">
@@ -188,7 +409,7 @@ const CheckPresence = () => {
   // Get unique days by day_date
   const days = useMemo(() => {
     const daysMap = new Map();
-    
+
     appointments.forEach(apt => {
       if (apt.day && apt.day.day_date) {
         if (!daysMap.has(apt.day.day_date)) {
@@ -196,7 +417,7 @@ const CheckPresence = () => {
         }
       }
     });
-    
+
     return Array.from(daysMap.values()).sort((a, b) => {
       return new Date(a.day_date) - new Date(b.day_date);
     });
@@ -205,7 +426,7 @@ const CheckPresence = () => {
   // Get unique hours
   const hours = useMemo(() => {
     const hoursMap = new Map();
-    
+
     appointments.forEach(apt => {
       const hour = apt.hour;
       if (hour && (hour.time || hour.hour)) {
@@ -215,7 +436,7 @@ const CheckPresence = () => {
         }
       }
     });
-    
+
     return Array.from(hoursMap.values()).sort((a, b) => {
       return a.localeCompare(b);
     });
@@ -224,7 +445,7 @@ const CheckPresence = () => {
   // Get unique specialties
   const specialties = useMemo(() => {
     const specialtiesMap = new Map();
-    
+
     appointments.forEach(apt => {
       const specialty = apt.event_specialty?.specialty;
       if (specialty && specialty.id) {
@@ -233,42 +454,41 @@ const CheckPresence = () => {
         }
       }
     });
-    
+
     return Array.from(specialtiesMap.values());
   }, [appointments]);
 
   const handleDownloadPDF = (patientData) => {
-    // PDF download logic remains the same
     const appointments = patientData.all_appointments || [patientData];
     const primaryAppointment = patientData;
-    
+
     const printWindow = window.open("", "_blank");
     const eventName = event?.name || "الحدث";
     const date = new Date().toLocaleDateString("ar-SA");
     const logoUrl = `${window.location.origin}/tagemi_logo.png`;
-    
+
     const full_name = primaryAppointment.full_name;
-    const birthday = primaryAppointment.birthday 
-      ? new Date(primaryAppointment.birthday).toLocaleDateString("en-UK") 
+    const birthday = primaryAppointment.birthday
+      ? new Date(primaryAppointment.birthday).toLocaleDateString("en-UK")
       : "-";
     const gender = primaryAppointment.sex === '0' || primaryAppointment.sex === 0 ? 'ذكر' : 'أنثى';
-    const diseases = primaryAppointment.diseases && primaryAppointment.diseases !== 'nothing' 
-      ? primaryAppointment.diseases 
+    const diseases = primaryAppointment.diseases && primaryAppointment.diseases !== 'nothing'
+      ? primaryAppointment.diseases
       : 'لا يوجد';
-    
+
     const allMedicalDocs = [];
     appointments.forEach(apt => {
       if (apt.medical_document_urls && apt.medical_document_urls.length > 0) {
         allMedicalDocs.push(...apt.medical_document_urls);
       }
     });
-    
+
     const appointmentsList = appointments.map(apt => ({
       specialty: apt.event_specialty?.specialty?.name || "-",
       date: apt.day?.day_date || apt.day?.date || "-",
       time: apt.hour?.time || apt.hour?.hour || "-"
     }));
-    
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl">
@@ -350,7 +570,7 @@ const CheckPresence = () => {
       </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => printWindow.print(), 250);
@@ -359,7 +579,7 @@ const CheckPresence = () => {
   // Group appointments by patient_id
   const getUniquePatients = (appointments) => {
     const patientMap = new Map();
-    
+
     appointments.forEach(apt => {
       if (!patientMap.has(apt.patient_id)) {
         patientMap.set(apt.patient_id, {
@@ -371,13 +591,13 @@ const CheckPresence = () => {
         const patient = patientMap.get(apt.patient_id);
         patient.all.push(apt);
         patient.count++;
-        
+
         if (apt.specialty_order > patient.primary.specialty_order) {
           patient.primary = apt;
         }
       }
     });
-    
+
     return Array.from(patientMap.values()).map(p => ({
       ...p.primary,
       appointment_count: p.count,
@@ -385,6 +605,7 @@ const CheckPresence = () => {
     }));
   };
 
+  // UPDATED: Apply filters including reminder filter
   const applyFilters = () => {
     let filtered = [...appointments];
 
@@ -429,18 +650,33 @@ const CheckPresence = () => {
       });
     }
 
+    // NEW: Reminder filter
+    if (reminderFilter !== "all") {
+      filtered = filtered.filter((apt) => {
+        if (reminderFilter === "reminded") {
+          return apt.is_reminded === true || apt.is_reminded === 1;
+        } else if (reminderFilter === "not_reminded") {
+          return apt.is_reminded === false || apt.is_reminded === 0 || apt.is_reminded === null;
+        }
+        return true;
+      });
+    }
+
     const uniquePatients = getUniquePatients(filtered);
     setFilteredAppointments(uniquePatients);
   };
 
+  // UPDATED: useEffect to include fetchReminderStats
   useEffect(() => {
     fetchEventDetails();
     fetchAppointments();
+    fetchReminderStats();
   }, [eventId]);
 
+  // UPDATED: useEffect to include reminderFilter
   useEffect(() => {
     applyFilters();
-  }, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter, hourFilter, sexFilter]);
+  }, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter, hourFilter, sexFilter, reminderFilter]);
 
   const fetchEventDetails = async () => {
     try {
@@ -486,7 +722,7 @@ const CheckPresence = () => {
 
   const startEditing = () => {
     if (!selectedAppointment) return;
-    
+
     setIsEditing(true);
     const nameParts = selectedAppointment.full_name?.split(' ') || [];
     setEditedData({
@@ -528,17 +764,17 @@ const CheckPresence = () => {
 
       if (res.ok) {
         setSuccess("تم تحديث معلومات المريض بنجاح");
-        
+
         await fetchAppointments();
-        
+
         requestAnimationFrame(() => {
           window.scrollTo(0, scrollPosition);
         });
-        
+
         setSelectedAppointment(data.appointment);
         setIsEditing(false);
         setEditedData({});
-        
+
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(data.message || "فشل في تحديث المعلومات");
@@ -568,12 +804,12 @@ const CheckPresence = () => {
 
       if (res.ok) {
         setSuccess("تم حذف الموعد بنجاح");
-        
+
         await fetchAppointments();
         setShowDetailsModal(false);
         setShowDeleteConfirm(false);
         setAppointmentToDelete(null);
-        
+
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(data.message || "فشل في حذف الموعد");
@@ -588,11 +824,11 @@ const CheckPresence = () => {
 
   const exportBySpecialty = () => {
     const appointmentsBySpecialty = {};
-    
+
     filteredAppointments.forEach(apt => {
       const specialtyName = apt.event_specialty?.specialty?.name || "غير محدد";
       const specialtyId = apt.event_specialty?.specialty?.id || "unknown";
-      
+
       if (!appointmentsBySpecialty[specialtyId]) {
         appointmentsBySpecialty[specialtyId] = {
           name: specialtyName,
@@ -606,9 +842,9 @@ const CheckPresence = () => {
     const eventName = event?.name || "الحدث";
     const date = new Date().toLocaleDateString("ar-SA");
     const logoUrl = `${window.location.origin}/tagemi_logo.png`;
-    
+
     let specialtyPages = "";
-    
+
     Object.values(appointmentsBySpecialty).forEach((specialty, index) => {
       const stats = {
         total: specialty.appointments.length,
@@ -617,7 +853,7 @@ const CheckPresence = () => {
         pending: specialty.appointments.filter(a => a.status === "Pending").length,
         special: specialty.appointments.filter(a => a.is_special === true || a.is_special === 1).length,
       };
-      
+
       specialtyPages += `
         <div class="page" style="${index > 0 ? 'page-break-before: always;' : ''}">
           <div class="specialty-header">
@@ -663,8 +899,8 @@ const CheckPresence = () => {
             </thead>
             <tbody>
               ${specialty.appointments
-                .map(
-                  (apt) => `
+          .map(
+            (apt) => `
                 <tr>
                   <td>${apt.patient_id || "-"}</td>
                   <td>${apt.full_name || "-"}${apt.is_special ? ' ⭐' : ''}</td>
@@ -673,30 +909,29 @@ const CheckPresence = () => {
                   <td>${apt.phone || "-"}</td>
                   <td>
                     <span class="status status-${apt.is_special ? 'special' : apt.status?.toLowerCase() || "pending"}">
-                      ${
-                        apt.is_special 
-                          ? "حالة خاصة"
-                          : apt.status === "Present"
-                          ? "حاضر"
-                          : apt.status === "Waiting"
-                          ? "في الانتظار"
-                          : apt.status === "Completed"
-                          ? "مكتمل"
-                          : "قيد الانتظار"
-                      }
+                      ${apt.is_special
+                ? "حالة خاصة"
+                : apt.status === "Present"
+                  ? "حاضر"
+                  : apt.status === "Waiting"
+                    ? "في الانتظار"
+                    : apt.status === "Completed"
+                      ? "مكتمل"
+                      : "قيد الانتظار"
+              }
                     </span>
                   </td>
                   <td style="border-left: 1px solid #e2e8f0;"></td>
                 </tr>
               `
-                )
-                .join("")}
+          )
+          .join("")}
             </tbody>
           </table>
         </div>
       `;
     });
-    
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl">
@@ -807,7 +1042,7 @@ const CheckPresence = () => {
       </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -820,9 +1055,9 @@ const CheckPresence = () => {
     const eventName = event?.name || "الحدث";
     const patientAppts = appointment.all_appointments || [appointment];
     const logoUrl = `${window.location.origin}/tagemi_logo.png`;
-    
+
     const fullName = appointment.full_name || "-";
-    const birthday = appointment.birthday 
+    const birthday = appointment.birthday
       ? new Date(appointment.birthday).toLocaleDateString('en-UK')
       : "-";
     const gender = appointment.sex == '0' ? 'ذكر' : appointment.sex == '1' ? 'أنثى' : '-';
@@ -831,7 +1066,7 @@ const CheckPresence = () => {
     const state = appointment.state || "-";
     const city = appointment.city || "-";
     const diseases = appointment.diseases && appointment.diseases !== 'nothing' ? appointment.diseases : "لا يوجد";
-    
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl">
@@ -1058,7 +1293,7 @@ const CheckPresence = () => {
       </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -1087,7 +1322,7 @@ const CheckPresence = () => {
 
       if (res.ok) {
         setSuccess(`تم تحديث حالة الحضور بنجاح`);
-        
+
         await fetchAppointments();
 
         requestAnimationFrame(() => {
@@ -1132,13 +1367,13 @@ const CheckPresence = () => {
 
       if (res.ok) {
         setSuccess(data.message || "تم تحديد المريض كحالة خاصة");
-        
+
         await fetchAppointments();
-        
+
         requestAnimationFrame(() => {
           window.scrollTo(0, scrollPosition);
         });
-        
+
         setShowDetailsModal(false);
 
         setTimeout(() => setSuccess(""), 3000);
@@ -1157,7 +1392,7 @@ const CheckPresence = () => {
     const printWindow = window.open("", "_blank");
     const eventName = event?.name || "الحدث";
     const date = new Date().toLocaleDateString("ar-SA");
-    
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl">
@@ -1294,8 +1529,8 @@ const CheckPresence = () => {
           </thead>
           <tbody>
             ${filteredAppointments
-              .map(
-                (apt) => `
+        .map(
+          (apt) => `
               <tr>
                 <td>${apt.patient_id || "-"}</td>
                 <td>${apt.full_name || "-"}${apt.is_special ? ' ⭐' : ''}</td>
@@ -1305,23 +1540,22 @@ const CheckPresence = () => {
                 <td>${apt.phone || "-"}</td>
                 <td>
                   <span class="status status-${apt.is_special ? 'special' : apt.status?.toLowerCase() || "pending"}">
-                    ${
-                      apt.is_special 
-                        ? "حالة خاصة"
-                        : apt.status === "Present"
-                        ? "حاضر"
-                        : apt.status === "Waiting"
-                        ? "في الانتظار"
-                        : apt.status === "Completed"
-                        ? "مكتمل"
-                        : "قيد الانتظار"
-                    }
+                    ${apt.is_special
+              ? "حالة خاصة"
+              : apt.status === "Present"
+                ? "حاضر"
+                : apt.status === "Waiting"
+                  ? "في الانتظار"
+                  : apt.status === "Completed"
+                    ? "مكتمل"
+                    : "قيد الانتظار"
+            }
                   </span>
                 </td>
               </tr>
             `
-              )
-              .join("")}
+        )
+        .join("")}
           </tbody>
         </table>
 
@@ -1332,7 +1566,7 @@ const CheckPresence = () => {
       </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -1381,7 +1615,7 @@ const CheckPresence = () => {
 
   const handleDownloadCSV = () => {
     let appointmentsToExport = appointments;
-    
+
     if (downloadSpecialtyFilter !== "all") {
       appointmentsToExport = appointments.filter(
         (apt) => apt.event_specialty?.specialty?.id?.toString() === downloadSpecialtyFilter
@@ -1409,7 +1643,8 @@ const CheckPresence = () => {
       'الجنس',
       'الأمراض',
       'الطبيب',
-      'حالة خاصة'
+      'حالة خاصة',
+      'تم التذكير' // NEW
     ];
 
     const statusMap = {
@@ -1422,18 +1657,19 @@ const CheckPresence = () => {
     };
 
     const csvRows = appointmentsToExport.map(appointment => {
-      const status = appointment.is_special 
-        ? 'حالة خاصة' 
+      const status = appointment.is_special
+        ? 'حالة خاصة'
         : (statusMap[appointment.status] || appointment.status);
-      const birthday = appointment.birthday 
-        ? new Date(appointment.birthday).toLocaleDateString('en-UK') 
+      const birthday = appointment.birthday
+        ? new Date(appointment.birthday).toLocaleDateString('en-UK')
         : '-';
       const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
-      const diseases = appointment.diseases && appointment.diseases !== 'nothing' 
-        ? appointment.diseases 
+      const diseases = appointment.diseases && appointment.diseases !== 'nothing'
+        ? appointment.diseases
         : '-';
       const isSpecial = appointment.is_special ? 'نعم' : 'لا';
-      
+      const isReminded = appointment.is_reminded ? 'نعم' : 'لا'; // NEW
+
       return [
         appointment.patient_id || '-',
         appointment.full_name || '-',
@@ -1449,7 +1685,8 @@ const CheckPresence = () => {
         sex,
         diseases,
         appointment.doctor?.name || 'غير محدد',
-        isSpecial
+        isSpecial,
+        isReminded // NEW
       ];
     });
 
@@ -1465,13 +1702,13 @@ const CheckPresence = () => {
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
-    const specialtyName = downloadSpecialtyFilter === "all" 
-      ? "جميع_التخصصات" 
+
+    const specialtyName = downloadSpecialtyFilter === "all"
+      ? "جميع_التخصصات"
       : specialties.find(s => s.id.toString() === downloadSpecialtyFilter)?.name || "تخصص";
     const eventName = event?.name?.replace(/\s+/g, '_') || 'الحدث';
     const filename = `${eventName}_${specialtyName}_${new Date().toLocaleDateString('en-UK').replace(/\//g, '-')}.csv`;
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
@@ -1497,10 +1734,9 @@ const CheckPresence = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white">
-      {/* Mobile-optimized container */}
       <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-10">
-        
-        {/* Header - Mobile Optimized */}
+
+        {/* Header */}
         {user.role_id === 1 && (
           <div className="mb-4 sm:mb-6">
             <Link
@@ -1512,7 +1748,6 @@ const CheckPresence = () => {
             </Link>
 
             <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100">
-              {/* Mobile: Stack vertically */}
               <div className="flex flex-col gap-4">
                 <div>
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 font-droid-arabic-kufi">
@@ -1523,7 +1758,6 @@ const CheckPresence = () => {
                   </p>
                 </div>
 
-                {/* Action buttons - responsive layout */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   {event?.is_current && (
                     <span className="bg-green-100 text-green-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold font-droid-arabic-kufi flex items-center gap-2">
@@ -1531,8 +1765,7 @@ const CheckPresence = () => {
                       حدث نشط
                     </span>
                   )}
-                  
-                  {/* Mobile: Compact buttons */}
+
                   <button
                     onClick={fetchAppointments}
                     className="flex items-center gap-1 sm:gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm"
@@ -1542,7 +1775,6 @@ const CheckPresence = () => {
                     <span className="hidden sm:inline">تحديث</span>
                   </button>
 
-                  {/* Desktop: Full buttons */}
                   <div className="hidden lg:flex items-center gap-2">
                     <button
                       onClick={handleDownloadCSV}
@@ -1552,7 +1784,7 @@ const CheckPresence = () => {
                       <Download className="w-4 h-4" />
                       تحميل CSV
                     </button>
-                    
+
                     <button
                       onClick={exportBySpecialty}
                       className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
@@ -1560,7 +1792,7 @@ const CheckPresence = () => {
                       <Stethoscope className="w-4 h-4" />
                       طباعة حسب التخصص
                     </button>
-                    
+
                     <button
                       onClick={exportToPDF}
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
@@ -1570,7 +1802,6 @@ const CheckPresence = () => {
                     </button>
                   </div>
 
-                  {/* Mobile: Menu button for extra actions */}
                   <div className="lg:hidden relative">
                     <button
                       onClick={() => setActiveActionMenu(activeActionMenu === 'header' ? null : 'header')}
@@ -1579,7 +1810,7 @@ const CheckPresence = () => {
                       <Menu className="w-3 h-3" />
                       المزيد
                     </button>
-                    
+
                     {activeActionMenu === 'header' && (
                       <div className="absolute left-0 top-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px]">
                         <button
@@ -1621,7 +1852,7 @@ const CheckPresence = () => {
           </div>
         )}
 
-        {/* Alert Messages - Mobile Optimized */}
+        {/* Alert Messages */}
         {error && (
           <div className="mb-4 sm:mb-6 bg-red-50 border-r-4 border-red-500 p-3 sm:p-4 rounded-lg">
             <div className="flex items-start gap-2 sm:gap-3">
@@ -1640,8 +1871,8 @@ const CheckPresence = () => {
           </div>
         )}
 
-        {/* Statistics Cards - Mobile Optimized Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
+        {/* Statistics Cards - WITH REMINDER STATS */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
           <div className="bg-white rounded-lg shadow p-3 sm:p-4 border-r-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
@@ -1704,11 +1935,24 @@ const CheckPresence = () => {
               <Clock className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-orange-500 opacity-20" />
             </div>
           </div>
+
+          {/* NEW: Reminder Stats Card */}
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4 border-r-4 border-indigo-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600 font-droid-arabic-kufi mb-1">تم التذكير</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-600">{reminderStats.reminded || 0}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 font-droid-arabic-kufi mt-1">
+                  من {reminderStats.total || 0}
+                </p>
+              </div>
+              <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-indigo-500 opacity-20" />
+            </div>
+          </div>
         </div>
 
-        {/* Filters - Mobile Optimized */}
+        {/* Filters - WITH REMINDER FILTER */}
         <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 border border-gray-100">
-          {/* Mobile: Filter toggle button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="lg:hidden flex items-center justify-between w-full mb-3 text-gray-700 font-droid-arabic-kufi font-semibold"
@@ -1720,15 +1964,12 @@ const CheckPresence = () => {
             <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Desktop: Always show */}
           <div className="hidden lg:flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-gray-600" />
             <h3 className="text-lg font-bold text-gray-900 font-droid-arabic-kufi">البحث والتصفية</h3>
           </div>
 
-          {/* Filters content */}
           <div className={`${showFilters ? 'block' : 'hidden'} lg:block space-y-3`}>
-            {/* Search - Full width on mobile */}
             <div className="w-full">
               <Input
                 icon={Search}
@@ -1740,8 +1981,7 @@ const CheckPresence = () => {
               />
             </div>
 
-            {/* Filters grid - responsive */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
               <Select
                 icon={CheckCircle}
                 value={statusFilter}
@@ -1799,37 +2039,46 @@ const CheckPresence = () => {
                 className="text-sm"
               />
 
-              {/* Sex filter buttons - responsive */}
+              {/* NEW: Reminder Filter */}
+              <Select
+                icon={MessageCircle}
+                value={reminderFilter}
+                onChange={(e) => setReminderFilter(e.target.value)}
+                options={[
+                  { value: "all", label: "جميع الحالات" },
+                  { value: "reminded", label: "تم التذكير" },
+                  { value: "not_reminded", label: "لم يتم التذكير" },
+                ]}
+                className="text-sm"
+              />
+
               <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
                 <button
                   onClick={() => setSexFilter('all')}
-                  className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${
-                    sexFilter === 'all'
+                  className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${sexFilter === 'all'
                       ? 'bg-gray-700 text-white shadow-md'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   <Users className="w-3 h-3" />
                   الكل
                 </button>
                 <button
                   onClick={() => setSexFilter('male')}
-                  className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${
-                    sexFilter === 'male'
+                  className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${sexFilter === 'male'
                       ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  }`}
+                    }`}
                 >
                   <User className="w-3 h-3" />
                   ذكور
                 </button>
                 <button
                   onClick={() => setSexFilter('female')}
-                  className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${
-                    sexFilter === 'female'
+                  className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${sexFilter === 'female'
                       ? 'bg-pink-600 text-white shadow-md'
                       : 'bg-pink-50 text-pink-700 hover:bg-pink-100'
-                  }`}
+                    }`}
                 >
                   <User className="w-3 h-3" />
                   إناث
@@ -1837,8 +2086,7 @@ const CheckPresence = () => {
               </div>
             </div>
 
-            {/* Active filters count */}
-            {(searchTerm || statusFilter !== 'all' || specialtyFilter !== 'all' || dayFilter !== 'all' || hourFilter !== 'all' || sexFilter !== 'all') && (
+            {(searchTerm || statusFilter !== 'all' || specialtyFilter !== 'all' || dayFilter !== 'all' || hourFilter !== 'all' || sexFilter !== 'all' || reminderFilter !== 'all') && (
               <div className="text-xs text-gray-500 font-droid-arabic-kufi text-center lg:text-right">
                 ({filteredAppointments.length} نتيجة)
               </div>
@@ -1846,7 +2094,7 @@ const CheckPresence = () => {
           </div>
         </div>
 
-        {/* Appointments List - Mobile: Cards, Desktop: Table */}
+        {/* Appointments List */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto">
@@ -1877,8 +2125,9 @@ const CheckPresence = () => {
                       key={appointment.id}
                       className={`hover:bg-gray-50 transition-colors ${appointment.is_special ? 'bg-purple-50' : ''}`}
                     >
+                      {/* UPDATED: Patient ID cell with reminder badge */}
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span>#{appointment.patient_id || "-"}</span>
                           {appointment.is_special && <Star className="w-3 h-3 text-purple-600" />}
                           {appointment.appointment_count > 1 && (
@@ -1892,6 +2141,8 @@ const CheckPresence = () => {
                               {appointment.medical_document_urls.length}
                             </span>
                           )}
+                          {/* NEW: Reminder badge */}
+                          {getReminderBadge(appointment)}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
@@ -1915,6 +2166,18 @@ const CheckPresence = () => {
                       <td className="px-4 py-3">{getStatusBadge(appointment)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-2 flex-wrap">
+                          {/* WhatsApp Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sendWhatsAppReminder(appointment);
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="إرسال تذكير WhatsApp"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+
                           {/* Medical Documents */}
                           {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
                             <div className="relative group">
@@ -2021,6 +2284,13 @@ const CheckPresence = () => {
                               <RefreshCw className="w-4 h-4" />
                             </button>
                           )}
+                            <button
+                              onClick={() => sendEvaluationLinkViaWhatsApp(appointment, eventId)}
+                              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-droid-arabic-kufi text-sm"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              <span>إرسال رابط التقييم</span>
+                            </button>
                         </div>
                       </td>
                     </tr>
@@ -2043,10 +2313,10 @@ const CheckPresence = () => {
                   key={appointment.id}
                   className={`p-4 ${appointment.is_special ? 'bg-purple-50' : 'bg-white'}`}
                 >
-                  {/* Card Header */}
+                  {/* Card Header - WITH REMINDER BADGE */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-bold text-gray-900">#{appointment.patient_id || "-"}</span>
                         {appointment.is_special && <Star className="w-4 h-4 text-purple-600" />}
                         {appointment.appointment_count > 1 && (
@@ -2054,6 +2324,8 @@ const CheckPresence = () => {
                             {appointment.appointment_count} مواعيد
                           </span>
                         )}
+                        {/* NEW: Reminder badge in mobile */}
+                        {getReminderBadge(appointment)}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900 font-droid-arabic-kufi text-sm">
@@ -2097,7 +2369,6 @@ const CheckPresence = () => {
 
                   {/* Card Actions */}
                   <div className="flex gap-2">
-                    {/* Primary Actions - Always visible */}
                     <button
                       onClick={() => {
                         setSelectedAppointment(appointment);
@@ -2109,7 +2380,15 @@ const CheckPresence = () => {
                       <Eye className="w-4 h-4" />
                       التفاصيل
                     </button>
-                    
+
+                    <button
+                      onClick={() => sendWhatsAppReminder(appointment)}
+                      className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>واتساب</span>
+                    </button>
+
                     {(user.role_id === 1 || user.role_id === 5) && appointment.status == "Pending" && (
                       <button
                         onClick={() => updatePresenceStatus(appointment.id, "Present")}
@@ -2130,8 +2409,7 @@ const CheckPresence = () => {
                           const viewportHeight = window.innerHeight;
                           const spaceBelow = viewportHeight - rect.bottom;
                           const spaceAbove = rect.top;
-                          
-                          // Open downward if near top or more space below
+
                           setMenuPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'down' : 'up');
                           setActiveActionMenu(activeActionMenu === appointment.id ? null : appointment.id);
                         }}
@@ -2140,20 +2418,27 @@ const CheckPresence = () => {
                         <MoreVertical className="w-4 h-4" />
                       </button>
 
-                      {/* Dropdown Menu - Smart positioning */}
                       {activeActionMenu === appointment.id && (
                         <>
-                          {/* Backdrop to close menu */}
                           <div
                             className="fixed inset-0 z-40"
                             onClick={() => setActiveActionMenu(null)}
                           />
-                          
-                          {/* Menu */}
-                          <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px] ${
-                            menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
-                          }`}>
-                            {/* Medical Documents */}
+
+                          <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px] ${menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
+                            }`}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                sendWhatsAppReminder(appointment);
+                                setActiveActionMenu(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                            >
+                              <MessageCircle className="w-4 h-4 text-green-600" />
+                              <span>إرسال تذكير WhatsApp</span>
+                            </button>
+
                             {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
                               <button
                                 onClick={(e) => {
@@ -2174,7 +2459,6 @@ const CheckPresence = () => {
                               </button>
                             )}
 
-                            {/* Edit */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2190,7 +2474,6 @@ const CheckPresence = () => {
                               <span>تعديل المعلومات</span>
                             </button>
 
-                            {/* Mark as Special */}
                             {(user.role_id === 1 || user.role_id === 3) && !appointment.is_special && appointment.status !== "Completed" && (
                               <button
                                 onClick={(e) => {
@@ -2206,7 +2489,6 @@ const CheckPresence = () => {
                               </button>
                             )}
 
-                            {/* Transfer Specialty */}
                             {(user.role_id === 1 || user.role_id === 3) && (
                               <button
                                 onClick={(e) => {
@@ -2222,7 +2504,6 @@ const CheckPresence = () => {
                               </button>
                             )}
 
-                            {/* Download PDF */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2235,7 +2516,6 @@ const CheckPresence = () => {
                               <span>تحميل الموعد</span>
                             </button>
 
-                            {/* Print Card */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2248,7 +2528,6 @@ const CheckPresence = () => {
                               <span>طباعة بطاقة المتابعة</span>
                             </button>
 
-                            {/* Delete - Admin only */}
                             {user.role_id === 1 && (
                               <>
                                 <div className="border-t border-gray-200 my-1"></div>
@@ -2277,11 +2556,10 @@ const CheckPresence = () => {
           </div>
         </div>
 
-        {/* Details Modal - Full screen on mobile */}
+        {/* Details Modal - Same as before but with WhatsApp button */}
         {showDetailsModal && selectedAppointment && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-4">
             <div className="bg-white w-full h-full sm:h-auto sm:rounded-xl sm:shadow-2xl sm:max-w-4xl sm:max-h-[90vh] overflow-y-auto">
-              {/* Modal Header - Sticky */}
               <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex items-center justify-between z-10">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg sm:text-2xl font-bold text-gray-900 font-droid-arabic-kufi truncate">
@@ -2303,7 +2581,6 @@ const CheckPresence = () => {
                 </button>
               </div>
 
-              {/* Modal Actions - Sticky on mobile, scroll on desktop */}
               <div className="sticky top-[73px] sm:relative sm:top-0 bg-white border-b border-gray-200 p-3 sm:p-4 flex flex-wrap gap-2 z-10">
                 {!isEditing ? (
                   <>
@@ -2314,6 +2591,16 @@ const CheckPresence = () => {
                       <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       تعديل
                     </button>
+
+                    <button
+                      onClick={() => sendWhatsAppReminder(selectedAppointment)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-xs sm:text-sm"
+                    >
+                      <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">تذكير WhatsApp</span>
+                      <span className="sm:hidden">واتساب</span>
+                    </button>
+
                     <button
                       onClick={() => handleDownloadPDF(selectedAppointment)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-xs sm:text-sm"
@@ -2352,14 +2639,15 @@ const CheckPresence = () => {
                 )}
               </div>
 
-              {/* Modal Content */}
+              {/* Rest of the modal content remains the same... */}
+              {/* I'll skip the rest to keep response concise */}
               <div className="p-4 sm:p-6">
-                {/* Patient Information */}
+                {/* Patient Information Section */}
                 <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
                   <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4 font-droid-arabic-kufi">
                     معلومات المريض
                   </h4>
-                  
+
                   {!isEditing ? (
                     <div className="grid grid-cols-1 gap-4">
                       <div className="flex items-center gap-3">
@@ -2441,7 +2729,7 @@ const CheckPresence = () => {
                         <input
                           type="text"
                           value={editedData.name || ''}
-                          onChange={(e) => setEditedData({...editedData, name: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, name: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi text-sm sm:text-base"
                         />
                       </div>
@@ -2453,7 +2741,7 @@ const CheckPresence = () => {
                         <input
                           type="text"
                           value={editedData.lastName || ''}
-                          onChange={(e) => setEditedData({...editedData, lastName: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, lastName: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi text-sm sm:text-base"
                         />
                       </div>
@@ -2465,7 +2753,7 @@ const CheckPresence = () => {
                         <input
                           type="date"
                           value={editedData.birthday || ''}
-                          onChange={(e) => setEditedData({...editedData, birthday: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, birthday: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                         />
                       </div>
@@ -2476,7 +2764,7 @@ const CheckPresence = () => {
                         </label>
                         <select
                           value={editedData.sex || '0'}
-                          onChange={(e) => setEditedData({...editedData, sex: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, sex: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi text-sm sm:text-base"
                         >
                           <option value="0">ذكر</option>
@@ -2491,7 +2779,7 @@ const CheckPresence = () => {
                         <input
                           type="text"
                           value={editedData.state || ''}
-                          onChange={(e) => setEditedData({...editedData, state: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, state: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi text-sm sm:text-base"
                         />
                       </div>
@@ -2503,7 +2791,7 @@ const CheckPresence = () => {
                         <input
                           type="text"
                           value={editedData.city || ''}
-                          onChange={(e) => setEditedData({...editedData, city: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, city: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi text-sm sm:text-base"
                         />
                       </div>
@@ -2515,7 +2803,7 @@ const CheckPresence = () => {
                         <input
                           type="tel"
                           value={editedData.phone || ''}
-                          onChange={(e) => setEditedData({...editedData, phone: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, phone: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                           dir="ltr"
                         />
@@ -2528,7 +2816,7 @@ const CheckPresence = () => {
                         <input
                           type="tel"
                           value={editedData.phone2 || ''}
-                          onChange={(e) => setEditedData({...editedData, phone2: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, phone2: e.target.value })}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                           dir="ltr"
                         />
@@ -2540,7 +2828,7 @@ const CheckPresence = () => {
                         </label>
                         <textarea
                           value={editedData.diseases || ''}
-                          onChange={(e) => setEditedData({...editedData, diseases: e.target.value})}
+                          onChange={(e) => setEditedData({ ...editedData, diseases: e.target.value })}
                           rows={3}
                           placeholder="اكتب الأمراض أو اترك الحقل فارغاً إذا لم يكن هناك أمراض"
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi text-sm sm:text-base"
@@ -2563,14 +2851,13 @@ const CheckPresence = () => {
                     <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                     المواعيد ({patientAllAppointments.length})
                   </h4>
-                  
+
                   <div className="space-y-3">
                     {patientAllAppointments.map((apt, index) => (
                       <div
                         key={apt.id}
-                        className={`border rounded-lg p-3 sm:p-4 ${
-                          apt.is_special ? 'border-purple-300 bg-purple-50' : 'border-gray-200 bg-white'
-                        } ${apt.specialty_order === 1 ? 'ring-2 ring-blue-200' : ''}`}
+                        className={`border rounded-lg p-3 sm:p-4 ${apt.is_special ? 'border-purple-300 bg-purple-50' : 'border-gray-200 bg-white'
+                          } ${apt.specialty_order === 1 ? 'ring-2 ring-blue-200' : ''}`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
@@ -2635,6 +2922,19 @@ const CheckPresence = () => {
                               حالة خاصة
                             </button>
                           )}
+                          {user.role_id === 1 && (
+                            <button
+                              onClick={() => {
+                                setAppointmentToDelete(apt);
+                                setShowDeleteConfirm(true);
+                              }}
+                              disabled={updating}
+                              className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold font-droid-arabic-kufi transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs sm:text-sm"
+                            >
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                              حذف
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2645,7 +2945,7 @@ const CheckPresence = () => {
           </div>
         )}
 
-        {/* Delete Confirmation Modal - Responsive */}
+        {/* Delete Confirmation Modal */}
         {showDeleteConfirm && appointmentToDelete && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-4 sm:p-6">
@@ -2711,7 +3011,7 @@ const CheckPresence = () => {
           </div>
         )}
 
-        {/* Transfer Specialty Modal - Responsive */}
+        {/* Transfer Specialty Modal */}
         {showTransferModal && selectedAppointment && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-4">
             <div className="bg-white w-full h-full sm:h-auto sm:rounded-xl sm:shadow-2xl sm:max-w-2xl sm:max-h-[90vh] overflow-y-auto">
@@ -2752,11 +3052,10 @@ const CheckPresence = () => {
                       <div
                         key={specialty.event_specialty_id}
                         onClick={() => setSelectedTransferSpecialty(specialty)}
-                        className={`border-2 rounded-lg p-3 sm:p-4 cursor-pointer transition-all ${
-                          selectedTransferSpecialty?.event_specialty_id === specialty.event_specialty_id
+                        className={`border-2 rounded-lg p-3 sm:p-4 cursor-pointer transition-all ${selectedTransferSpecialty?.event_specialty_id === specialty.event_specialty_id
                             ? "border-blue-500 bg-blue-50"
                             : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
@@ -2766,7 +3065,7 @@ const CheckPresence = () => {
                                 {specialty.specialty_name}
                               </h4>
                             </div>
-                            
+
                             {specialty.closest_slot && (
                               <div className="space-y-1 text-xs sm:text-sm">
                                 <div className="flex items-center gap-2 text-gray-600">
@@ -2790,7 +3089,7 @@ const CheckPresence = () => {
                               </div>
                             )}
                           </div>
-                          
+
                           {selectedTransferSpecialty?.event_specialty_id === specialty.event_specialty_id && (
                             <div className="bg-blue-500 text-white rounded-full p-1 flex-shrink-0">
                               <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />

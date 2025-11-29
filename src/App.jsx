@@ -33,7 +33,7 @@ import NotFound from './Pages/NotFound';
 import NotAuthenticated from './Pages/NotAuthenticated';
 import EventsManagement from './Pages/AuthUser/SuperAdmin/EventsManagement';
 import AddMultipleAppointments from './Pages/AuthUser/SuperAdmin/AddMultipleAppointments';
-import EventTracking from './Pages/AuthUser/EventTracking';
+import EventTracking from './Pages/AuthUser/SuperAdmin/EventTracking';
 import EventAppointmentDistribution from './Pages/AuthUser/SuperAdmin/Components/EventAppointmentDistribution';
 import SpecialtyStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/SpecialtyStats';
 import StatusStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/StatusStats';
@@ -43,6 +43,9 @@ import PatientsList from './Pages/AuthUser/SuperAdmin/ArchivedStats/PatientsList
 import ComprehensiveReport from './Pages/AuthUser/SuperAdmin/ArchivedStats/ComprehensiveReport';
 import EventReport from './Pages/AuthUser/SuperAdmin/Components/EventReport';
 import ActivityMore from './Pages/GuestUser/Actvities/Components/ActivityMore';
+import EvaluationForm from './Pages/Common/EvaluationForm';
+import EvaluationsAdmin from './Pages/AuthUser/SuperAdmin/EvaluationsAdmin';
+import EvaluationStatistics from './Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics';
 
 export default function App() {
   const [specialities, setSpecialities] = useState([]);
@@ -63,30 +66,35 @@ export default function App() {
             {/* Home Routes */}
             <Route index element={<Home />} />
             <Route path="home" element={<Home />} />
-            
+
             {/* Public Pages */}
             <Route path="about" element={<About />} />
             <Route path="contact" element={<Contact />} />
             <Route path="volunteer" element={<VolunteerForm />} />
-            
+
             {/* Activities & Projects */}
             <Route path="activities/type/:TypeId" element={<Activities />} />
             <Route path="activities/:Actvityid" element={<ActivityMore />} />
             <Route path="futureProjects" element={<FuturProjects />} />
             <Route path="future-prjects/:Projectid" element={<ProjectDetails />} />
             <Route path="waiting-list/:eventId" element={<WaitingList />} />
+            {/* // Add these routes in the GuestLayout section: */}
+            <Route path="evaluation/:eventId/:appointmentId" element={<EvaluationForm />} />
+            <Route path="evaluation/:eventId" element={<EvaluationForm />} />
+
+{/* // Add this route in the AdminLayout section (Super Admin only): */}
 
 
 
 
-            
-              
+
+
             {/* Public Appointment Booking */}
             <Route
               path="appointment/:eventID"
               element={<RegisterVisit specialities={specialities} setSpecialities={setSpecialities} />}
             />
-            
+
             {/* Authentication */}
             <Route path="login" element={user ? <Navigate to="/home" replace /> : <Login />} />
             <Route path="register" element={user ? <Navigate to="/home" replace /> : <Register />} />
@@ -102,14 +110,15 @@ export default function App() {
               <Route path="event-statistics/:eventId" element={<VisitsStatistics />} />
               <Route path="event-waiting-lists/:eventId/:specialityId" element={<CheckPaitent />} />
               <Route path="big-list-waiting/:eventId" element={<WaitingList />} />
-                           {/* Archived Event Statistics Routes */}
-            <Route path="/admin/archived/specialty-stats/:eventId" element={<SpecialtyStats />} />
-            <Route path="/admin/archived/status-stats/:eventId" element={<StatusStats />} />
-            <Route path="/admin/archived/demographic-stats/:eventId" element={<DemographicStats />} />
-            <Route path="/admin/archived/geographic-stats/:eventId" element={<GeographicStats />} />
-            <Route path="/admin/archived/patients-list/:eventId" element={<PatientsList />} />
-            <Route path="/admin/archived/comprehensive-report/:eventId" element={<ComprehensiveReport />} />
-              
+              {/* Archived Event Statistics Routes */}
+              <Route path="/admin/archived/specialty-stats/:eventId" element={<SpecialtyStats />} />
+              <Route path="/admin/archived/status-stats/:eventId" element={<StatusStats />} />
+              <Route path="/admin/archived/demographic-stats/:eventId" element={<DemographicStats />} />
+              <Route path="/admin/archived/geographic-stats/:eventId" element={<GeographicStats />} />
+              <Route path="/admin/archived/patients-list/:eventId" element={<PatientsList />} />
+              <Route path="/admin/archived/comprehensive-report/:eventId" element={<ComprehensiveReport />} />
+
+
               {/* Super Admin Only Routes */}
               <Route path="users" element={isSuperAdmin ? <AllUsers /> : <NotAuthenticated />} />
               <Route path="speciality" element={isSuperAdmin ? <ManageSpeciality /> : <NotAuthenticated />} />
@@ -118,8 +127,10 @@ export default function App() {
               <Route path="manage-events" element={isSuperAdmin ? <EventsManagement /> : <NotAuthenticated />} />
               <Route path="contacts" element={isSuperAdmin ? <Messages /> : <NotAuthenticated />} />
               <Route path="volunteers" element={isSuperAdmin ? <SuperAdminVolunteers /> : <NotAuthenticated />} />
+              <Route path="evaluations" element={isSuperAdmin ? <EvaluationsAdmin /> : <NotAuthenticated />} />
+              <Route path="evaluation_stats/:eventId" element={isSuperAdmin ? <EvaluationStatistics /> : <NotAuthenticated />} />
               <Route path="/admin/event-report/:eventId" element={<EventReport />} />
-              
+
               {/* Special Admin Routes */}
               <Route path="special-case" element={isSpecialAdmin ? <SpecialCase /> : <NotAuthenticated />} />
               <Route path="add-multiple-appointments" element={isSpecialAdmin ? <AddMultipleAppointments /> : <NotAuthenticated />} />

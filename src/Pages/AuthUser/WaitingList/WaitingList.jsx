@@ -305,6 +305,14 @@ const WaitingList = () => {
           </div>
           <span className="text-gray-700">أنثى</span>
         </div>
+         {/* NEW: CommingSoon Legend */}
+      <div className="flex items-center gap-2 border-r pr-6 mr-2">
+        <div className="flex items-center gap-1 bg-red-50 border-2 border-red-400 rounded-lg px-2 py-1">
+          <AlertCircle className="w-4 h-4 text-red-600" />
+          <span className="text-red-700 font-semibold">قريباً</span>
+        </div>
+        <span className="text-red-600 text-xs">(سيتم الإزالة إذا لم يحضر)</span>
+      </div>
         <div className="flex items-center gap-2 border-r pr-6 mr-2">
           <Clock className="w-4 h-4 text-green-500 animate-pulse" />
           <span className="text-gray-700">تحديث تلقائي كل 10 ثوانٍ</span>
@@ -384,26 +392,43 @@ const WaitingList = () => {
                           className="px-4 py-3 border-b border-gray-200 font-droid-arabic-kufi transition-all"
                         >
                           {patient ? (
-                            <div className="flex items-center justify-between gap-2">
-                              {/* Patient ID */}
-                              <div className="w-1/3 text-sm font-semibold text-gray-700">
-                                {patient.patient_id}
-                              </div>
-                              
-                              {/* Patient Name with Gender Icon */}
-                              <div className="w-2/3 flex items-center justify-end gap-2">
-                                <span className="font-medium text-gray-800">
-                                  {patient.full_name}
-                                </span>
-                                {renderGenderIcon(patient)}
-                              </div>
+                          <div 
+                            className={`flex items-center justify-between gap-2 transition-all ${
+                              patient.is_coming_soon || patient.status === 'Commingsoon'
+                                ? 'bg-red-50 border-2 border-red-400 rounded-lg px-2 py-1 animate-pulse'
+                                : ''
+                            }`}
+                          >
+                            {/* Patient ID */}
+                            <div className={`w-1/3 text-sm font-semibold ${
+                              patient.is_coming_soon || patient.status === 'Commingsoon'
+                                ? 'text-red-700'
+                                : 'text-gray-700'
+                            }`}>
+                              {patient.patient_id}
                             </div>
-                          ) : (
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="w-1/3 text-gray-300">-</div>
-                              <div className="w-2/3 text-gray-300 text-right">-</div>
+                            
+                            {/* Patient Name with Gender Icon and Warning */}
+                            <div className="w-2/3 flex items-center justify-end gap-2">
+                              {(patient.is_coming_soon || patient.status === 'Commingsoon') && (
+                                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" title="قريباً - سيتم الإزالة" />
+                              )}
+                              <span className={`font-medium ${
+                                patient.is_coming_soon || patient.status === 'Commingsoon'
+                                  ? 'text-red-800 font-bold'
+                                  : 'text-gray-800'
+                              }`}>
+                                {patient.full_name}
+                              </span>
+                              {renderGenderIcon(patient)}
                             </div>
-                          )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="w-1/3 text-gray-300">-</div>
+                            <div className="w-2/3 text-gray-300 text-right">-</div>
+                          </div>
+                        )}
                         </td>
                       );
                     })}

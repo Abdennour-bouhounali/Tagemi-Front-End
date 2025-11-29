@@ -4,6 +4,8 @@ import Events from "./Components/Events"
 import AddEvent from "./Components/AddEvent"
 import AppointmentDistribution from "./Components/AppointmentDistribution"
 import { Plus, X } from "lucide-react"
+import { Link } from "react-router-dom";
+import { FileText } from "lucide-react"; // Add FileText import
 
 const apiUrl = import.meta.env.VITE_API_URL; 
 
@@ -77,6 +79,13 @@ export default function EventsManagement() {
           <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
           <span>إضافة حدث جديد</span>
         </button>
+                      <Link 
+              to={`/admin/evaluations`}
+              className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white  hover:bg-blue-600  rounded-lg text-sm font-droid-arabic-kufi transition"
+            >
+              <FileText className="w-4 h-4" />
+              تقييم الأحداث
+            </Link>
       </div>
 
       <Events 
@@ -159,6 +168,13 @@ export default function EventsManagement() {
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
+              <Link 
+              to={`/admin/evaluations`}
+              className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white  hover:bg-blue-600  rounded-lg text-sm font-droid-arabic-kufi transition"
+            >
+              <FileText className="w-4 h-4" />
+              تقييم الأحداث
+            </Link>
             </div>
             
             {/* Modal Content */}
