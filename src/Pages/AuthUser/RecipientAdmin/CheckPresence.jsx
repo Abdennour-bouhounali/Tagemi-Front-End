@@ -63,6 +63,7 @@ const CheckPresence = () => {
   const [hourFilter, setHourFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [reminderFilter, setReminderFilter] = useState("all"); // NEW: Reminder filter
+  const [evaluatedFilter, setEvaluatedFilter] = useState("all"); // NEW: Reminder filter
 
   // Edit mode states
   const [isEditing, setIsEditing] = useState(false);
@@ -84,6 +85,7 @@ const CheckPresence = () => {
 
   // NEW: Reminder stats state
   const [reminderStats, setReminderStats] = useState({ total: 0, reminded: 0, not_reminded: 0 });
+  const [evaluatedStats, setEvaluatedStats] = useState({ total: 0, evaluated: 0, not_evaluated: 0 });
 
   // NEW: Fetch reminder statistics
   const fetchReminderStats = async () => {
@@ -103,6 +105,27 @@ const CheckPresence = () => {
       console.error("Error fetching reminder stats:", err);
     }
   };
+
+
+  // NEW: Fetch reminder statistics
+  // Fix the typo in the function name and update state correctly
+const fetchEvaluatedStats = async () => {
+  try {
+    const res = await fetch(
+      `${apiUrl}/api/appointments/evaluated-stats/${eventId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    const data = await res.json();
+
+    if (res.ok && data.stats) {
+      setEvaluatedStats(data.stats); // Fix: was setting reminderStats
+    }
+  } catch (err) {
+    console.error("Error fetching evaluated stats:", err);
+  }
+};
 
   // NEW: Updated sendWhatsAppReminder with database update
   // تحديث دالة sendWhatsAppReminder
@@ -245,23 +268,146 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
   return `${baseUrl}/evaluation/${eventId}/${appointmentId}`;
   };
 
-  const sendEvaluationLinkViaWhatsApp = (appointment, eventId) => {
-    const evaluationLink = generateEvaluationLink(eventId, appointment.id);
-    const message = `مرحباً ${appointment.patient_name}،
-
-  شكراً لمشاركتك في الحملة الطبية. نأمل أن تكون قد حصلت على خدمة طبية جيدة.
-
-  نرجو منك تقييم تجربتك من خلال الرابط التالي:
-  ${evaluationLink}
-
-  تقييمك يساعدنا على تحسين خدماتنا في المستقبل.
-
-  شكراً لوقتك 🌟`;
-
-    const phoneNumber = appointment.phone.replace(/[^0-9]/g, "");
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
+    const formatPhoneForWhatsApp = (phone) => {
+    if (!phone) return '';
+    
+    // Remove all non-digit characters (spaces, dashes, parentheses, plus signs, etc.)
+    let cleaned = phone.toString().replace(/\D/g, '');
+    
+    // Handle Algerian numbers
+    // Algerian mobile numbers are 10 digits starting with 0 (e.g., 0555123456)
+    // Or 9 digits without the leading 0 (e.g., 555123456)
+    // Country code is 213
+    
+    if (cleaned.startsWith('213')) {
+      // Already has country code, just return it
+      return cleaned;
+    } else if (cleaned.startsWith('0') && cleaned.length === 10) {
+      // Algerian format with leading 0: remove 0 and add 213
+      return '213' + cleaned.substring(1);
+    } else if (cleaned.length === 9) {
+      // 9 digits without leading 0: add 213
+      return '213' + cleaned;
+    } else if (cleaned.startsWith('00213')) {
+      // International format with 00: replace with just 213
+      return cleaned.substring(2);
+    } else {
+      // For any other case, just add 213 if it's a reasonable length
+      if (cleaned.length >= 9 && cleaned.length <= 10) {
+        return '213' + cleaned.replace(/^0+/, '');
+      }
+      return cleaned;
+    }
   };
+
+    const sendEvaluationLinkViaWhatsApp = async (appointment, eventId) => {
+  const evaluationLink = generateEvaluationLink(eventId, appointment.id);
+
+  const message = `${evaluationLink}
+
+السلام عليكم ورحمة الله وبركاته ${appointment.full_name}،
+
+نسأل الله الشفاء لكم ولجميع مرضى المسلمين.
+
+نرجو منكم تقييم تجربتكم من خلال الرابط أعلاه.
+
+تقييمكم يساعدنا على تحسين حملاتنا الطبية مستقبلا.
+
+فريق مؤسسة تجمي للتنمية الإنسانية`;
+
+  const phoneNumber = formatPhoneForWhatsApp(appointment.phone);
+  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  window.open(whatsappUrl, "_blank");
+  
+  // تحديث حالة is_evaluated في قاعدة البيانات
+  try {
+    const res = await fetch(
+      `${apiUrl}/api/appointments/mark-multiple-evaluated`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          patient_id: appointment.patient_id,
+          event_id: eventId,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      const currentTime = new Date().toISOString();
+
+      // تحديث appointments state محلياً
+      setAppointments(prevAppointments =>
+        prevAppointments.map(apt => {
+          if (apt.patient_id === appointment.patient_id) {
+            return {
+              ...apt,
+              is_evaluated: 1, // Changed from is_evaluation
+              evaluated_at: currentTime
+            };
+          }
+          return apt;
+        })
+      );
+
+      // تحديث filteredAppointments state محلياً
+      setFilteredAppointments(prevFiltered =>
+        prevFiltered.map(apt => {
+          if (apt.patient_id === appointment.patient_id) {
+            return {
+              ...apt,
+              is_evaluated: 1, // Changed from is_evaluation
+              evaluated_at: currentTime,
+              all_appointments: apt.all_appointments?.map(subApt => ({
+                ...subApt,
+                is_evaluated: 1, // Changed from is_evaluation
+                evaluated_at: currentTime
+              }))
+            };
+          }
+          return apt;
+        })
+      );
+
+      // تحديث selectedAppointment إذا كان مفتوحاً
+      if (selectedAppointment && selectedAppointment.patient_id === appointment.patient_id) {
+        setSelectedAppointment(prev => ({
+          ...prev,
+          is_evaluated: 1, // Changed from is_evaluation
+          evaluated_at: currentTime
+        }));
+
+        setPatientAllAppointments(prev =>
+          prev.map(apt => ({
+            ...apt,
+            is_evaluated: 1, // Changed from is_evaluation
+            evaluated_at: currentTime
+          }))
+        );
+      }
+
+      // تحديث evaluatedStats محلياً (was updating reminderStats)
+      setEvaluatedStats(prev => ({
+        total: prev.total,
+        evaluated: prev.evaluated + 1,
+        not_evaluated: prev.not_evaluated > 0 ? prev.not_evaluated - 1 : 0
+      }));
+
+      setSuccess("تم إرسال رابط الاستبيان بنجاح");
+      setTimeout(() => setSuccess(""), 3000);
+    }
+  } catch (err) {
+    console.error("Error updating evaluated status:", err);
+    setError("حدث خطأ أثناء تحديث حالة الاستبيان");
+    setTimeout(() => setError(""), 3000);
+  }
+};
+
 
   // NEW: Get reminder badge
   const getReminderBadge = (appointment) => {
@@ -269,7 +415,7 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
       return (
         <span
           className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"
-          title={`تم الإرسال: ${appointment.reminded_at ? new Date(appointment.reminded_at).toLocaleString('ar-DZ') : ''}`}
+          title={`تم الإرسال: ${appointment.reminded_at ? new Date(appointment.reminded_at).toLocaleString('en-UK') : ''}`}
         >
           <MessageCircle className="w-3 h-3" />
           تم التذكير
@@ -278,6 +424,23 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
     }
     return null;
   };
+
+
+// NEW: Get evaluated badge with better colors
+const getEvaluatedBadge = (appointment) => {
+  if (appointment.is_evaluated === true || appointment.is_evaluated === 1) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700"
+        title={`تم الإرسال: ${appointment.evaluated_at ? new Date(appointment.evaluated_at).toLocaleString('en-UK') : ''}`}
+      >
+        <MessageCircle className="w-3 h-3" />
+        تم الاستبيان
+      </span>
+    );
+  }
+  return null;
+};
 
   // Fetch available specialties
   const fetchAvailableSpecialties = async (appointmentId) => {
@@ -361,26 +524,7 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
     return 'unknown';
   };
 
-  const formatPhoneForWhatsApp = (phone) => {
-    if (!phone) return '';
 
-    let cleaned = phone.toString().replace(/\D/g, '');
-
-    if (cleaned.startsWith('213')) {
-      return cleaned;
-    } else if (cleaned.startsWith('0') && cleaned.length === 10) {
-      return '213' + cleaned.substring(1);
-    } else if (cleaned.length === 9) {
-      return '213' + cleaned;
-    } else if (cleaned.startsWith('00213')) {
-      return cleaned.substring(2);
-    } else {
-      if (cleaned.length >= 9 && cleaned.length <= 10) {
-        return '213' + cleaned.replace(/^0+/, '');
-      }
-      return cleaned;
-    }
-  };
 
   // Render gender icon
   const renderGenderIcon = (appointment) => {
@@ -661,6 +805,19 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
         return true;
       });
     }
+   // Update the evaluation filter section
+  if (evaluatedFilter !== "all") {
+    filtered = filtered.filter((apt) => {
+      if (evaluatedFilter === "evaluated") {
+        // Fix: Use is_evaluated instead of is_evaluation
+        return apt.is_evaluated === true || apt.is_evaluated === 1;
+      } else if (evaluatedFilter === "not_evaluated") {
+        // Fix: Use is_evaluated instead of is_evaluation
+        return apt.is_evaluated === false || apt.is_evaluated === 0 || apt.is_evaluated === null;
+      }
+      return true;
+    });
+  }
 
     const uniquePatients = getUniquePatients(filtered);
     setFilteredAppointments(uniquePatients);
@@ -671,12 +828,14 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
     fetchEventDetails();
     fetchAppointments();
     fetchReminderStats();
+    fetchEvaluatedStats(); // Add this
+
   }, [eventId]);
 
   // UPDATED: useEffect to include reminderFilter
   useEffect(() => {
     applyFilters();
-  }, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter, hourFilter, sexFilter, reminderFilter]);
+}, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter, hourFilter, sexFilter, reminderFilter, evaluatedFilter]); // Added evaluatedFilter here
 
   const fetchEventDetails = async () => {
     try {
@@ -1949,6 +2108,19 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
               <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-indigo-500 opacity-20" />
             </div>
           </div>
+          {/* Evaluation Stats Card */}
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4 border-r-4 border-teal-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600 font-droid-arabic-kufi mb-1">تم الاستبيان</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-teal-600">{evaluatedStats.evaluated || 0}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 font-droid-arabic-kufi mt-1">
+                  من {evaluatedStats.total || 0}
+                </p>
+              </div>
+              <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-teal-500 opacity-20" />
+            </div>
+          </div>
         </div>
 
         {/* Filters - WITH REMINDER FILTER */}
@@ -2051,6 +2223,18 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
                 ]}
                 className="text-sm"
               />
+              {/* Evaluation Filter */}
+              <Select
+                icon={MessageCircle}
+                value={evaluatedFilter}
+                onChange={(e) => setEvaluatedFilter(e.target.value)}
+                options={[
+                  { value: "all", label: "جميع حالات الاستبيان" },
+                  { value: "evaluated", label: "تم إرسال الاستبيان" },
+                  { value: "not_evaluated", label: "لم يتم إرسال الاستبيان" },
+                ]}
+                className="text-sm"
+              />
 
               <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
                 <button
@@ -2143,6 +2327,7 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
                           )}
                           {/* NEW: Reminder badge */}
                           {getReminderBadge(appointment)}
+                          {getEvaluatedBadge(appointment)}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 font-droid-arabic-kufi">
@@ -2284,13 +2469,16 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
                               <RefreshCw className="w-4 h-4" />
                             </button>
                           )}
-                            <button
-                              onClick={() => sendEvaluationLinkViaWhatsApp(appointment, eventId)}
-                              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-droid-arabic-kufi text-sm"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                              <span>إرسال رابط التقييم</span>
-                            </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sendEvaluationLinkViaWhatsApp(appointment, eventId);
+                            }}
+                            className="p-2 text-yellow-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="إرسال الاستبيان WhatsApp"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -2326,6 +2514,7 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
                         )}
                         {/* NEW: Reminder badge in mobile */}
                         {getReminderBadge(appointment)}
+                        {getEvaluatedBadge(appointment)}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900 font-droid-arabic-kufi text-sm">
@@ -2368,188 +2557,221 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
                   </div>
 
                   {/* Card Actions */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedAppointment(appointment);
-                        setPatientAllAppointments(appointment.all_appointments || [appointment]);
-                        setShowDetailsModal(true);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
-                    >
-                      <Eye className="w-4 h-4" />
-                      التفاصيل
-                    </button>
+              {/* Card Actions - FIXED FOR MOBILE */}
+<div className="flex flex-col gap-2">
+  {/* Row 1: Main Actions */}
+  <div className="flex gap-2">
+    <button
+      onClick={() => {
+        setSelectedAppointment(appointment);
+        setPatientAllAppointments(appointment.all_appointments || [appointment]);
+        setShowDetailsModal(true);
+      }}
+      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+    >
+      <Eye className="w-4 h-4" />
+      التفاصيل
+    </button>
 
-                    <button
-                      onClick={() => sendWhatsAppReminder(appointment)}
-                      className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>واتساب</span>
-                    </button>
+    {(user.role_id === 1 || user.role_id === 5) && appointment.status == "Pending" && (
+      <button
+        onClick={() => updatePresenceStatus(appointment.id, "Present")}
+        disabled={updating}
+        className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+      >
+        <CheckCheck className="w-4 h-4" />
+        <span>حاضر</span>
+      </button>
+    )}
 
-                    {(user.role_id === 1 || user.role_id === 5) && appointment.status == "Pending" && (
-                      <button
-                        onClick={() => updatePresenceStatus(appointment.id, "Present")}
-                        disabled={updating}
-                        className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
-                      >
-                        <CheckCheck className="w-4 h-4" />
-                        <span>حاضر</span>
-                      </button>
-                    )}
+    {/* More Actions Menu */}
+    <div className="relative">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const spaceBelow = viewportHeight - rect.bottom;
+          const spaceAbove = rect.top;
 
-                    {/* More Actions Menu */}
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const viewportHeight = window.innerHeight;
-                          const spaceBelow = viewportHeight - rect.bottom;
-                          const spaceAbove = rect.top;
+          setMenuPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'down' : 'up');
+          setActiveActionMenu(activeActionMenu === appointment.id ? null : appointment.id);
+        }}
+        className="flex items-center justify-center gap-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
 
-                          setMenuPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'down' : 'up');
-                          setActiveActionMenu(activeActionMenu === appointment.id ? null : appointment.id);
-                        }}
-                        className="flex items-center justify-center gap-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
+      {activeActionMenu === appointment.id && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setActiveActionMenu(null)}
+          />
 
-                      {activeActionMenu === appointment.id && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setActiveActionMenu(null)}
-                          />
+          <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px] ${menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
+            }`}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                sendWhatsAppReminder(appointment);
+                setActiveActionMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+            >
+              <MessageCircle className="w-4 h-4 text-green-600" />
+              <span>إرسال تذكير WhatsApp</span>
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                sendEvaluationLinkViaWhatsApp(appointment, eventId);
+                setActiveActionMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+            >
+              <MessageCircle className="w-4 h-4 text-teal-600" />
+              <span>إرسال الاستبيان</span>
+            </button>
 
-                          <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px] ${menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
-                            }`}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                sendWhatsAppReminder(appointment);
-                                setActiveActionMenu(null);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-                            >
-                              <MessageCircle className="w-4 h-4 text-green-600" />
-                              <span>إرسال تذكير WhatsApp</span>
-                            </button>
+            {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (appointment.medical_document_urls.length === 1) {
+                    window.open(appointment.medical_document_urls[0], '_blank');
+                  } else {
+                    setSelectedAppointment(appointment);
+                    setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                    setShowDetailsModal(true);
+                  }
+                  setActiveActionMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+              >
+                <FileText className="w-4 h-4 text-green-600" />
+                <span>المستندات ({appointment.medical_document_urls.length})</span>
+              </button>
+            )}
 
-                            {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (appointment.medical_document_urls.length === 1) {
-                                    window.open(appointment.medical_document_urls[0], '_blank');
-                                  } else {
-                                    setSelectedAppointment(appointment);
-                                    setPatientAllAppointments(appointment.all_appointments || [appointment]);
-                                    setShowDetailsModal(true);
-                                  }
-                                  setActiveActionMenu(null);
-                                }}
-                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-                              >
-                                <FileText className="w-4 h-4 text-green-600" />
-                                <span>المستندات ({appointment.medical_document_urls.length})</span>
-                              </button>
-                            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedAppointment(appointment);
+                setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                setShowDetailsModal(true);
+                startEditing();
+                setActiveActionMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+            >
+              <Edit className="w-4 h-4 text-orange-600" />
+              <span>تعديل المعلومات</span>
+            </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedAppointment(appointment);
-                                setPatientAllAppointments(appointment.all_appointments || [appointment]);
-                                setShowDetailsModal(true);
-                                startEditing();
-                                setActiveActionMenu(null);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-                            >
-                              <Edit className="w-4 h-4 text-orange-600" />
-                              <span>تعديل المعلومات</span>
-                            </button>
+            {(user.role_id === 1 || user.role_id === 3) && !appointment.is_special && appointment.status !== "Completed" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  markAsSpecialCase(appointment.id);
+                  setActiveActionMenu(null);
+                }}
+                disabled={updating}
+                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm disabled:opacity-50"
+              >
+                <Star className="w-4 h-4 text-purple-600" />
+                <span>حالة خاصة</span>
+              </button>
+            )}
 
-                            {(user.role_id === 1 || user.role_id === 3) && !appointment.is_special && appointment.status !== "Completed" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  markAsSpecialCase(appointment.id);
-                                  setActiveActionMenu(null);
-                                }}
-                                disabled={updating}
-                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm disabled:opacity-50"
-                              >
-                                <Star className="w-4 h-4 text-purple-600" />
-                                <span>حالة خاصة</span>
-                              </button>
-                            )}
+            {(user.role_id === 1 || user.role_id === 3) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAppointment(appointment);
+                  fetchAvailableSpecialties(appointment.id);
+                  setActiveActionMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+              >
+                <RefreshCw className="w-4 h-4 text-indigo-600" />
+                <span>تغيير التخصص</span>
+              </button>
+            )}
 
-                            {(user.role_id === 1 || user.role_id === 3) && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedAppointment(appointment);
-                                  fetchAvailableSpecialties(appointment.id);
-                                  setActiveActionMenu(null);
-                                }}
-                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-                              >
-                                <RefreshCw className="w-4 h-4 text-indigo-600" />
-                                <span>تغيير التخصص</span>
-                              </button>
-                            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadPDF(appointment);
+                setActiveActionMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+            >
+              <Printer className="w-4 h-4 text-green-600" />
+              <span>تحميل الموعد</span>
+            </button>
+              {appointment.status !== 'Pending' &&
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                printPatientCard(appointment);
+                setActiveActionMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+            >
+              <Printer className="w-4 h-4 text-blue-600" />
+              <span>طباعة بطاقة المتابعة</span>
+            </button>}
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadPDF(appointment);
-                                setActiveActionMenu(null);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-                            >
-                              <Printer className="w-4 h-4 text-green-600" />
-                              <span>تحميل الموعد</span>
-                            </button>
+            {user.role_id === 1 && (
+              <>
+                <div className="border-t border-gray-200 my-1"></div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAppointmentToDelete(appointment);
+                    setShowDeleteConfirm(true);
+                    setActiveActionMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-red-600 font-droid-arabic-kufi text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>حذف الموعد</span>
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  </div>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                printPatientCard(appointment);
-                                setActiveActionMenu(null);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-                            >
-                              <Printer className="w-4 h-4 text-blue-600" />
-                              <span>طباعة بطاقة المتابعة</span>
-                            </button>
+  {/* Row 2: WhatsApp Actions (Always visible for quick access) */}
+  <div className="flex gap-2">
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        sendWhatsAppReminder(appointment);
+      }}
+      className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+    >
+      <MessageCircle className="w-4 h-4" />
+      <span>تذكير</span>
+    </button>
 
-                            {user.role_id === 1 && (
-                              <>
-                                <div className="border-t border-gray-200 my-1"></div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setAppointmentToDelete(appointment);
-                                    setShowDeleteConfirm(true);
-                                    setActiveActionMenu(null);
-                                  }}
-                                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-red-600 font-droid-arabic-kufi text-sm"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  <span>حذف الموعد</span>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        sendEvaluationLinkViaWhatsApp(appointment, eventId);
+      }}
+      className="flex-1 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+    >
+      <MessageCircle className="w-4 h-4" />
+      <span>استبيان</span>
+    </button>
+  </div>
+</div>
                 </div>
               ))
             )}
@@ -2609,6 +2831,7 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
                       <span className="hidden sm:inline">تحميل الموعد</span>
                       <span className="sm:hidden">تحميل</span>
                     </button>
+                    {selectedAppointment.status === 'Pending' ?
                     <button
                       onClick={() => printPatientCard(selectedAppointment)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-xs sm:text-sm"
@@ -2616,7 +2839,7 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
                       <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">طباعة بطاقة المتابعة</span>
                       <span className="sm:hidden">بطاقة</span>
-                    </button>
+                    </button>: 'عليك تسجيل الحضور أولا'}
                   </>
                 ) : (
                   <>

@@ -15,8 +15,13 @@ const EvaluationForm = () => {
   
   // Get eventId and appointmentId from URL params manually
   const urlParams = new URLSearchParams(window.location.search);
-  const eventId = urlParams.get('eventId') || window.location.pathname.split('/').pop();
-  const appointmentId = urlParams.get('appointmentId');
+  console.log(urlParams);
+  
+  const pathParts = window.location.pathname.split('/');  
+  // ["", "evaluation", "38", "1384"]
+
+  const eventId = pathParts[2];        // "38"
+  const appointmentId = pathParts[3];  // "1384"
 
   const [formData, setFormData] = useState({
     event_id: eventId,
