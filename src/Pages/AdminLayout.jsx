@@ -3,7 +3,6 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
 import { Menu, X, LogOut } from "lucide-react";
 
-import SuperAdminNav from "./Headers/SuperAdminNav";
 import AuthNavBar from "./Headers/AuthNavBar";
 import GuestNavBar from "./Headers/GuestNavBar";
 import WaitingList from "./AuthUser/WaitingList/WaitingList";
@@ -140,19 +139,7 @@ export default function AdminLayout() {
                 />
               )}
               
-              {/* Sidebar */}
-              <div className={`fixed right-0 top-[73px] h-[calc(100vh-73px)] bg-white border-l border-gray-200 shadow-xl transform transition-transform duration-300 ease-in-out z-30 w-72 ${
-                isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-              }`}>
-                <SuperAdminNav 
-                  user={user} 
-                  specialities={specialities} 
-                  dropdownRef={dropdownRef} 
-                  toggleDropdown={toggleDropdown} 
-                  isOpen={isOpen}
-                  handlelogout={handlelogout}
-                />
-              </div>
+
             </>
           )}
 

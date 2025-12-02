@@ -20,7 +20,9 @@ import {
     Plus,
     Edit,
     Trash2,
-    Shield
+    Shield,
+    UserCheck  // Add this
+
 } from 'lucide-react';
 
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -40,6 +42,8 @@ export default function Activities() {
     const [viewMode, setViewMode] = useState('grid');
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('newest');
+    // 1. New State for Year Filter
+    const [selectedYear, setSelectedYear] = useState('all'); 
     const { language } = useLanguage();
     
     // Admin state
@@ -54,18 +58,19 @@ export default function Activities() {
     // Helper function to get correct media URL
     const getMediaUrl = (url) => {
         if (!url) return '/tagemi_consept.png';
-        
-        // Remove any leading slashes
         url = url.replace(/^\/+/, '');
-        
-        // If URL already starts with 'storage/', just prepend apiUrl
         if (url.startsWith('storage/')) {
             return `${apiUrl}/${url}`;
         }
-        
-        // Otherwise, add 'storage/' prefix
         return `${apiUrl}/storage/${url}`;
     };
+
+    // 2. Logic to extract unique years from loaded activities
+    const availableYears = [...new Set(activities.map(a => {
+        // We use event_date primarily, fallback to created_at
+        const dateStr = a.event_date || a.created_at;
+        return dateStr ? new Date(dateStr).getFullYear() : null;
+    }))].filter(Boolean).sort((a, b) => b - a);
 
     async function getTypes() {
         try {
@@ -116,10 +121,11 @@ export default function Activities() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [TypeId]);
 
-    // Filter and sort activities
+    // 3. Updated Filter Logic
     useEffect(() => {
         let filtered = [...activities];
 
+        // Search Filter
         if (searchQuery) {
             filtered = filtered.filter(activity => {
                 const title = language === 'en' ? activity.title_en : activity.title_ar;
@@ -129,6 +135,17 @@ export default function Activities() {
             });
         }
 
+        // Year Filter
+        if (selectedYear !== 'all') {
+            filtered = filtered.filter(activity => {
+                const dateStr = activity.event_date || activity.created_at;
+                if (!dateStr) return false;
+                const year = new Date(dateStr).getFullYear();
+                return year.toString() === selectedYear.toString();
+            });
+        }
+
+        // Sort Logic
         filtered.sort((a, b) => {
             if (sortBy === 'newest') {
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
@@ -143,7 +160,7 @@ export default function Activities() {
         });
 
         setFilteredActivities(filtered);
-    }, [searchQuery, sortBy, activities, language]);
+    }, [searchQuery, sortBy, selectedYear, activities, language]);
 
     const truncateHtml = (html, maxLength) => {
         const tempDiv = document.createElement('div');
@@ -208,10 +225,9 @@ export default function Activities() {
             // Add new activity
             setActivities([savedActivity, ...activities]);
         }
-        getAllActivities(); // Refresh the list
+        getAllActivities();
     };
 
-    // Skeleton loader component
     const SkeletonCard = () => (
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden animate-pulse">
             <div className="h-56 bg-gray-300"></div>
@@ -226,7 +242,6 @@ export default function Activities() {
         </div>
     );
 
-    // Empty state component
     const EmptyState = () => (
         <div className="text-center py-20 animate-fade-in">
             <div className="inline-block p-6 bg-gray-100 rounded-full mb-6">
@@ -241,193 +256,227 @@ export default function Activities() {
                     : 'حاول ضبط البحث أو الفلاتر للعثور على ما تبحث عنه.'
                 }
             </p>
-            {searchQuery && (
+            {(searchQuery || selectedYear !== 'all') && (
                 <button
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => {
+                        setSearchQuery('');
+                        setSelectedYear('all');
+                    }}
                     className="px-6 py-3 bg-[#E03A6F] text-white rounded-full hover:bg-[#c8102e] transition-all duration-300 font-droid-arabic-kufi"
                 >
-                    {language === 'en' ? 'Clear Search' : 'مسح البحث'}
+                    {language === 'en' ? 'Clear Filters' : 'مسح الفلاتر'}
                 </button>
             )}
         </div>
     );
+        // Format time ago
+    const getTimeAgo = (dateString) => {
+        if (!dateString) return '';
+        const now = new Date();
+        const updated = new Date(dateString);
+        const diffInSeconds = Math.floor((now - updated) / 1000);
+        
+        if (diffInSeconds < 60) return language === 'en' ? 'Just now' : 'الآن';
+        if (diffInSeconds < 3600) {
+            const mins = Math.floor(diffInSeconds / 60);
+            return language === 'en' ? `${mins}m ago` : `منذ ${mins} دقيقة`;
+        }
+        if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return language === 'en' ? `${hours}h ago` : `منذ ${hours} ساعة`;
+        }
+        const days = Math.floor(diffInSeconds / 86400);
+        return language === 'en' ? `${days}d ago` : `منذ ${days} يوم`;
+    };
+
+    // Check if user is super admin (role_id === 1)
+    const isSuperAdmin = user && user.role_id === 1;
+    // Render Last Updated By Badge (Only for Super Admin)
+const renderUpdaterBadge = (activity) => {
+    if (!isSuperAdmin || !activity.updater) return null;
+
+    return (
+        <div className="my-3 pt-3 border-t border-gray-200">
+            <div className="flex items-center gap-2 text-xs text-gray-600 font-droid-arabic-kufi">
+                <UserCheck className="w-4 h-4 text-blue-600" />
+                <span className="font-medium">
+                    {language === 'en' ? 'Last updated by:' : 'آخر تحديث بواسطة:'}
+                </span>
+                <span className="font-semibold text-gray-900">
+                    {activity.updater.name}
+                </span>
+                <span className="text-gray-400">•</span>
+                <span className="text-gray-500">
+                    {getTimeAgo(activity.updated_at)}
+                </span>
+            </div>
+        </div>
+    );
+};
 
     return (
         <div className="min-h-screen bg-white">
-{/* Enhanced Hero Section - No Image */}
-<div className="relative w-full bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#2a3d88] overflow-hidden">
-    {/* Decorative Background Elements */}
-    <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-[#E03A6F] rounded-full filter blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#E03A6F] rounded-full filter blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
-    </div>
-
-    {/* Pattern Overlay */}
-    <div className="absolute inset-0" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-    }}></div>
-
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-white/80 text-sm font-droid-arabic-kufi mb-8">
-            <Link to="/" className="hover:text-[#E03A6F] transition-colors flex items-center gap-2">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-                {language === 'en' ? 'Home' : 'الرئيسية'}
-            </Link>
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-            <span className="text-white font-medium">
-                {language === 'en' ? type.name_en : type.name_ar}
-            </span>
-        </nav>
-
-        {/* Admin Badge */}
-        {isSuperContentAdmin && (
-            <div className="absolute top-6 right-4 sm:right-8">
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg">
-                    <Shield className="w-4 h-4 text-white" />
-                    <span className="text-white text-sm font-droid-arabic-kufi font-medium">
-                        {language === 'en' ? 'Admin Mode' : 'وضع المدير'}
-                    </span>
+            {/* Hero Section */}
+            <div className="relative w-full bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#2a3d88] overflow-hidden">
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-[#E03A6F] rounded-full filter blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#E03A6F] rounded-full filter blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
                 </div>
-            </div>
-        )}
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left Side - Text Content */}
-            <div className={language === 'ar' ? 'lg:order-2' : ''}>
-                <div className="space-y-6">
-                    {/* Category Badge */}
-                    <div className="inline-flex items-center gap-2 bg-[#E03A6F]/20 backdrop-blur-sm px-4 py-2 rounded-full border border-[#E03A6F]/30">
-                        <TrendingUp className="w-4 h-4 text-[#E03A6F]" />
-                        <span className="text-[#E03A6F] text-sm font-droid-arabic-kufi font-medium">
-                            {language === 'en' ? 'Activity Category' : 'فئة النشاط'}
+                <div className="absolute inset-0" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                }}></div>
+
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+                    {/* Breadcrumb */}
+                    <nav className="flex items-center gap-2 text-white/80 text-sm font-droid-arabic-kufi mb-8">
+                        <Link to="/" className="hover:text-[#E03A6F] transition-colors flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                            </svg>
+                            {language === 'en' ? 'Home' : 'الرئيسية'}
+                        </Link>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-white font-medium">
+                            {language === 'en' ? type.name_en : type.name_ar}
                         </span>
-                    </div>
+                    </nav>
 
-                    {/* Title */}
-                    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white font-droid-arabic-kufi leading-tight">
-                        {language === 'en' ? type.name_en : type.name_ar}
-                    </h1>
-
-                    {/* Description Preview */}
-                    {(type.description_en || type.description_ar) && (
-                        <p className="text-lg text-white/80 font-droid-arabic-kufi leading-relaxed max-w-xl">
-                            {truncateHtml(
-                                language === 'en' ? type.description_en : type.description_ar,
-                                150
-                            )}
-                        </p>
+                    {/* Admin Badge */}
+                    {isSuperContentAdmin && (
+                        <div className="absolute top-6 right-4 sm:right-8">
+                            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg">
+                                <Shield className="w-4 h-4 text-white" />
+                                <span className="text-white text-sm font-droid-arabic-kufi font-medium">
+                                    {language === 'en' ? 'Admin Mode' : 'وضع المدير'}
+                                </span>
+                            </div>
+                        </div>
                     )}
 
-                    {/* Stats */}
-                    <div className="flex flex-wrap items-center gap-6 pt-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                <TrendingUp className="w-6 h-6 text-[#E03A6F]" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold text-white">
-                                    {activities.length}
+                    {/* Main Content */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div className={language === 'ar' ? 'lg:order-2' : ''}>
+                            <div className="space-y-6">
+                                <div className="inline-flex items-center gap-2 bg-[#E03A6F]/20 backdrop-blur-sm px-4 py-2 rounded-full border border-[#E03A6F]/30">
+                                    <TrendingUp className="w-4 h-4 text-[#E03A6F]" />
+                                    <span className="text-[#E03A6F] text-sm font-droid-arabic-kufi font-medium">
+                                        {language === 'en' ? 'Activity Category' : 'فئة النشاط'}
+                                    </span>
                                 </div>
-                                <div className="text-sm text-white/70 font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Activities' : 'نشاط'}
+
+                                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white font-droid-arabic-kufi leading-tight">
+                                    {language === 'en' ? type.name_en : type.name_ar}
+                                </h1>
+
+                                {(type.description_en || type.description_ar) && (
+                                    <p className="text-lg text-white/80 font-droid-arabic-kufi leading-relaxed max-w-xl">
+                                        {truncateHtml(
+                                            language === 'en' ? type.description_en : type.description_ar,
+                                            150
+                                        )}
+                                    </p>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-6 pt-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                            <TrendingUp className="w-6 h-6 text-[#E03A6F]" />
+                                        </div>
+                                        <div>
+                                            <div className="text-3xl font-bold text-white">
+                                                {activities.length}
+                                            </div>
+                                            <div className="text-sm text-white/70 font-droid-arabic-kufi">
+                                                {language === 'en' ? 'Activities' : 'نشاط'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                            <Calendar className="w-6 h-6 text-[#E03A6F]" />
+                                        </div>
+                                        <div>
+                                            <div className="text-3xl font-bold text-white">
+                                                {new Date().getFullYear()}
+                                            </div>
+                                            <div className="text-sm text-white/70 font-droid-arabic-kufi">
+                                                {language === 'en' ? 'Current Year' : 'السنة الحالية'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4">
+                                    <button
+                                        onClick={() => window.scrollTo({ top: document.getElementById('activities-section')?.offsetTop - 100, behavior: 'smooth' })}
+                                        className="group inline-flex items-center gap-3 bg-[#E03A6F] hover:bg-[#c8102e] text-white px-8 py-4 rounded-full font-droid-arabic-kufi font-medium text-lg transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
+                                    >
+                                        {language === 'en' ? 'Explore Activities' : 'استكشف الأنشطة'}
+                                        <ArrowRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${language === 'ar' ? 'rotate-180' : ''}`} />
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                <Calendar className="w-6 h-6 text-[#E03A6F]" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold text-white">
-                                    {new Date().getFullYear()}
-                                </div>
-                                <div className="text-sm text-white/70 font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Current Year' : 'السنة الحالية'}
+                        <div className={`relative ${language === 'ar' ? 'lg:order-1' : ''}`}>
+                            <div className="relative">
+                                <div className="absolute -top-4 -left-4 w-72 h-72 bg-[#E03A6F] rounded-full opacity-20 blur-3xl"></div>
+                                <div className="absolute -bottom-4 -right-4 w-72 h-72 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
+                                
+                                <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 backdrop-blur-sm transform hover:scale-105 transition-transform duration-500">
+                                    <img 
+                                        src={`${apiUrl}/${type.image_url}`} 
+                                        className="w-full h-[400px] object-cover"
+                                        alt={language === 'en' ? type.name_en : type.name_ar}
+                                        onError={(e) => {
+                                            e.target.src = '/tagemi_consept.png';
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#101E58]/50 to-transparent"></div>
+                                    
+                                    <div className="absolute bottom-6 left-6 right-6">
+                                        <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-sm text-gray-600 font-droid-arabic-kufi mb-1">
+                                                        {language === 'en' ? 'Total Activities' : 'مجموع الأنشطة'}
+                                                    </div>
+                                                    <div className="text-2xl font-bold text-[#101E58]">
+                                                        {activities.length}
+                                                    </div>
+                                                </div>
+                                                <div className="w-12 h-12 bg-gradient-to-br from-[#E03A6F] to-[#c8102e] rounded-xl flex items-center justify-center">
+                                                    <TrendingUp className="w-6 h-6 text-white" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="pt-4">
-                        <button
-                            onClick={() => window.scrollTo({ top: document.getElementById('activities-section')?.offsetTop - 100, behavior: 'smooth' })}
-                            className="group inline-flex items-center gap-3 bg-[#E03A6F] hover:bg-[#c8102e] text-white px-8 py-4 rounded-full font-droid-arabic-kufi font-medium text-lg transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
-                        >
-                            {language === 'en' ? 'Explore Activities' : 'استكشف الأنشطة'}
-                            <ArrowRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${language === 'ar' ? 'rotate-180' : ''}`} />
-                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Right Side - Type Image with Better Design */}
-            <div className={`relative ${language === 'ar' ? 'lg:order-1' : ''}`}>
-                <div className="relative">
-                    {/* Decorative Elements */}
-                    <div className="absolute -top-4 -left-4 w-72 h-72 bg-[#E03A6F] rounded-full opacity-20 blur-3xl"></div>
-                    <div className="absolute -bottom-4 -right-4 w-72 h-72 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
-                    
-                    {/* Main Image */}
-                    <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 backdrop-blur-sm transform hover:scale-105 transition-transform duration-500">
-                        <img 
-                            src={`${apiUrl}/${type.image_url}`} 
-                            className="w-full h-[400px] object-cover"
-                            alt={language === 'en' ? type.name_en : type.name_ar}
-                            onError={(e) => {
-                                e.target.src = '/tagemi_consept.png';
-                            }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#101E58]/50 to-transparent"></div>
-                        
-                        {/* Floating Badge on Image */}
-                        <div className="absolute bottom-6 left-6 right-6">
-                            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="text-sm text-gray-600 font-droid-arabic-kufi mb-1">
-                                            {language === 'en' ? 'Total Activities' : 'مجموع الأنشطة'}
-                                        </div>
-                                        <div className="text-2xl font-bold text-[#101E58]">
-                                            {activities.length}
-                                        </div>
-                                    </div>
-                                    <div className="w-12 h-12 bg-gradient-to-br from-[#E03A6F] to-[#c8102e] rounded-xl flex items-center justify-center">
-                                        <TrendingUp className="w-6 h-6 text-white" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-            {/* About Activity Section */}
             <AboutActvity 
                 TypeDescription={language === 'en' ? type.description_en : type.description_ar} 
                 ImageUrl={`${apiUrl}/${type.image_url}`} 
             />
 
             {/* Search and Filter Section */}
-                <section 
-                    id="activities-section"
-                    className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white"
-                >               
-                 <div className="max-w-7xl mx-auto">
+            <section 
+                id="activities-section"
+                className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white"
+            >               
+                <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
                         {/* Search Bar */}
                         <div className="relative flex-1 max-w-md">
-                            <Search className={`absolute ${language === 'en' ? 'left-4' : 'right-4'} top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5`} />
+                            <Search className={`absolute ${language === 'en' ? 'right-4' : 'left-4'} top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5`} />
                             <input
                                 type="text"
                                 placeholder={language === 'en' ? 'Search activities...' : 'البحث عن الأنشطة...'}
@@ -446,7 +495,7 @@ export default function Activities() {
                         </div>
 
                         {/* Controls */}
-                        <div className="flex gap-3 items-center">
+                        <div className="flex gap-3 items-center flex-wrap">
                             {/* Add Button (Admin Only) */}
                             {isSuperContentAdmin && (
                                 <button
@@ -454,9 +503,24 @@ export default function Activities() {
                                     className="px-4 py-3 bg-[#E03A6F] text-white rounded-xl hover:bg-[#c8102e] transition-colors flex items-center gap-2 font-droid-arabic-kufi"
                                 >
                                     <Plus className="w-5 h-5" />
-                                    {language === 'en' ? 'Add Activity' : 'إضافة نشاط'}
+                                    <span className="hidden sm:inline">{language === 'en' ? 'Add Activity' : 'إضافة نشاط'}</span>
                                 </button>
                             )}
+
+                            {/* 4. NEW: Year Dropdown */}
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                    className="pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E03A6F] appearance-none bg-white cursor-pointer font-droid-arabic-kufi"
+                                >
+                                    <option value="all">{language === 'en' ? 'All Years' : 'كل السنوات'}</option>
+                                    {availableYears.map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
 
                             {/* Sort Dropdown */}
                             <div className="relative">
@@ -473,7 +537,7 @@ export default function Activities() {
                             </div>
 
                             {/* View Toggle */}
-                            <div className="flex bg-white border border-gray-300 rounded-xl overflow-hidden">
+                            <div className="flex bg-white border border-gray-300 rounded-xl overflow-hidden hidden sm:flex">
                                 <button
                                     onClick={() => setViewMode('grid')}
                                     className={`p-3 transition-colors ${viewMode === 'grid' ? 'bg-[#E03A6F] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
@@ -583,10 +647,8 @@ export default function Activities() {
                                                 </div>
                                             )}
                                             
-                                            {/* Gradient Overlay */}
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                             
-                                            {/* Badge */}
                                             <div className="absolute top-4 right-4">
                                                 <span className="px-3 py-1 bg-[#E03A6F] text-white text-xs font-bold rounded-full shadow-lg font-droid-arabic-kufi">
                                                         {activity.status === 'upcoming' ? language === 'en' ? 'Upcoming' : 'قادم' : ''}
@@ -596,7 +658,6 @@ export default function Activities() {
                                             </div>
                                         </div>
 
-                                        {/* Content Section */}
                                         <div className="p-6 flex-1 flex flex-col">
                                             <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#E03A6F] transition-colors font-droid-arabic-kufi leading-tight">
                                                 {language === 'en' ? activity.title_en : activity.title_ar}
@@ -609,15 +670,15 @@ export default function Activities() {
                                                 )}
                                             </p>
 
-                                            {/* Metadata */}
                                             <div className="flex items-center gap-4 text-xs text-gray-500 mb-4 font-droid-arabic-kufi">
-                                                {activity.created_at && (
+                                                {activity.event_date && (
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="w-4 h-4" />
                                                         <span>{new Date(activity.event_date).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-DZ')}</span>
                                                     </div>
                                                 )}
                                             </div>
+                                            {renderUpdaterBadge(activity)}
 
                                             <Link 
                                                 to={`/activities/${activity.id}`} 
@@ -635,7 +696,6 @@ export default function Activities() {
                                         className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-300 flex flex-col sm:flex-row animate-fade-in relative"
                                         style={{ animationDelay: `${index * 100}ms` }}
                                     >
-                                        {/* Admin Controls */}
                                         {isSuperContentAdmin && (
                                             <div className="absolute top-4 left-4 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
@@ -653,7 +713,6 @@ export default function Activities() {
                                             </div>
                                         )}
 
-                                        {/* Media Section */}
                                         <div className="relative w-full sm:w-72 h-56 sm:h-auto overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex-shrink-0">
                                             {activity.media && activity.media.length > 0 ? (
                                                 <>
@@ -698,7 +757,6 @@ export default function Activities() {
                                             </div>
                                         </div>
 
-                                        {/* Content Section */}
                                         <div className="p-6 flex-1 flex flex-col">
                                             <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#E03A6F] transition-colors font-droid-arabic-kufi">
                                                 {language === 'en' ? activity.title_en : activity.title_ar}
@@ -711,15 +769,15 @@ export default function Activities() {
                                                 )}
                                             </p>
 
-                                            {/* Metadata */}
                                             <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 font-droid-arabic-kufi">
-                                                {activity.created_at && (
+                                                {activity.event_date && (
                                                     <div className="flex items-center gap-2">
                                                         <Clock className="w-4 h-4" />
-                                                        <span>{new Date(activity.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-DZ')}</span>
+                                                        <span>{new Date(activity.event_date).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-DZ')}</span>
                                                     </div>
                                                 )}
                                             </div>
+                                            {renderUpdaterBadge(activity)}
 
                                             <Link 
                                                 to={`/activities/${activity.id}`} 

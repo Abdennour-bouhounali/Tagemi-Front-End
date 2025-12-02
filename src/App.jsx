@@ -11,16 +11,13 @@ import ManageSpeciality from './Pages/AuthUser/SuperAdmin/ManageSpeciality';
 import RegisterVisit from './Pages/AuthUser/Visits/RegisterVisit';
 import CheckPresence from './Pages/AuthUser/RecipientAdmin/CheckPresence';
 import CheckPaitent from './Pages/AuthUser/CheckAdmin/CheckPaitent';
-import Settings from './Pages/AuthUser/SuperAdmin/Settings';
 import './i18n';
 import SpecialCase from './Pages/AuthUser/SpecialCaseAdmin/SpecialCase';
 import VisitsStatistics from './Pages/AuthUser/SuperAdmin/VisitsStatistics';
 import About from './Pages/GuestUser/About';
 import Contact from './Pages/GuestUser/Contact';
-import Events from './Pages/GuestUser/Events';
 import ManageRules from './Pages/AuthUser/SuperAdmin/ManageRules';
 import Activities from './Pages/GuestUser/Actvities/Activities';
-import ActivityDetails from './Pages/GuestUser/Actvities/ActivityDetails';
 import Messages from './Pages/AuthUser/SuperAdmin/Messages';
 import VolunteerForm from './Pages/GuestUser/VolunteerForm';
 import FuturProjects from './Pages/GuestUser/FuturProjects/FuturProjects';
@@ -81,13 +78,6 @@ export default function App() {
             {/* // Add these routes in the GuestLayout section: */}
             <Route path="evaluation/:eventId/:appointmentId" element={<EvaluationForm />} />
             <Route path="evaluation/:eventId" element={<EvaluationForm />} />
-
-{/* // Add this route in the AdminLayout section (Super Admin only): */}
-
-
-
-
-
 
             {/* Public Appointment Booking */}
             <Route

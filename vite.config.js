@@ -7,16 +7,16 @@ export default defineConfig({
   server: {
     proxy:{
       '/api':{
-        target : 'http://127.0.0.1:8000',
+        // target : 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
-        // target : 'https://api.tagemi-foundation.org',
+        target : 'https://api.tagemi-foundation.org',
         changeOrigin : true,
         headers:{
           Accept:'application/json',
           "Content-Type" : 'application/json',
-          // "Access-Control-Allow-Origin": "https://api.tagemi-foundation.org",
-          "Access-Control-Allow-Origin": "http://127.0.0.1:8000",
+          "Access-Control-Allow-Origin": "https://api.tagemi-foundation.org",
+          // "Access-Control-Allow-Origin": "http://127.0.0.1:8000",
           "Access-Control-Allow-Methods":"GET, POST, PUT, OPTIONS"
 
         }
