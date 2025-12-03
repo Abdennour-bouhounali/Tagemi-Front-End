@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Trash2, Image as ImageIcon, Video } from 'lucide-react';
+import { X, Upload, Trash2, Image , Calendar ,  Video } from 'lucide-react';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -16,6 +16,8 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
         description_ar: '',
         location: '',
         event_date: '',
+        event_end_date: '', // NEW FIELD
+
         status: 'upcoming',
         participants_count: 0,
         beneficiaries_count: 0,
@@ -88,7 +90,8 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                 description_en: activity.description_en || '',
                 description_ar: activity.description_ar || '',
                 location: activity.location || '',
-                event_date: activity.event_date || '',
+                event_date: formatDateForInput(activity.event_date) || '',
+                event_end_date: formatDateForInput(activity.event_end_date) || '',
                 status: activity.status || 'upcoming',
                 participants_count: activity.participants_count || 0,
                 beneficiaries_count: activity.beneficiaries_count || 0,
@@ -113,6 +116,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                 description_ar: '',
                 location: '',
                 event_date: '',
+                event_end_date: '', // NEW FIELD
                 status: 'upcoming',
                 participants_count: 0,
                 beneficiaries_count: 0,
@@ -123,6 +127,12 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
             setMediaFiles([]);
         }
     }, [activity, typeId, isOpen]);
+        // Helper function to format date for input field (YYYY-MM-DD)
+    const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        // Extract just the date part (YYYY-MM-DD) from datetime strings
+        return dateString.split(' ')[0].split('T')[0];
+    };
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -227,6 +237,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
             formDataToSend.append('description_ar', formData.description_ar || '');
             formDataToSend.append('location', formData.location || '');
             formDataToSend.append('event_date', formData.event_date || '');
+            formDataToSend.append('event_end_date', formData.event_end_date || ''); // NEW FIELD
             formDataToSend.append('status', formData.status);
             formDataToSend.append('participants_count', formData.participants_count);
             formDataToSend.append('beneficiaries_count', formData.beneficiaries_count);
@@ -400,23 +411,12 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                     </div>
 
                     {/* Location, Date, Status */}
+                                   {/* Date Fields - NOW WITH END DATE */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Location' : 'الموقع'}
-                            </label>
-                            <input
-                                type="text"
-                                name="location"
-                                value={formData.location}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Event Date' : 'تاريخ الحدث'}
+                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                Start Date
                             </label>
                             <input
                                 type="date"
@@ -425,12 +425,38 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                                 onChange={handleChange}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent"
                             />
+                            {errors.event_date && (
+                                <p className="text-red-500 text-sm mt-1">{errors.event_date[0]}</p>
+                            )}
+                        </div>
+
+                        {/* NEW: End Date Field */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                End Date
+                            </label>
+                            <input
+                                type="date"
+                                name="event_end_date"
+                                value={formData.event_end_date}
+                                onChange={handleChange}
+                                min={formData.event_date}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent"
+                            />
+                            {errors.event_end_date && (
+                                <p className="text-red-500 text-sm mt-1">{errors.event_end_date[0]}</p>
+                            )}
+                            {formData.event_date && formData.event_end_date && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Duration: {Math.ceil((new Date(formData.event_end_date) - new Date(formData.event_date)) / (1000 * 60 * 60 * 24)) + 1} days
+                                </p>
+                            )}
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Status' : 'الحالة'}
-                                <span className="text-red-500">*</span>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Status<span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="status"
@@ -439,10 +465,10 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent"
                             >
-                                <option value="upcoming">{language === 'en' ? 'Upcoming' : 'قادم'}</option>
-                                <option value="ongoing">{language === 'en' ? 'Ongoing' : 'جاري'}</option>
-                                <option value="completed">{language === 'en' ? 'Completed' : 'مكتمل'}</option>
-                                <option value="cancelled">{language === 'en' ? 'Cancelled' : 'ملغى'}</option>
+                                <option value="upcoming">Upcoming</option>
+                                <option value="ongoing">Ongoing</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
                             </select>
                         </div>
                     </div>

@@ -537,7 +537,7 @@ const renderUpdaterBadge = (activity) => {
                             </div>
 
                             {/* View Toggle */}
-                            <div className="flex bg-white border border-gray-300 rounded-xl overflow-hidden hidden sm:flex">
+                            <div className="flex bg-white border border-gray-300 rounded-xl overflow-hidden sm:flex">
                                 <button
                                     onClick={() => setViewMode('grid')}
                                     className={`p-3 transition-colors ${viewMode === 'grid' ? 'bg-[#E03A6F] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
@@ -669,15 +669,36 @@ const renderUpdaterBadge = (activity) => {
                                                     150
                                                 )}
                                             </p>
+<div className="flex items-center gap-2 mb-3 text-gray-700">
+  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#56e03a] flex-shrink-0" />
+  <span className="font-droid-arabic-kufi text-xs sm:text-sm">
+    {activity.event_end_date ? (
+      <>
+        <strong>{language === 'en' ? 'Duration:' : 'المدة:'} </strong>
+        {new Date(activity.event_date).toLocaleDateString(
+          language === 'en' ? 'en-US' : 'ar-DZ',
+          { year: 'numeric', month: 'short', day: 'numeric' }
+        )}
+        {' '}<span className="text-gray-500">{language === 'en' ? '→' : '←'}</span>{' '}
+        {new Date(activity.event_end_date).toLocaleDateString(
+          language === 'en' ? 'en-US' : 'ar-DZ',
+          { year: 'numeric', month: 'short', day: 'numeric' }
+        )}
+      </>
+    ) : (
+      <>
+        <strong>{language === 'en' ? 'Date:' : 'التاريخ:'} </strong>
+        {new Date(activity.event_date).toLocaleDateString(
+          language === 'en' ? 'en-US' : 'ar-DZ',
+          { year: 'numeric', month: 'long', day: 'numeric' }
+        )}
+      </>
+    )}
+  </span>
+</div>
 
-                                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-4 font-droid-arabic-kufi">
-                                                {activity.event_date && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Clock className="w-4 h-4" />
-                                                        <span>{new Date(activity.event_date).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-DZ')}</span>
-                                                    </div>
-                                                )}
-                                            </div>
+
+
                                             {renderUpdaterBadge(activity)}
 
                                             <Link 

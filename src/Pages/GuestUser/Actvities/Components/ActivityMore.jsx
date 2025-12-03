@@ -411,15 +411,31 @@ export default function ActivityMore() {
                                 
                                 {activity.event_date && (
                                     <div className="flex items-center gap-2.5 sm:gap-3 text-gray-700">
-                                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#E03A6F] flex-shrink-0" />
+                                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#56e03a] flex-shrink-0" />
                                         <span className="font-droid-arabic-kufi text-sm sm:text-base">
+                                            <strong>{language === 'en' ? 'Start:' : 'البداية:'} </strong>
                                             {new Date(activity.event_date).toLocaleDateString(
                                                 language === 'en' ? 'en-US' : 'ar-DZ',
                                                 { year: 'numeric', month: 'long', day: 'numeric' }
                                             )}
                                         </span>
+
+                                        {activity.event_end_date && (
+                                            <div className="flex items-center gap-2.5 sm:gap-3 text-gray-700">
+                                                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#e91054] flex-shrink-0" />
+                                                <span className="font-droid-arabic-kufi text-sm sm:text-base">
+                                                    <strong>{language === 'en' ? 'End:' : 'النهاية:'} </strong>
+                                                    {new Date(activity.event_end_date).toLocaleDateString(
+                                                        language === 'en' ? 'en-US' : 'ar-DZ',
+                                                        { year: 'numeric', month: 'long', day: 'numeric' }
+                                                    )}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
+
+                                
 
                                 {activity.created_at && (
                                     <div className="flex items-center gap-2.5 sm:gap-3 text-gray-600 text-xs sm:text-sm">
