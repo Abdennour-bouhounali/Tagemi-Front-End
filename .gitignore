@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .codegpt
+
+# Ignore all env files
+.env*
+# Except the example file
+!.env.example
