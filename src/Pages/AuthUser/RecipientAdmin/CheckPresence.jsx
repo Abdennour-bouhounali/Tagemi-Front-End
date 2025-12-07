@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
+import { API_BASE_URL } from '../../../config/environment';
 import { useParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
-
 import {
   Search,
   CheckCircle,
@@ -35,7 +35,7 @@ import {
 import { Select, Input } from '../../Common/FormInputs';
 import AppointmentDocuments from '../SuperAdmin/AppointmentDocuments';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const CheckPresence = () => {
   const { eventId } = useParams();

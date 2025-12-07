@@ -1,9 +1,12 @@
 import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
-import { Eye, EyeOff, User, Phone, Mail, Lock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-const apiUrl = import.meta.env.VITE_API_URL; 
+import { API_BASE_URL } from '../../../config/environment';
+import { Eye, EyeOff, User, Phone, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+
 import logo from '/tagemi_logo.png';
+
+const apiUrl = API_BASE_URL;
 
 export default function Register() {
   const { token, setToken } = useContext(AppContext);

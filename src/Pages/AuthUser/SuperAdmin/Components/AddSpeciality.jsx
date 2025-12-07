@@ -1,8 +1,9 @@
 import { useContext, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
+import { API_BASE_URL } from '../../../../config/environment';
 import { Loader2, CheckCircle, Plus } from "lucide-react";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function AddSpecialty({ getSpecialites }) {
   const { token } = useContext(AppContext);

@@ -1,6 +1,5 @@
-// src/pages/Admin/ArchivedStats/ComprehensiveReport.jsx
-
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
+import { API_BASE_URL } from '../../../../config/environment';
 import { useParams, Link } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
 import {
@@ -25,14 +24,13 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 

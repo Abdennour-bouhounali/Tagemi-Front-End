@@ -4,9 +4,10 @@ import Events from "./Components/Events";
 import AddEvent from "./Components/AddEvent";
 import AppointmentDistribution from "./Components/AppointmentDistribution";
 import { Plus, X, FileText } from "lucide-react";
+import { API_BASE_URL } from '../../../config/environment';
 import { Link } from "react-router-dom";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function EventsManagement() {
   const [events, setEvents] = useState([]);

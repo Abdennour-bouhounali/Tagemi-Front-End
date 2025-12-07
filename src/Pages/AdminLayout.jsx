@@ -1,12 +1,13 @@
-import React, { useContext, useRef, useEffect, useState } from "react";
-import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useContext, useRef, useEffect, useState } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
 import { Menu, X, LogOut } from "lucide-react";
+import { API_BASE_URL } from "../config/environment";
 
 import AuthNavBar from "./Headers/AuthNavBar";
 import GuestNavBar from "./Headers/GuestNavBar";
-import WaitingList from "./AuthUser/WaitingList/WaitingList";
-const apiUrl = import.meta.env.VITE_API_URL;
+
+const apiUrl = API_BASE_URL;
 
 export default function AdminLayout() {
   const { setUser, token, setToken, user } = useContext(AppContext);

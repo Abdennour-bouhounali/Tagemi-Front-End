@@ -1,4 +1,5 @@
-import React, { useState, useContext, useEffect, useMemo } from "react";
+import { API_BASE_URL } from '../../../config/environment';
+import { useState, useContext, useEffect, useMemo } from "react";
 import { AppContext } from "../../../Context/AppContext";
 import BirthdayInput from "./Components/BirthdayInput";
 import { Select } from '../../Common/FormInputs';
@@ -15,10 +16,11 @@ import {
   Trash2,
   RotateCcw
 } from "lucide-react";
-const apiUrl = import.meta.env.VITE_API_URL;
-// At the top of the component
-const TEST_EVENT_ID = 2;
 import algeriaLocations from '../../../data/algeria_locations.json';
+
+const apiUrl = API_BASE_URL;
+
+const TEST_EVENT_ID = 2;
 
 const AddMultipleAppointments = () => {
   const { token } = useContext(AppContext);

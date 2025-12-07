@@ -1,12 +1,13 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
+import { API_BASE_URL } from "../config/environment";
 import GuestNavBar from "./Headers/GuestNavBar";
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { useLanguage } from "../Context/LanguageContext";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function GuestLayout() {
     const { setUser, token, setToken, user } = useContext(AppContext);

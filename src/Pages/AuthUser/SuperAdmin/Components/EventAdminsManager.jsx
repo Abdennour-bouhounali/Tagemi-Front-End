@@ -1,8 +1,9 @@
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
+import { API_BASE_URL } from '../../../../config/environment';
 import { Copy, Eye, EyeOff, Trash2, RotateCcw, Download, Loader2 } from "lucide-react";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function EventAdminsManager({ eventId, eventName, onRefresh }) {
   const { token } = useContext(AppContext);

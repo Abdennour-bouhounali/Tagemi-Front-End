@@ -1,5 +1,7 @@
 import { createContext, useEffect, useState } from "react";
-export const apiUrl = import.meta.env.VITE_API_URL;
+import { API_BASE_URL } from '../config/environment';
+
+export const apiUrl = API_BASE_URL;
 
 export const AppContext = createContext();
 

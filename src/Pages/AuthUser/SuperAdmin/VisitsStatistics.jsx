@@ -1,4 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { API_BASE_URL } from '../../../config/environment';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AppContext } from "../../../Context/AppContext";
 import { 
@@ -18,7 +19,7 @@ import {
   Building2
 } from 'lucide-react';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const VisitsStatistics = () => {
     const { eventId } = useParams();

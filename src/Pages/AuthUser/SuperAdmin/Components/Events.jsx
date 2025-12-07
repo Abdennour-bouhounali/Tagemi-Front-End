@@ -1,16 +1,17 @@
 import { useContext, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
 import {
-  Eye, Archive, CheckCircle, X, Users, Edit, Link as LinkIcon,
-  Copy, Info, RefreshCw, TrendingUp, Calendar, Clock,
-  FileText, MoreHorizontal
+  Archive, CheckCircle, X, Users, Edit, Link as LinkIcon,
+  Info, RefreshCw, TrendingUp, Calendar, Clock,
+  FileText
 } from "lucide-react";
 import EventAdminsManager from "./EventAdminsManager";
 import EditEvent from "./EditEvent";
 import EventDetails from "./EventDetails";
+import { API_BASE_URL } from '../../../../config/environment';
 import { Link } from "react-router-dom";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function Events({ events, getEvents, onViewDetails }) {
   const { token } = useContext(AppContext);

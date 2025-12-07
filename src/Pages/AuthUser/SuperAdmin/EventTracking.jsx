@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
+import { API_BASE_URL } from '../../../config/environment';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import {
-  Calendar,
   Users,
   CheckCircle,
   ClipboardList,
@@ -19,7 +19,7 @@ import {
   MapPin,
 } from "lucide-react";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const EventTracking = () => {
   const { eventId } = useParams();

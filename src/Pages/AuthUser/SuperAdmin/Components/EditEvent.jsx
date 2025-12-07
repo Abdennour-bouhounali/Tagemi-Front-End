@@ -1,9 +1,10 @@
 import { useState, useContext, useEffect, useCallback } from "react";
+import { API_BASE_URL } from '../../../../config/environment';
 import { X, Save, Loader2, Plus, Trash2 } from "lucide-react";
 import { AppContext } from "../../../../Context/AppContext";
-
-const apiUrl = import.meta.env.VITE_API_URL;
 import { CheckSquare, Square,Shield } from 'lucide-react';
+
+const apiUrl = API_BASE_URL;
 
 export default function EditEvent({ event, onClose, onSuccess }) {
   const { token } = useContext(AppContext);

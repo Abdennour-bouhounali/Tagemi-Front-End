@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
 import { 
@@ -13,7 +14,7 @@ import {
   X
 } from 'lucide-react';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function AppointmentDistribution({ eventId, onClose }) {
   const { token } = useContext(AppContext);

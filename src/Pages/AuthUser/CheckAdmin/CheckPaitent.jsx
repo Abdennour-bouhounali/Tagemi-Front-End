@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
+import { API_BASE_URL } from '../../../config/environment';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -14,9 +15,6 @@ import {
     XCircle,
     ChevronDown,
     ChevronUp,
-    Calendar,
-    Phone,
-    MapPin,
     Heart,
     User,
     Activity,
@@ -30,7 +28,7 @@ import {
 } from 'lucide-react';
 import { Select, Input, Textarea } from '../../Common/FormInputs';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const CheckPatient = () => {
     const { eventId, specialityId } = useParams();

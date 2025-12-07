@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
+import { API_BASE_URL } from '../../../../config/environment';
 import { useParams } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
 import {
@@ -8,7 +9,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   PieChart,
   Pie,
   Cell,
@@ -24,11 +24,10 @@ import {
   Users,
   ThumbsUp,
   Star,
-  Download,
   Loader,
 } from "lucide-react";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const EvaluationStatistics = () => {
   const { eventId } = useParams();

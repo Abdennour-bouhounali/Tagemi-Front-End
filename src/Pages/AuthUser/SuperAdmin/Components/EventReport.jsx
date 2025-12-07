@@ -1,15 +1,16 @@
 import { useState, useEffect, useContext } from "react";
+import { API_BASE_URL } from '../../../../config/environment';
 import { useParams, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
 import {
-  Save, Printer, ArrowLeft, Plus, Trash2, CheckCircle, X, AlertCircle,
+  Save, Printer, ArrowLeft, Plus, Trash2, CheckCircle, X,
   FileText, TrendingUp, AlertTriangle, Users, DollarSign, Megaphone,
-  Star, Award, Target, Calendar, MessageSquare, Shield, Zap, Lightbulb,
-  ThumbsUp, ThumbsDown, Info, Lock, Unlock, Edit, Eye, Clock
+  Star, Award, Target, MessageSquare, Lightbulb,
+  ThumbsUp, ThumbsDown, Info, Lock, Edit, Eye, Clock
 } from "lucide-react";
 import { generatePrintableHTML } from "./PrintableReport";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function EventReport() {
   const { eventId } = useParams();

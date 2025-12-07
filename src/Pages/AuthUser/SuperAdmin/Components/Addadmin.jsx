@@ -1,6 +1,8 @@
-import React, { useState, useContext } from 'react';
+import { useState, useContext } from 'react';
+import { API_BASE_URL } from '../../../../config/environment';
 import { AppContext } from '../../../../Context/AppContext';
-const apiUrl = import.meta.env.VITE_API_URL;
+
+const apiUrl = API_BASE_URL;
 
 const Addadmin = ({ roles }) => {
   const { token, setToken } = useContext(AppContext);

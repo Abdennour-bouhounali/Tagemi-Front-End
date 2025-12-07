@@ -1,4 +1,5 @@
 import { useEffect, useState, useContext } from "react";
+import { API_BASE_URL } from '../../../config/environment';
 import { Link, useParams } from "react-router-dom";
 import AboutActvity from "./Components/AboutActvity";
 import Footer from "../HomePage/Components/Footer";
@@ -25,7 +26,7 @@ import {
 
 } from 'lucide-react';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function Activities() {
     const { TypeId } = useParams();

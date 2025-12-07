@@ -1,8 +1,9 @@
-// src/pages/Admin/ArchivedStats/PatientsList.jsx
-
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
+import { API_BASE_URL } from '../../../../config/environment';
 import { useParams, Link } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
+import {Select} from '../../../Common/FormInputs';
+import { Users } from 'lucide-react';
 import {
   ArrowLeft,
   AlertCircle,
@@ -24,9 +25,7 @@ import {
   UserX,
 } from "lucide-react";
 
-const apiUrl = import.meta.env.VITE_API_URL;
-import {Select} from '../../../Common/FormInputs';
-import { Users } from 'lucide-react';
+const apiUrl = API_BASE_URL;
 
 const STATUS_CONFIG = {
   Completed: { label: "مكتمل", color: "bg-green-100 text-green-700", icon: CheckCircle },

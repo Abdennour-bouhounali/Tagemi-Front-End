@@ -1,12 +1,12 @@
 import axios from 'axios';
+import { API_BASE_URL } from './config/environment';
 
 const axiosInstance = axios.create({
-  baseURL: '/api', // Proxy to your backend
+  baseURL: API_BASE_URL,
   headers: {
     Accept: 'application/json',
-    'Content-Type': 'multipart/form-data',
-
-},
+    'Content-Type': 'application/json',
+  },
 });
 
 export default axiosInstance;

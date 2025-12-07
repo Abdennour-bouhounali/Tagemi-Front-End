@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { API_BASE_URL } from '../../../config/environment';
+import { Link } from "react-router-dom";
 import VideoBanner from "../HomePage/Components/VideoBanner";
-import AboutActvity from "../Actvities/Components/AboutActvity";
 import Footer from "../HomePage/Components/Footer";
 import { useLanguage } from "../../../Context/LanguageContext";
 
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = API_BASE_URL; 
 export default function FuturProjects() {
     // const { TypeId } = useParams();
     // const [type, setType] = useState({ image_url: '/tagemi_consept.jpg', description: '' });

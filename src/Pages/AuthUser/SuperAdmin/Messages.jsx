@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import * as XLSX from 'xlsx';
-const apiUrl = import.meta.env.VITE_API_URL;
-
+import { API_BASE_URL } from '../../../config/environment';
 import { Filter, Check, X, Trash2, ChevronDown, ChevronUp, Download, Phone, MapPin, MessageSquare, User, Calendar, MessageCircle } from "lucide-react";
 import { Select } from '../../Common/FormInputs';
 import { AppContext } from "../../../Context/AppContext";
+
+const apiUrl = API_BASE_URL;
 
 const Messages = () => {
   const { token } = useContext(AppContext);

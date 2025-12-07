@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { X, Upload, Trash2, Image , Calendar ,  Video } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Upload, Trash2 , Calendar ,  Video } from 'lucide-react';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import ReactQuill from 'react-quill';
+import { API_BASE_URL } from '../../../../config/environment';
 import 'react-quill/dist/quill.snow.css';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) => {
     const { language } = useLanguage();

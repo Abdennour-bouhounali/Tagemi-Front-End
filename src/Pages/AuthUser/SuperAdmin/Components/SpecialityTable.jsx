@@ -1,8 +1,9 @@
-import React, { useContext, useState } from "react";
+import { useContext, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
-import { Edit, Trash2, X, Save, Loader2 } from "lucide-react";
+import { API_BASE_URL } from '../../../../config/environment';
+import { Edit, X, Save, Loader2 } from "lucide-react";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const SpecialityTable = ({ specialities, getSpecialites }) => {
   const { token } = useContext(AppContext);

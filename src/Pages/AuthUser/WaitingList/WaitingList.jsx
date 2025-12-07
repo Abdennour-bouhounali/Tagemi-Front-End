@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from "react-router-dom";
+import { API_BASE_URL } from '../../../config/environment';
 import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle } from 'lucide-react';
-
-const apiUrl = import.meta.env.VITE_API_URL;
 import { AppContext } from "../../../Context/AppContext";
+
+const apiUrl = API_BASE_URL;
 
 const WaitingList = () => {
   const { eventId } = useParams();

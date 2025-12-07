@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
+import { API_BASE_URL } from '../../config/environment';
 import { Link } from "react-router-dom";
 import {
   Calendar,
   Users,
-  BarChart3,
   Settings,
   FileText,
-  LogOut,
   Plus,
-  UserCog,
   MoreHorizontal,
   Phone,
   UserPlus,
@@ -19,15 +17,10 @@ import {
 } from "lucide-react";
 import { AppContext } from "../../Context/AppContext"; // Adjust path as needed
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const AuthNavBar = ({
   user,
-  specialities,
-  dropdownRef,
-  toggleDropdown,
-  isOpen,
-  handlelogout,
   mobile = false,
 }) => {
   // 📱 Mobile dropdowns

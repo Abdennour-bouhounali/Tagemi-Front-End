@@ -1,8 +1,9 @@
 import { useState, useContext, useEffect } from "react";
+import { API_BASE_URL } from '../../../../config/environment';
 import { X, Calendar, MapPin, Users, Clock, Link as LinkIcon, Copy, CheckCircle, Eye, Monitor } from "lucide-react";
 import { AppContext } from "../../../../Context/AppContext";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const  EventDetails = ({ event, onClose }) => {
   const { token } = useContext(AppContext);

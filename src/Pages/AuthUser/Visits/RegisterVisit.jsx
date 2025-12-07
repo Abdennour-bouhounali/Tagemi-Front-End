@@ -1,6 +1,7 @@
-import React, { useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import logo from './tagemi_logo.png';
 import { AppContext } from '../../../Context/AppContext';
+import { API_BASE_URL } from '../../../config/environment';
 import { useParams } from 'react-router-dom';
 import { Select } from '../../Common/FormInputs';
 import { Input } from '../../Common/FormInputs';
@@ -19,10 +20,8 @@ import {
   ChevronRight,
   Shield,
   Info,
-  Building2,
   CalendarDays,
   User,
-  Users,
   AlertTriangle,
   Upload,
   FileText,
@@ -32,7 +31,7 @@ import {
 import BirthdayInput from '../SuperAdmin/Components/BirthdayInput';
 import algeriaLocations from '../../../data/algeria_locations.json';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // ==================== HELPER COMPONENTS ====================
 

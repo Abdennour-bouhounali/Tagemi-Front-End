@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/environment';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLanguage } from "../../Context/LanguageContext";
 import Footer from './HomePage/Components/Footer';
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 import algeriaLocations from '../../data/algeria_locations.json';
 
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = API_BASE_URL; 
 
 const VolunteerForm = () => {
     const { language } = useLanguage();

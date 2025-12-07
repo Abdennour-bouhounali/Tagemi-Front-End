@@ -1,6 +1,8 @@
-import React, { useContext, useState } from 'react';
+import { useContext } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
-const apiUrl = import.meta.env.VITE_API_URL;
+import { API_BASE_URL } from '../../../../config/environment';
+
+const apiUrl = API_BASE_URL;
 
 const UserTable = ({ users, specialities, roles, events }) => {
   const { token } = useContext(AppContext);

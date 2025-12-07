@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../../../config/environment';
+import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
-const apiUrl = import.meta.env.VITE_API_URL; 
+
+const apiUrl = API_BASE_URL; 
 
 const Volunteers = () => {
   const [volunteers, setVolunteers] = useState([]);

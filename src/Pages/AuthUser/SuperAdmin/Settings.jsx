@@ -1,8 +1,9 @@
-import { useContext, useEffect, useState } from "react"
+import { useContext, useState } from "react"
 import { AppContext } from "../../../Context/AppContext"
+import { API_BASE_URL } from '../../../config/environment';
 import { useTranslation } from "react-i18next";
-const apiUrl = import.meta.env.VITE_API_URL;
 
+const apiUrl = API_BASE_URL;
 
 export default function Settings() {
 

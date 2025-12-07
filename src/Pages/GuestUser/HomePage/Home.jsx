@@ -1,16 +1,13 @@
-import { useTranslation } from "react-i18next";
 import VideoBanner from "./Components/VideoBanner";
 import Introduction from "./Components/Introduction";
-import FeaturedActivities from "./Components/FeaturedActivities";
 import Statistics from "./Components/Statistics";
-import Sponsors from "./Components/Sponsors";
 import Footer from "./Components/Footer";
+import { API_BASE_URL } from '../../../config/environment';
 import { useEffect, useState } from "react";
 import Donate from "./Components/Donate";
 import CallToAction from "./Components/CallToAction";
-import ImpactStory from "./Components/ImpactStory";
 
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = API_BASE_URL; 
 
 export default function Home() {
     const [types, setTypes] = useState([]);

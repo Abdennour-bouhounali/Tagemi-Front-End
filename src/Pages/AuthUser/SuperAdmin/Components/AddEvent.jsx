@@ -1,11 +1,12 @@
-const apiUrl = import.meta.env.VITE_API_URL;
-
 import { useState, useContext, useEffect, useCallback } from "react";
 import { Trash2, Plus, Loader2, CheckCircle, Copy, Eye, EyeOff, X } from "lucide-react";
 import { AppContext } from "../../../../Context/AppContext";
 import { Select } from '../../../Common/FormInputs';
 import algeriaLocations from '../../../../data/algeria_locations.json';
+import { API_BASE_URL } from '../../../../config/environment';
 import { CheckSquare, Square, Shield } from 'lucide-react';
+
+const apiUrl = API_BASE_URL;
 
 export default function AddEvent({ getEvents, onClose }) {
   const { token } = useContext(AppContext);

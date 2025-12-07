@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/environment';
 import { Star, CheckCircle, Send, Loader,Check, AlertCircle } from 'lucide-react';
 
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const EvaluationForm = () => {
   const [loading, setLoading] = useState(true);

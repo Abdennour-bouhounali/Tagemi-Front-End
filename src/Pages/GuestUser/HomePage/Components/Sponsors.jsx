@@ -1,10 +1,9 @@
 
-import React, { useContext, useEffect, useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faCalendarAlt, faPeopleArrows } from '@fortawesome/free-solid-svg-icons';
+import { useContext, useEffect, useState } from 'react';
+import { API_BASE_URL } from '../../../../config/environment';
 import { AppContext } from '../../../../Context/AppContext';
 import { useLanguage } from '../../../../Context/LanguageContext';
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = API_BASE_URL; 
 
 
 const Sponsors = () => {

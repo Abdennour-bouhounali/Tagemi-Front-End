@@ -2,9 +2,10 @@ import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../../Context/AppContext";
 import SpecialityTable from "./Components/SpecialityTable";
 import AddSpeciality from "./Components/AddSpeciality";
-import { Plus, List } from "lucide-react";
+import { API_BASE_URL } from '../../../config/environment';
+import { List } from "lucide-react";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function ManageSpeciality() {
   const [specialities, setSpecialities] = useState([]);

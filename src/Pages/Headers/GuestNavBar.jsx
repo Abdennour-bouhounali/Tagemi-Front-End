@@ -1,4 +1,5 @@
-import React, { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
+import { API_BASE_URL } from '../../config/environment';
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../Context/AppContext";
 import 'flag-icons/css/flag-icons.min.css';
@@ -17,7 +18,7 @@ import {
     Heart
 } from 'lucide-react';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const GuestNavBar = ({ user, types }) => {
     const [isNavOpen, setIsNavOpen] = useState(false);
