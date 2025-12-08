@@ -1,6 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from "../../../Context/AppContext";
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import QRScanner from '../RecipientAdmin/QRScanner';
+import { PatientQRSection } from '../RecipientAdmin/PatientQRCode';
+
 import {
     ArrowLeft,
     Search,
@@ -26,7 +29,9 @@ import {
     Users,
     MoreVertical,
     Eye,
-    X
+    X,
+    QrCode,
+    Camera
 } from 'lucide-react';
 import { Select, Input, Textarea } from '../../Common/FormInputs';
 
@@ -36,7 +41,7 @@ const CheckPatient = () => {
     const { eventId, specialityId } = useParams();
     const navigate = useNavigate();
     const { user, token } = useContext(AppContext);
-    
+
     const [event, setEvent] = useState(null);
     const [speciality, setSpeciality] = useState('');
     const [appointments, setAppointments] = useState([]);
@@ -51,7 +56,7 @@ const CheckPatient = () => {
     const [sexFilter, setSexFilter] = useState('all');
     const [patientAppointments, setPatientAppointments] = useState({});
     const [loadingAppointments, setLoadingAppointments] = useState({});
-    
+
     // Mobile-specific states
     const [showFilters, setShowFilters] = useState(false);
     const [activeActionMenu, setActiveActionMenu] = useState(null);
@@ -59,10 +64,16 @@ const CheckPatient = () => {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedPatientDetails, setSelectedPatientDetails] = useState(null);
 
+    // QR code states
+    const [showQRScanner, setShowQRScanner] = useState(false);
+    const [scanAction, setScanAction] = useState(null); // 'details', 'complete', 'dilatation', 'finished_dilatation'
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [selectedQRAppointment, setSelectedQRAppointment] = useState(null);
+
     // Helper function to determine patient sex
     const getPatientSex = (appointment) => {
         const sex = String(appointment?.sex ?? '').toLowerCase().trim();
-        
+
         if (sex == 0 || sex === 'ذكر' || sex === 'm' || sex === 'male') {
             return 'male';
         } else if (sex == 1 || sex === 'أنثى' || sex === 'f' || sex === 'female') {
@@ -74,7 +85,7 @@ const CheckPatient = () => {
     // Render gender icon component
     const renderGenderIcon = (appointment) => {
         const sex = getPatientSex(appointment);
-        
+
         if (sex === 'male') {
             return (
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 flex-shrink-0" title="ذكر">
@@ -108,7 +119,7 @@ const CheckPatient = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
-            
+
             if (res.ok) {
                 setEvent(data.event || data);
             }
@@ -128,9 +139,9 @@ const CheckPatient = () => {
             setSpeciality(data.speciality || '');
         } catch (error) {
             console.error("Error fetching waiting list:", error);
-            setMessage({ 
-                type: 'error', 
-                text: 'حدث خطأ أثناء تحميل قائمة الانتظار' 
+            setMessage({
+                type: 'error',
+                text: 'حدث خطأ أثناء تحميل قائمة الانتظار'
             });
         } finally {
             setLoading(false);
@@ -149,7 +160,7 @@ const CheckPatient = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
-            
+
             if (res.ok) {
                 setPatientAppointments(prev => ({
                     ...prev,
@@ -165,7 +176,7 @@ const CheckPatient = () => {
 
     const toggleRow = (patientId) => {
         const isExpanding = !expandedRows[patientId];
-        
+
         setExpandedRows((prev) => ({
             ...prev,
             [patientId]: isExpanding,
@@ -180,13 +191,13 @@ const CheckPatient = () => {
 
     const filteredAppointments = appointments.filter((appointment) => {
         const matchesSearch = appointment.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            appointment.patient_id?.toString().includes(searchTerm) ||
-                            appointment.phone?.includes(searchTerm);
-        
+            appointment.patient_id?.toString().includes(searchTerm) ||
+            appointment.phone?.includes(searchTerm);
+
         const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
-        
+
         const matchesSex = sexFilter === 'all' || getPatientSex(appointment) === sexFilter;
-        
+
         return matchesSearch && matchesStatus && matchesSex;
     });
 
@@ -204,7 +215,7 @@ const CheckPatient = () => {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            
+
             if (res.ok) {
                 setMessage({ type: 'success', text: 'تم تحديد المريض كغائب' });
                 setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -225,11 +236,11 @@ const CheckPatient = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
-            
+
             if (res.ok) {
-                setMessage({ 
-                    type: 'success', 
-                    text: data.message || 'تم إجتياز الفحص بنجاح' 
+                setMessage({
+                    type: 'success',
+                    text: data.message || 'تم إجتياز الفحص بنجاح'
                 });
                 setTimeout(() => setMessage({ type: '', text: '' }), 3000);
                 getWaitingListBySpeciality();
@@ -249,7 +260,7 @@ const CheckPatient = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
-            
+
             if (res.ok) {
                 setMessage({ type: 'success', text: 'تم تبديل التخصصات بنجاح' });
                 setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -269,7 +280,7 @@ const CheckPatient = () => {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            
+
             if (res.ok) {
                 setMessage({ type: 'info', text: 'تم وضع المريض في حالة التمدد' });
                 setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -289,7 +300,7 @@ const CheckPatient = () => {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
             });
-            
+
             if (res.ok) {
                 setMessage({ type: 'success', text: 'تم إنهاء التمدد' });
                 setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -314,7 +325,7 @@ const CheckPatient = () => {
                 },
                 body: JSON.stringify({ position }),
             });
-            
+
             if (res.ok) {
                 setMessage({ type: 'info', text: 'تم إنزال المريض في القائمة' });
                 setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -391,8 +402,8 @@ const CheckPatient = () => {
         );
     };
 
-    const isEyeSpecialty = speciality?.toLowerCase().includes('عيون') || 
-                             speciality?.toLowerCase().includes('eye');
+    const isEyeSpecialty = speciality?.toLowerCase().includes('عيون') ||
+        speciality?.toLowerCase().includes('eye');
 
     const stats = {
         total: appointments.length,
@@ -446,7 +457,7 @@ const CheckPatient = () => {
             const birthday = appointment.birthday ? new Date(appointment.birthday).toLocaleDateString('en-UK') : '-';
             const sex = appointment.sex === '0' || appointment.sex === 0 ? 'ذكر' : 'أنثى';
             const diseases = appointment.diseases && appointment.diseases !== 'nothing' ? appointment.diseases : '-';
-            
+
             return [
                 appointment.patient_id,
                 appointment.full_name,
@@ -476,9 +487,9 @@ const CheckPatient = () => {
         const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
-        
+
         const filename = `قائمة_الانتظار_${speciality}_${new Date().toLocaleDateString('ar-SA').replace(/\//g, '-')}.csv`;
-        
+
         link.setAttribute('href', url);
         link.setAttribute('download', filename);
         link.style.visibility = 'hidden';
@@ -487,9 +498,9 @@ const CheckPatient = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        setMessage({ 
-            type: 'success', 
-            text: `تم تحميل ${filteredAppointments.length} موعد بنجاح` 
+        setMessage({
+            type: 'success',
+            text: `تم تحميل ${filteredAppointments.length} موعد بنجاح`
         });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     };
@@ -499,6 +510,55 @@ const CheckPatient = () => {
         setSelectedPatientDetails(appointment);
         setShowDetailsModal(true);
         await fetchPatientAppointments(appointment.patient_id);
+    };
+
+    // Handle QR scan success based on scanAction
+    const handleQRScanSuccess = async (patientId) => {
+        try {
+            const appointment = appointments.find(
+                apt => apt.patient_id?.toString() === patientId.toString()
+            );
+
+            if (!appointment) {
+                setMessage({ type: 'error', text: `لم يتم العثور على مريض برقم #${patientId}` });
+                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                return;
+            }
+
+            // Handle different scan actions
+            if (scanAction === 'details') {
+                await openMobileDetails(appointment);
+                setShowQRScanner(false);
+                return;
+            }
+
+            if (scanAction === 'complete') {
+                await handleComplete({ preventDefault: () => { } }, appointment.id);
+                setShowQRScanner(false);
+                return;
+            }
+
+            if (scanAction === 'dilatation') {
+                await handleDilatation({ preventDefault: () => { } }, appointment.id);
+                setShowQRScanner(false);
+                return;
+            }
+
+            if (scanAction === 'finished_dilatation') {
+                await handleFinishedDilatation({ preventDefault: () => { } }, appointment.id);
+                setShowQRScanner(false);
+                return;
+            }
+
+            // Default: just show details
+            await openMobileDetails(appointment);
+            setShowQRScanner(false);
+
+        } catch (err) {
+            console.error("QR Scan Error:", err);
+            setMessage({ type: 'error', text: 'حدث خطأ أثناء معالجة رمز QR' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        }
     };
 
     if (loading) {
@@ -526,14 +586,14 @@ const CheckPatient = () => {
                             العودة إلى متابعة الحدث
                         </Link>
                     )}
-                    
+
                     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                             <h1 className="text-lg sm:text-xl font-bold text-gray-900 font-droid-arabic-kufi flex-1">
                                 {speciality}
                             </h1>
 
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
                                 {user.role_id === 1 && (
                                     <button
                                         onClick={handleDownloadCSV}
@@ -550,12 +610,50 @@ const CheckPatient = () => {
                                     </button>
                                 )}
 
+                                {/* Scan for Complete - Roles 1 & 4 */}
+                                {(user.role_id === 1 || user.role_id === 4) && (
+                                    <button
+                                        onClick={() => {
+                                            setScanAction('complete');
+                                            setShowQRScanner(true);
+                                        }}
+                                        className="flex items-center gap-1 sm:gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-droid-arabic-kufi"
+                                        title="مسح للإجتياز"
+                                    >
+                                        <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                                        <span className="hidden sm:inline">مسح إجتياز</span>
+                                        <span className="sm:hidden">إجتياز</span>
+                                    </button>
+                                )}
+
+                                {/* Scan for Dilatation - Roles 1 & 4, Eye specialty only */}
+                                {(user.role_id === 1 || user.role_id === 4) && isEyeSpecialty && (
+                                    <button
+                                        onClick={() => {
+                                            setScanAction('dilatation');
+                                            setShowQRScanner(true);
+                                        }}
+                                        className="flex items-center gap-1 sm:gap-2 bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-droid-arabic-kufi"
+                                        title="مسح للتمدد"
+                                    >
+                                        <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                                        <span className="hidden sm:inline">مسح تمدد</span>
+                                        <span className="sm:hidden">تمدد</span>
+                                    </button>
+                                )}
+
+                                {/* Scan for Details - All roles */}
                                 <button
-                                    onClick={getWaitingListBySpeciality}
-                                    className="flex items-center justify-center gap-1 sm:gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm"
+                                    onClick={() => {
+                                        setScanAction('details');
+                                        setShowQRScanner(true);
+                                    }}
+                                    className="flex items-center gap-1 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-droid-arabic-kufi"
+                                    title="مسح للتفاصيل"
                                 >
-                                    <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span className="hidden sm:inline">تحديث</span>
+                                    <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                                    <span className="hidden sm:inline">مسح تفاصيل</span>
+                                    <span className="sm:hidden">تفاصيل</span>
                                 </button>
                             </div>
                         </div>
@@ -564,22 +662,20 @@ const CheckPatient = () => {
 
                 {/* Alert Messages - Mobile Optimized */}
                 {message.text && (
-                    <div className={`mb-4 sm:mb-6 border-r-4 p-3 sm:p-4 rounded-lg ${
-                        message.type === 'success' ? 'bg-green-50 border-green-500' :
+                    <div className={`mb-4 sm:mb-6 border-r-4 p-3 sm:p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 border-green-500' :
                         message.type === 'error' ? 'bg-red-50 border-red-500' :
-                        message.type === 'info' ? 'bg-blue-50 border-blue-500' :
-                        'bg-yellow-50 border-yellow-500'
-                    }`}>
+                            message.type === 'info' ? 'bg-blue-50 border-blue-500' :
+                                'bg-yellow-50 border-yellow-500'
+                        }`}>
                         <div className="flex items-start gap-2 sm:gap-3">
                             {message.type === 'success' && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" />}
                             {message.type === 'error' && <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0 mt-0.5" />}
                             {message.type === 'info' && <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" />}
-                            <p className={`font-droid-arabic-kufi text-sm sm:text-base ${
-                                message.type === 'success' ? 'text-green-700' :
+                            <p className={`font-droid-arabic-kufi text-sm sm:text-base ${message.type === 'success' ? 'text-green-700' :
                                 message.type === 'error' ? 'text-red-700' :
-                                message.type === 'info' ? 'text-blue-700' :
-                                'text-yellow-700'
-                            }`}>
+                                    message.type === 'info' ? 'text-blue-700' :
+                                        'text-yellow-700'
+                                }`}>
                                 {message.text}
                             </p>
                         </div>
@@ -670,33 +766,30 @@ const CheckPatient = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setSexFilter('all')}
-                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                                        sexFilter === 'all'
-                                            ? 'bg-gray-700 text-white shadow-md'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${sexFilter === 'all'
+                                        ? 'bg-gray-700 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
                                 >
                                     <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                                     الكل
                                 </button>
                                 <button
                                     onClick={() => setSexFilter('male')}
-                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                                        sexFilter === 'male'
-                                            ? 'bg-blue-600 text-white shadow-md'
-                                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                                    }`}
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${sexFilter === 'male'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                                        }`}
                                 >
                                     <User className="w-3 h-3 sm:w-4 sm:h-4" />
                                     ذكور
                                 </button>
                                 <button
                                     onClick={() => setSexFilter('female')}
-                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                                        sexFilter === 'female'
-                                            ? 'bg-pink-600 text-white shadow-md'
-                                            : 'bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200'
-                                    }`}
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${sexFilter === 'female'
+                                        ? 'bg-pink-600 text-white shadow-md'
+                                        : 'bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200'
+                                        }`}
                                 >
                                     <User className="w-3 h-3 sm:w-4 sm:h-4" />
                                     إناث
@@ -766,9 +859,8 @@ const CheckPatient = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`font-bold ${
-                                                        appointment.orderList === 0 ? 'text-red-500 text-lg' : ''
-                                                    }`}>
+                                                    <span className={`font-bold ${appointment.orderList === 0 ? 'text-red-500 text-lg' : ''
+                                                        }`}>
                                                         {appointment.orderList}
                                                     </span>
                                                 </td>
@@ -803,14 +895,13 @@ const CheckPatient = () => {
                                                                     </>
                                                                 )}
 
-                                                                {appointment.status !== 'Commingsoon' && (
-                                                                    <button
-                                                                        onClick={(e) => handleCommingsoon(e, appointment.id, appointment.orderList + 10)}
-                                                                        className="text-yellow-700 hover:text-white border font-droid-arabic-kufi border-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-xs px-2 py-1"
-                                                                    >
-                                                                        إنزال
-                                                                    </button>
-                                                                )}
+                                                                <button
+                                                                    onClick={(e) => handleCommingsoon(e, appointment.id, appointment.orderList + 10)}
+                                                                    className="text-yellow-700 hover:text-white border font-droid-arabic-kufi border-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                                >
+                                                                    إنزال
+                                                                </button>
+
 
                                                                 <button
                                                                     onClick={(e) => handleAlterSpeciality(e, appointment.id)}
@@ -818,15 +909,7 @@ const CheckPatient = () => {
                                                                 >
                                                                     تبديل
                                                                 </button>
-
-                                                                {appointment.status === 'Commingsoon' && (
-                                                                    <button
-                                                                        onClick={(e) => handleAbsent(e, appointment.id)}
-                                                                        className="text-red-700 hover:text-white border font-droid-arabic-kufi border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-2 py-1"
-                                                                    >
-                                                                        غائب
-                                                                    </button>
-                                                                )}
+                                                                {/*  */}
 
                                                                 <button
                                                                     onClick={(e) => handleComplete(e, appointment.id)}
@@ -849,6 +932,19 @@ const CheckPatient = () => {
                                                                 ملاحظة
                                                             </button>
                                                         )}
+
+                                                        {/* Show QR Code */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedQRAppointment(appointment);
+                                                                setShowQRModal(true);
+                                                            }}
+                                                            className="text-gray-700 hover:text-white border font-droid-arabic-kufi border-gray-700 hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-xs px-2 py-1"
+                                                            title="عرض رمز QR"
+                                                        >
+                                                            <QrCode className="w-3 h-3" />
+                                                        </button>
                                                     </div>
                                                 </td>
 
@@ -876,7 +972,7 @@ const CheckPatient = () => {
                                                                     <User className="w-4 h-4" />
                                                                     معلومات المريض
                                                                 </h4>
-                                                                
+
                                                                 <div className="flex items-center gap-2">
                                                                     {renderGenderIcon(appointment)}
                                                                     <span className="text-sm text-gray-600 font-droid-arabic-kufi">
@@ -907,7 +1003,7 @@ const CheckPatient = () => {
                                                                     <FileText className="w-4 h-4" />
                                                                     جميع مواعيد المريض في هذا الحدث
                                                                 </h4>
-                                                                
+
                                                                 {loadingAppointments[appointment.patient_id] ? (
                                                                     <div className="flex items-center gap-2 text-gray-500">
                                                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
@@ -917,15 +1013,14 @@ const CheckPatient = () => {
                                                                     <div className="space-y-2 max-h-64 overflow-y-auto">
                                                                         {patientAppointments[appointment.patient_id].map((appt, index) => {
                                                                             const isCurrentAppointment = appt.id === appointment.id;
-                                                                            
+
                                                                             return (
-                                                                                <div 
+                                                                                <div
                                                                                     key={index}
-                                                                                    className={`border rounded-lg p-3 hover:shadow-sm transition-shadow ${
-                                                                                        isCurrentAppointment 
-                                                                                            ? 'bg-blue-50 border-blue-300' 
-                                                                                            : 'bg-white border-gray-200'
-                                                                                    }`}
+                                                                                    className={`border rounded-lg p-3 hover:shadow-sm transition-shadow ${isCurrentAppointment
+                                                                                        ? 'bg-blue-50 border-blue-300'
+                                                                                        : 'bg-white border-gray-200'
+                                                                                        }`}
                                                                                 >
                                                                                     <div className="flex items-center justify-between gap-2 mb-2">
                                                                                         <div className="flex items-center gap-2">
@@ -940,7 +1035,7 @@ const CheckPatient = () => {
                                                                                         </div>
                                                                                         {getStatusBadge(appt.status)}
                                                                                     </div>
-                                                                                    
+
                                                                                     <div className="flex items-center gap-4 text-xs text-gray-600 flex-wrap">
                                                                                         <div className="flex items-center gap-1">
                                                                                             <Clock className="w-3 h-3" />
@@ -1008,9 +1103,8 @@ const CheckPatient = () => {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span className="font-bold text-gray-900 text-sm">#{appointment.patient_id}</span>
-                                                <span className={`font-bold text-sm ${
-                                                    appointment.orderList === 0 ? 'text-red-500' : 'text-gray-600'
-                                                }`}>
+                                                <span className={`font-bold text-sm ${appointment.orderList === 0 ? 'text-red-500' : 'text-gray-600'
+                                                    }`}>
                                                     ({appointment.orderList})
                                                 </span>
                                             </div>
@@ -1036,7 +1130,7 @@ const CheckPatient = () => {
                                                 )}
                                             </span>
                                         </div>
-                                        
+
                                         {(user.role_id === 1 || user.role_id === 6) && appointment.comment && (
                                             <div className="flex items-start gap-2 text-gray-700 bg-gray-50 p-2 rounded">
                                                 <MessageSquare className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
@@ -1064,7 +1158,7 @@ const CheckPatient = () => {
                                                     const viewportHeight = window.innerHeight;
                                                     const spaceBelow = viewportHeight - rect.bottom;
                                                     const spaceAbove = rect.top;
-                                                    
+
                                                     // Open downward if near top or more space below
                                                     setMenuPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'down' : 'up');
                                                     setActiveActionMenu(activeActionMenu === appointment.id ? null : appointment.id);
@@ -1081,10 +1175,9 @@ const CheckPatient = () => {
                                                         className="fixed inset-0 z-40"
                                                         onClick={() => setActiveActionMenu(null)}
                                                     />
-                                                    
-                                                    <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[180px] ${
-                                                        menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
-                                                    }`}>
+
+                                                    <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[180px] ${menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
+                                                        }`}>
                                                         {(user.role_id === 1 || user.role_id === 4) && (
                                                             <>
                                                                 {/* Complete */}
@@ -1167,6 +1260,21 @@ const CheckPatient = () => {
                                                                 <span>ملاحظة</span>
                                                             </button>
                                                         )}
+
+                                                        {/* Show QR Code */}
+                                                        <div className="border-t border-gray-200 my-1"></div>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedQRAppointment(appointment);
+                                                                setShowQRModal(true);
+                                                                setActiveActionMenu(null);
+                                                            }}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                                                        >
+                                                            <QrCode className="w-4 h-4" />
+                                                            <span>عرض رمز QR</span>
+                                                        </button>
                                                     </div>
                                                 </>
                                             )}
@@ -1212,7 +1320,7 @@ const CheckPatient = () => {
                                     <User className="w-4 h-4" />
                                     معلومات المريض
                                 </h4>
-                                
+
                                 <div className="space-y-2 text-sm">
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-600 font-droid-arabic-kufi">الاسم:</span>
@@ -1221,7 +1329,7 @@ const CheckPatient = () => {
                                             {renderGenderIcon(selectedPatientDetails)}
                                         </span>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-600 font-droid-arabic-kufi">الجنس:</span>
                                         <span className="font-semibold text-gray-900 font-droid-arabic-kufi">
@@ -1249,7 +1357,7 @@ const CheckPatient = () => {
                                     <FileText className="w-4 h-4" />
                                     جميع مواعيد المريض في هذا الحدث
                                 </h4>
-                                
+
                                 {loadingAppointments[selectedPatientDetails.patient_id] ? (
                                     <div className="flex items-center gap-2 text-gray-500">
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
@@ -1259,15 +1367,14 @@ const CheckPatient = () => {
                                     <div className="space-y-2">
                                         {patientAppointments[selectedPatientDetails.patient_id].map((appt, index) => {
                                             const isCurrentAppointment = appt.id === selectedPatientDetails.id;
-                                            
+
                                             return (
-                                                <div 
+                                                <div
                                                     key={index}
-                                                    className={`border rounded-lg p-3 ${
-                                                        isCurrentAppointment 
-                                                            ? 'bg-blue-50 border-blue-300' 
-                                                            : 'bg-white border-gray-200'
-                                                    }`}
+                                                    className={`border rounded-lg p-3 ${isCurrentAppointment
+                                                        ? 'bg-blue-50 border-blue-300'
+                                                        : 'bg-white border-gray-200'
+                                                        }`}
                                                 >
                                                     <div className="flex items-center justify-between gap-2 mb-2">
                                                         <div className="flex items-center gap-2">
@@ -1282,7 +1389,7 @@ const CheckPatient = () => {
                                                         </div>
                                                         {getStatusBadge(appt.status)}
                                                     </div>
-                                                    
+
                                                     <div className="flex items-center gap-4 text-xs text-gray-600 flex-wrap">
                                                         <div className="flex items-center gap-1">
                                                             <Clock className="w-3 h-3" />
@@ -1368,6 +1475,60 @@ const CheckPatient = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* QR Scanner Modal */}
+            {showQRScanner && (
+                <QRScanner
+                    onScanSuccess={handleQRScanSuccess}
+                    onClose={() => setShowQRScanner(false)}
+                    eventId={eventId}
+                    actionTitle={
+                        scanAction === 'complete' ? 'مسح لتسجيل الإجتياز' :
+                            scanAction === 'dilatation' ? 'مسح لتسجيل التمدد' :
+                                scanAction === 'finished_dilatation' ? 'مسح لإنهاء التمدد' :
+                                    scanAction === 'details' ? 'مسح لعرض التفاصيل' :
+                                        'مسح رمز QR'
+                    }
+                />
+            )}
+
+            {/* QR Display Modal */}
+            {showQRModal && selectedQRAppointment && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+                        <button
+                            onClick={() => {
+                                setShowQRModal(false);
+                                setSelectedQRAppointment(null);
+                            }}
+                            className="absolute top-4 left-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <X className="w-6 h-6 text-gray-500" />
+                        </button>
+
+                        <div className="flex flex-col items-center">
+                            <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi mb-2">
+                                رمز QR للمريض
+                            </h3>
+                            <p className="text-gray-600 font-droid-arabic-kufi mb-6">
+                                {selectedQRAppointment.full_name} (#{selectedQRAppointment.patient_id})
+                            </p>
+
+                            <PatientQRSection appointment={selectedQRAppointment} />
+
+                            <button
+                                onClick={() => {
+                                    setShowQRModal(false);
+                                    setSelectedQRAppointment(null);
+                                }}
+                                className="mt-6 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg transition-colors font-droid-arabic-kufi"
+                            >
+                                إغلاق
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

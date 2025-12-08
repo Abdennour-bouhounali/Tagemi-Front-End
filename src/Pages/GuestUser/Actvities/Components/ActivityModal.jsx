@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Trash2, Image , Calendar ,  Video } from 'lucide-react';
+import { X, Upload, Trash2, Image , Calendar ,  Video, MapPin } from 'lucide-react';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -410,11 +410,30 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                         </div>
                     </div>
 
+                                       {/* Location Field - NEW */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            {language === 'en' ? 'Location' : 'الموقع'}
+                        </label>
+                        <input
+                            type="text"
+                            name="location"
+                            value={formData.location}
+                            onChange={handleChange}
+                            placeholder={language === 'en' ? 'Enter event location...' : 'أدخل موقع الحدث...'}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent"
+                        />
+                        {errors.location && (
+                            <p className="text-red-500 text-sm mt-1">{errors.location[0]}</p>
+                        )}
+                    </div>
+
                     {/* Location, Date, Status */}
                                    {/* Date Fields - NOW WITH END DATE */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 Start Date
                             </label>
@@ -432,7 +451,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
                         {/* NEW: End Date Field */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 End Date
                             </label>

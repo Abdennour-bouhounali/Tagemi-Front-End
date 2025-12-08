@@ -367,7 +367,7 @@ const renderUpdaterBadge = (activity) => {
                                     </span>
                                 </div>
 
-                                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white font-droid-arabic-kufi leading-tight">
+                                <h1 className="text-xl sm:text-sm md:text-3xl lg:text-3xl font-bold text-white font-droid-arabic-kufi leading-tight">
                                     {language === 'en' ? type.name_en : type.name_ar}
                                 </h1>
 

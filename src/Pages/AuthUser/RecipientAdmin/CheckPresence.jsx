@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
+import QRScanner from './QRScanner';
+import { PatientQRSection } from './PatientQRCode';
 
 import {
   Search,
@@ -31,6 +33,8 @@ import {
   ChevronDown,
   Menu,
   MessageCircle,
+  Camera,
+  QrCode
 } from "lucide-react";
 import { Select, Input } from '../../Common/FormInputs';
 import AppointmentDocuments from '../SuperAdmin/AppointmentDocuments';
@@ -86,6 +90,11 @@ const CheckPresence = () => {
   // NEW: Reminder stats state
   const [reminderStats, setReminderStats] = useState({ total: 0, reminded: 0, not_reminded: 0 });
   const [evaluatedStats, setEvaluatedStats] = useState({ total: 0, evaluated: 0, not_evaluated: 0 });
+  // QR code states
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scanAction, setScanAction] = useState(null); // 'present', 'special', 'details'
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedQRAppointment, setSelectedQRAppointment] = useState(null);
 
   // NEW: Fetch reminder statistics
   const fetchReminderStats = async () => {
@@ -105,27 +114,97 @@ const CheckPresence = () => {
       console.error("Error fetching reminder stats:", err);
     }
   };
+  const handleQRScanSuccess = async (patientId) => {
+    try {
+      setUpdating(true);
+      setError("");
+      setSuccess("");
 
+      const appointment = appointments.find(
+        apt => apt.patient_id?.toString() === patientId.toString()
+      );
+
+      if (!appointment) {
+        setError(`لم يتم العثور على مريض برقم #${patientId}`);
+        setTimeout(() => setError(""), 3000);
+        return;
+      }
+
+      // Handle different scan actions
+      if (scanAction === 'details') {
+        setSelectedAppointment(appointment);
+        setPatientAllAppointments(appointment.all_appointments || [appointment]);
+        setShowDetailsModal(true);
+        setShowQRScanner(false);
+        return;
+      }
+
+      if (scanAction === 'special') {
+        if (appointment.is_special) {
+          setError(`المريض #${patientId} مسجل كحالة خاصة مسبقاً`);
+          setTimeout(() => setError(""), 3000);
+          return;
+        }
+        await markAsSpecialCase(appointment.id);
+        setShowQRScanner(false);
+        return;
+      }
+
+      // Default action: Mark as Present
+      if (appointment.status === "Present" || appointment.status === "Waiting") {
+        setError(`المريض #${patientId} (${appointment.full_name}) مسجل حضوره مسبقاً`);
+        setTimeout(() => setError(""), 3000);
+        return;
+      }
+
+      const res = await fetch(`${apiUrl}/api/appointments/${appointment.id}/presence`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "Present" }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccess(`✓ تم تسجيل حضور المريض #${patientId} (${appointment.full_name}) بنجاح`);
+        await fetchAppointments();
+        setTimeout(() => setSuccess(""), 4000);
+        // Don't close scanner immediately for presence to allow batch scanning
+      } else {
+        setError(data.message || "فشل في تسجيل الحضور");
+        setTimeout(() => setError(""), 3000);
+      }
+    } catch (err) {
+      console.error("QR Scan Update Error:", err);
+      setError("حدث خطأ أثناء تسجيل الحضور");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   // NEW: Fetch reminder statistics
   // Fix the typo in the function name and update state correctly
-const fetchEvaluatedStats = async () => {
-  try {
-    const res = await fetch(
-      `${apiUrl}/api/appointments/evaluated-stats/${eventId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    const data = await res.json();
+  const fetchEvaluatedStats = async () => {
+    try {
+      const res = await fetch(
+        `${apiUrl}/api/appointments/evaluated-stats/${eventId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
 
-    if (res.ok && data.stats) {
-      setEvaluatedStats(data.stats); // Fix: was setting reminderStats
+      if (res.ok && data.stats) {
+        setEvaluatedStats(data.stats); // Fix: was setting reminderStats
+      }
+    } catch (err) {
+      console.error("Error fetching evaluated stats:", err);
     }
-  } catch (err) {
-    console.error("Error fetching evaluated stats:", err);
-  }
-};
+  };
 
   // NEW: Updated sendWhatsAppReminder with database update
   // تحديث دالة sendWhatsAppReminder
@@ -264,21 +343,21 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
   };
 
   const generateEvaluationLink = (eventId, appointmentId) => {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/evaluation/${eventId}/${appointmentId}`;
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/evaluation/${eventId}/${appointmentId}`;
   };
 
-    const formatPhoneForWhatsApp = (phone) => {
+  const formatPhoneForWhatsApp = (phone) => {
     if (!phone) return '';
-    
+
     // Remove all non-digit characters (spaces, dashes, parentheses, plus signs, etc.)
     let cleaned = phone.toString().replace(/\D/g, '');
-    
+
     // Handle Algerian numbers
     // Algerian mobile numbers are 10 digits starting with 0 (e.g., 0555123456)
     // Or 9 digits without the leading 0 (e.g., 555123456)
     // Country code is 213
-    
+
     if (cleaned.startsWith('213')) {
       // Already has country code, just return it
       return cleaned;
@@ -300,10 +379,10 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
     }
   };
 
-    const sendEvaluationLinkViaWhatsApp = async (appointment, eventId) => {
-  const evaluationLink = generateEvaluationLink(eventId, appointment.id);
+  const sendEvaluationLinkViaWhatsApp = async (appointment, eventId) => {
+    const evaluationLink = generateEvaluationLink(eventId, appointment.id);
 
-  const message = `${evaluationLink}
+    const message = `${evaluationLink}
 
 السلام عليكم ورحمة الله وبركاته ${appointment.full_name}،
 
@@ -315,98 +394,98 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
 
 فريق مؤسسة تجمي للتنمية الإنسانية`;
 
-  const phoneNumber = formatPhoneForWhatsApp(appointment.phone);
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-  window.open(whatsappUrl, "_blank");
-  
-  // تحديث حالة is_evaluated في قاعدة البيانات
-  try {
-    const res = await fetch(
-      `${apiUrl}/api/appointments/mark-multiple-evaluated`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          patient_id: appointment.patient_id,
-          event_id: eventId,
-        }),
-      }
-    );
+    const phoneNumber = formatPhoneForWhatsApp(appointment.phone);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
 
-    const data = await res.json();
+    // تحديث حالة is_evaluated في قاعدة البيانات
+    try {
+      const res = await fetch(
+        `${apiUrl}/api/appointments/mark-multiple-evaluated`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            patient_id: appointment.patient_id,
+            event_id: eventId,
+          }),
+        }
+      );
 
-    if (res.ok) {
-      const currentTime = new Date().toISOString();
+      const data = await res.json();
 
-      // تحديث appointments state محلياً
-      setAppointments(prevAppointments =>
-        prevAppointments.map(apt => {
-          if (apt.patient_id === appointment.patient_id) {
-            return {
+      if (res.ok) {
+        const currentTime = new Date().toISOString();
+
+        // تحديث appointments state محلياً
+        setAppointments(prevAppointments =>
+          prevAppointments.map(apt => {
+            if (apt.patient_id === appointment.patient_id) {
+              return {
+                ...apt,
+                is_evaluated: 1, // Changed from is_evaluation
+                evaluated_at: currentTime
+              };
+            }
+            return apt;
+          })
+        );
+
+        // تحديث filteredAppointments state محلياً
+        setFilteredAppointments(prevFiltered =>
+          prevFiltered.map(apt => {
+            if (apt.patient_id === appointment.patient_id) {
+              return {
+                ...apt,
+                is_evaluated: 1, // Changed from is_evaluation
+                evaluated_at: currentTime,
+                all_appointments: apt.all_appointments?.map(subApt => ({
+                  ...subApt,
+                  is_evaluated: 1, // Changed from is_evaluation
+                  evaluated_at: currentTime
+                }))
+              };
+            }
+            return apt;
+          })
+        );
+
+        // تحديث selectedAppointment إذا كان مفتوحاً
+        if (selectedAppointment && selectedAppointment.patient_id === appointment.patient_id) {
+          setSelectedAppointment(prev => ({
+            ...prev,
+            is_evaluated: 1, // Changed from is_evaluation
+            evaluated_at: currentTime
+          }));
+
+          setPatientAllAppointments(prev =>
+            prev.map(apt => ({
               ...apt,
               is_evaluated: 1, // Changed from is_evaluation
               evaluated_at: currentTime
-            };
-          }
-          return apt;
-        })
-      );
+            }))
+          );
+        }
 
-      // تحديث filteredAppointments state محلياً
-      setFilteredAppointments(prevFiltered =>
-        prevFiltered.map(apt => {
-          if (apt.patient_id === appointment.patient_id) {
-            return {
-              ...apt,
-              is_evaluated: 1, // Changed from is_evaluation
-              evaluated_at: currentTime,
-              all_appointments: apt.all_appointments?.map(subApt => ({
-                ...subApt,
-                is_evaluated: 1, // Changed from is_evaluation
-                evaluated_at: currentTime
-              }))
-            };
-          }
-          return apt;
-        })
-      );
-
-      // تحديث selectedAppointment إذا كان مفتوحاً
-      if (selectedAppointment && selectedAppointment.patient_id === appointment.patient_id) {
-        setSelectedAppointment(prev => ({
-          ...prev,
-          is_evaluated: 1, // Changed from is_evaluation
-          evaluated_at: currentTime
+        // تحديث evaluatedStats محلياً (was updating reminderStats)
+        setEvaluatedStats(prev => ({
+          total: prev.total,
+          evaluated: prev.evaluated + 1,
+          not_evaluated: prev.not_evaluated > 0 ? prev.not_evaluated - 1 : 0
         }));
 
-        setPatientAllAppointments(prev =>
-          prev.map(apt => ({
-            ...apt,
-            is_evaluated: 1, // Changed from is_evaluation
-            evaluated_at: currentTime
-          }))
-        );
+        setSuccess("تم إرسال رابط الاستبيان بنجاح");
+        setTimeout(() => setSuccess(""), 3000);
       }
-
-      // تحديث evaluatedStats محلياً (was updating reminderStats)
-      setEvaluatedStats(prev => ({
-        total: prev.total,
-        evaluated: prev.evaluated + 1,
-        not_evaluated: prev.not_evaluated > 0 ? prev.not_evaluated - 1 : 0
-      }));
-
-      setSuccess("تم إرسال رابط الاستبيان بنجاح");
-      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error updating evaluated status:", err);
+      setError("حدث خطأ أثناء تحديث حالة الاستبيان");
+      setTimeout(() => setError(""), 3000);
     }
-  } catch (err) {
-    console.error("Error updating evaluated status:", err);
-    setError("حدث خطأ أثناء تحديث حالة الاستبيان");
-    setTimeout(() => setError(""), 3000);
-  }
-};
+  };
 
 
   // NEW: Get reminder badge
@@ -426,21 +505,21 @@ ${window.location.origin}/evaluation/${eventId}/${appointment.id}
   };
 
 
-// NEW: Get evaluated badge with better colors
-const getEvaluatedBadge = (appointment) => {
-  if (appointment.is_evaluated === true || appointment.is_evaluated === 1) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700"
-        title={`تم الإرسال: ${appointment.evaluated_at ? new Date(appointment.evaluated_at).toLocaleString('en-UK') : ''}`}
-      >
-        <MessageCircle className="w-3 h-3" />
-        تم الاستبيان
-      </span>
-    );
-  }
-  return null;
-};
+  // NEW: Get evaluated badge with better colors
+  const getEvaluatedBadge = (appointment) => {
+    if (appointment.is_evaluated === true || appointment.is_evaluated === 1) {
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700"
+          title={`تم الإرسال: ${appointment.evaluated_at ? new Date(appointment.evaluated_at).toLocaleString('en-UK') : ''}`}
+        >
+          <MessageCircle className="w-3 h-3" />
+          تم الاستبيان
+        </span>
+      );
+    }
+    return null;
+  };
 
   // Fetch available specialties
   const fetchAvailableSpecialties = async (appointmentId) => {
@@ -805,19 +884,19 @@ const getEvaluatedBadge = (appointment) => {
         return true;
       });
     }
-   // Update the evaluation filter section
-  if (evaluatedFilter !== "all") {
-    filtered = filtered.filter((apt) => {
-      if (evaluatedFilter === "evaluated") {
-        // Fix: Use is_evaluated instead of is_evaluation
-        return apt.is_evaluated === true || apt.is_evaluated === 1;
-      } else if (evaluatedFilter === "not_evaluated") {
-        // Fix: Use is_evaluated instead of is_evaluation
-        return apt.is_evaluated === false || apt.is_evaluated === 0 || apt.is_evaluated === null;
-      }
-      return true;
-    });
-  }
+    // Update the evaluation filter section
+    if (evaluatedFilter !== "all") {
+      filtered = filtered.filter((apt) => {
+        if (evaluatedFilter === "evaluated") {
+          // Fix: Use is_evaluated instead of is_evaluation
+          return apt.is_evaluated === true || apt.is_evaluated === 1;
+        } else if (evaluatedFilter === "not_evaluated") {
+          // Fix: Use is_evaluated instead of is_evaluation
+          return apt.is_evaluated === false || apt.is_evaluated === 0 || apt.is_evaluated === null;
+        }
+        return true;
+      });
+    }
 
     const uniquePatients = getUniquePatients(filtered);
     setFilteredAppointments(uniquePatients);
@@ -835,7 +914,7 @@ const getEvaluatedBadge = (appointment) => {
   // UPDATED: useEffect to include reminderFilter
   useEffect(() => {
     applyFilters();
-}, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter, hourFilter, sexFilter, reminderFilter, evaluatedFilter]); // Added evaluatedFilter here
+  }, [appointments, searchTerm, statusFilter, specialtyFilter, dayFilter, hourFilter, sexFilter, reminderFilter, evaluatedFilter]); // Added evaluatedFilter here
 
   const fetchEventDetails = async () => {
     try {
@@ -1896,16 +1975,17 @@ const getEvaluatedBadge = (appointment) => {
       <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-10">
 
         {/* Header */}
-        {user.role_id === 1 && (
+ 
           <div className="mb-4 sm:mb-6">
-            <Link
-              to={`/admin/event-tracking/${eventId}`}
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-3 sm:mb-4 font-droid-arabic-kufi transition-colors text-sm sm:text-base"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              العودة إلى متابعة الحدث
-            </Link>
-
+            {user.role_id === 1 && (
+              <Link
+                to={`/admin/event-tracking/${eventId}`}
+                className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-3 sm:mb-4 font-droid-arabic-kufi transition-colors text-sm sm:text-base"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                العودة إلى متابعة الحدث
+              </Link>
+            )}
             <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100">
               <div className="flex flex-col gap-4">
                 <div>
@@ -1925,15 +2005,63 @@ const getEvaluatedBadge = (appointment) => {
                     </span>
                   )}
 
-                  <button
+                  {/* <button
                     onClick={fetchAppointments}
                     className="flex items-center gap-1 sm:gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm"
                     title="تحديث"
                   >
                     <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">تحديث</span>
-                  </button>
+                  </button> */}
 
+                  {/* Scan Presence - Roles 1 & 5 */}
+                  {(user.role_id === 1 || user.role_id === 5) && (
+                    <button
+                      onClick={() => {
+                        setScanAction('present');
+                        setShowQRScanner(true);
+                      }}
+                      className="flex items-center gap-1 sm:gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm font-droid-arabic-kufi"
+                      title="مسح للحضور"
+                    >
+                      <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">مسح حضور</span>
+                      <span className="sm:hidden">حضور</span>
+                    </button>
+                  )}
+
+                  {/* Scan Special - Roles 1 & 3 */}
+                  {(user.role_id === 1 || user.role_id === 3) && (
+                    <button
+                      onClick={() => {
+                        setScanAction('special');
+                        setShowQRScanner(true);
+                      }}
+                      className="flex items-center gap-1 sm:gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm font-droid-arabic-kufi"
+                      title="مسح حالة خاصة"
+                    >
+                      <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">مسح حالة خاصة</span>
+                      <span className="sm:hidden">خاصة</span>
+                    </button>
+                  )}
+
+                  {/* Scan Details - All Roles */}
+                  <button
+                    onClick={() => {
+                      setScanAction('details');
+                      setShowQRScanner(true);
+                    }}
+                    className="flex items-center gap-1 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm font-droid-arabic-kufi"
+                    title="مسح للتفاصيل"
+                  >
+                    <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">مسح تفاصيل</span>
+                    <span className="sm:hidden">تفاصيل</span>
+                  </button>
+            {user.role_id === 1 && (
+
+            
                   <div className="hidden lg:flex items-center gap-2">
                     <button
                       onClick={handleDownloadCSV}
@@ -1959,9 +2087,10 @@ const getEvaluatedBadge = (appointment) => {
                       <Printer className="w-4 h-4" />
                       طباعة PDF
                     </button>
-                  </div>
+                  </div>)}
 
                   <div className="lg:hidden relative">
+                    {( user && user.role_id === 1 &&
                     <button
                       onClick={() => setActiveActionMenu(activeActionMenu === 'header' ? null : 'header')}
                       className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors text-xs"
@@ -1969,7 +2098,7 @@ const getEvaluatedBadge = (appointment) => {
                       <Menu className="w-3 h-3" />
                       المزيد
                     </button>
-
+)}
                     {activeActionMenu === 'header' && (
                       <div className="absolute left-0 top-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px]">
                         <button
@@ -2009,7 +2138,7 @@ const getEvaluatedBadge = (appointment) => {
               </div>
             </div>
           </div>
-        )}
+       
 
         {/* Alert Messages */}
         {error && (
@@ -2240,8 +2369,8 @@ const getEvaluatedBadge = (appointment) => {
                 <button
                   onClick={() => setSexFilter('all')}
                   className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${sexFilter === 'all'
-                      ? 'bg-gray-700 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-gray-700 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                 >
                   <Users className="w-3 h-3" />
@@ -2250,8 +2379,8 @@ const getEvaluatedBadge = (appointment) => {
                 <button
                   onClick={() => setSexFilter('male')}
                   className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${sexFilter === 'male'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                     }`}
                 >
                   <User className="w-3 h-3" />
@@ -2260,8 +2389,8 @@ const getEvaluatedBadge = (appointment) => {
                 <button
                   onClick={() => setSexFilter('female')}
                   className={`flex-1 px-3 py-2 rounded-lg font-droid-arabic-kufi transition-all flex items-center justify-center gap-1 text-xs sm:text-sm ${sexFilter === 'female'
-                      ? 'bg-pink-600 text-white shadow-md'
-                      : 'bg-pink-50 text-pink-700 hover:bg-pink-100'
+                    ? 'bg-pink-600 text-white shadow-md'
+                    : 'bg-pink-50 text-pink-700 hover:bg-pink-100'
                     }`}
                 >
                   <User className="w-3 h-3" />
@@ -2432,29 +2561,18 @@ const getEvaluatedBadge = (appointment) => {
                             </button>
                           )}
 
-                          {/* Mark Present */}
-                          {(user.role_id === 1 || user.role_id === 5) && appointment.status == "Pending" && (
-                            <button
-                              onClick={() => updatePresenceStatus(appointment.id, "Present")}
-                              disabled={updating}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                              title="تحديد كـ حاضر"
-                            >
-                              <CheckCheck className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          {/* Mark as Special Case */}
-                          {(user.role_id === 1 || user.role_id === 3) && !appointment.is_special && appointment.status !== "Completed" && (
-                            <button
-                              onClick={() => markAsSpecialCase(appointment.id)}
-                              disabled={updating}
-                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
-                              title="تحديد كـ حالة خاصة"
-                            >
-                              <Star className="w-4 h-4" />
-                            </button>
-                          )}
+                          {/* Show QR Code */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedQRAppointment(appointment);
+                              setShowQRModal(true);
+                            }}
+                            className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="عرض رمز QR"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
 
                           {/* Transfer Specialty */}
                           {(user.role_id === 1 || user.role_id === 3) && (
@@ -2557,221 +2675,223 @@ const getEvaluatedBadge = (appointment) => {
                   </div>
 
                   {/* Card Actions */}
-              {/* Card Actions - FIXED FOR MOBILE */}
-<div className="flex flex-col gap-2">
-  {/* Row 1: Main Actions */}
-  <div className="flex gap-2">
-    <button
-      onClick={() => {
-        setSelectedAppointment(appointment);
-        setPatientAllAppointments(appointment.all_appointments || [appointment]);
-        setShowDetailsModal(true);
-      }}
-      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
-    >
-      <Eye className="w-4 h-4" />
-      التفاصيل
-    </button>
+                  {/* Card Actions - FIXED FOR MOBILE */}
+                  <div className="flex flex-col gap-2">
+                    {/* Row 1: Main Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedAppointment(appointment);
+                          setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                          setShowDetailsModal(true);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+                      >
+                        <Eye className="w-4 h-4" />
+                        التفاصيل
+                      </button>
 
-    {(user.role_id === 1 || user.role_id === 5) && appointment.status == "Pending" && (
-      <button
-        onClick={() => updatePresenceStatus(appointment.id, "Present")}
-        disabled={updating}
-        className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
-      >
-        <CheckCheck className="w-4 h-4" />
-        <span>حاضر</span>
-      </button>
-    )}
+                      <button
+                        onClick={() => {
+                          setSelectedQRAppointment(appointment);
+                          setShowQRModal(true);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+                      >
+                        <QrCode className="w-4 h-4" />
+                        <span>عرض QR</span>
+                      </button>
 
-    {/* More Actions Menu */}
-    <div className="relative">
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const rect = e.currentTarget.getBoundingClientRect();
-          const viewportHeight = window.innerHeight;
-          const spaceBelow = viewportHeight - rect.bottom;
-          const spaceAbove = rect.top;
 
-          setMenuPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'down' : 'up');
-          setActiveActionMenu(activeActionMenu === appointment.id ? null : appointment.id);
-        }}
-        className="flex items-center justify-center gap-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
-      >
-        <MoreVertical className="w-4 h-4" />
-      </button>
 
-      {activeActionMenu === appointment.id && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setActiveActionMenu(null)}
-          />
+                      {/* More Actions Menu */}
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const viewportHeight = window.innerHeight;
+                            const spaceBelow = viewportHeight - rect.bottom;
+                            const spaceAbove = rect.top;
 
-          <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px] ${menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
-            }`}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                sendWhatsAppReminder(appointment);
-                setActiveActionMenu(null);
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-            >
-              <MessageCircle className="w-4 h-4 text-green-600" />
-              <span>إرسال تذكير WhatsApp</span>
-            </button>
-            
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                sendEvaluationLinkViaWhatsApp(appointment, eventId);
-                setActiveActionMenu(null);
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-            >
-              <MessageCircle className="w-4 h-4 text-teal-600" />
-              <span>إرسال الاستبيان</span>
-            </button>
+                            setMenuPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'down' : 'up');
+                            setActiveActionMenu(activeActionMenu === appointment.id ? null : appointment.id);
+                          }}
+                          className="flex items-center justify-center gap-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
 
-            {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (appointment.medical_document_urls.length === 1) {
-                    window.open(appointment.medical_document_urls[0], '_blank');
-                  } else {
-                    setSelectedAppointment(appointment);
-                    setPatientAllAppointments(appointment.all_appointments || [appointment]);
-                    setShowDetailsModal(true);
-                  }
-                  setActiveActionMenu(null);
-                }}
-                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-              >
-                <FileText className="w-4 h-4 text-green-600" />
-                <span>المستندات ({appointment.medical_document_urls.length})</span>
-              </button>
-            )}
+                        {activeActionMenu === appointment.id && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setActiveActionMenu(null)}
+                            />
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedAppointment(appointment);
-                setPatientAllAppointments(appointment.all_appointments || [appointment]);
-                setShowDetailsModal(true);
-                startEditing();
-                setActiveActionMenu(null);
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-            >
-              <Edit className="w-4 h-4 text-orange-600" />
-              <span>تعديل المعلومات</span>
-            </button>
+                            <div className={`absolute left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px] ${menuPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
+                              }`}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  sendWhatsAppReminder(appointment);
+                                  setActiveActionMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                              >
+                                <MessageCircle className="w-4 h-4 text-green-600" />
+                                <span>إرسال تذكير WhatsApp</span>
+                              </button>
 
-            {(user.role_id === 1 || user.role_id === 3) && !appointment.is_special && appointment.status !== "Completed" && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  markAsSpecialCase(appointment.id);
-                  setActiveActionMenu(null);
-                }}
-                disabled={updating}
-                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm disabled:opacity-50"
-              >
-                <Star className="w-4 h-4 text-purple-600" />
-                <span>حالة خاصة</span>
-              </button>
-            )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  sendEvaluationLinkViaWhatsApp(appointment, eventId);
+                                  setActiveActionMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                              >
+                                <MessageCircle className="w-4 h-4 text-teal-600" />
+                                <span>إرسال الاستبيان</span>
+                              </button>
 
-            {(user.role_id === 1 || user.role_id === 3) && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedAppointment(appointment);
-                  fetchAvailableSpecialties(appointment.id);
-                  setActiveActionMenu(null);
-                }}
-                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-              >
-                <RefreshCw className="w-4 h-4 text-indigo-600" />
-                <span>تغيير التخصص</span>
-              </button>
-            )}
+                              {appointment.medical_document_urls && appointment.medical_document_urls.length > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (appointment.medical_document_urls.length === 1) {
+                                      window.open(appointment.medical_document_urls[0], '_blank');
+                                    } else {
+                                      setSelectedAppointment(appointment);
+                                      setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                                      setShowDetailsModal(true);
+                                    }
+                                    setActiveActionMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                                >
+                                  <FileText className="w-4 h-4 text-green-600" />
+                                  <span>المستندات ({appointment.medical_document_urls.length})</span>
+                                </button>
+                              )}
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownloadPDF(appointment);
-                setActiveActionMenu(null);
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-            >
-              <Printer className="w-4 h-4 text-green-600" />
-              <span>تحميل الموعد</span>
-            </button>
-              {appointment.status !== 'Pending' &&
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                printPatientCard(appointment);
-                setActiveActionMenu(null);
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
-            >
-              <Printer className="w-4 h-4 text-blue-600" />
-              <span>طباعة بطاقة المتابعة</span>
-            </button>}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAppointment(appointment);
+                                  setPatientAllAppointments(appointment.all_appointments || [appointment]);
+                                  setShowDetailsModal(true);
+                                  startEditing();
+                                  setActiveActionMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                              >
+                                <Edit className="w-4 h-4 text-orange-600" />
+                                <span>تعديل المعلومات</span>
+                              </button>
 
-            {user.role_id === 1 && (
-              <>
-                <div className="border-t border-gray-200 my-1"></div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAppointmentToDelete(appointment);
-                    setShowDeleteConfirm(true);
-                    setActiveActionMenu(null);
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-red-600 font-droid-arabic-kufi text-sm"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>حذف الموعد</span>
-                </button>
-              </>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  </div>
+                              {(user.role_id === 1 || user.role_id === 3) && !appointment.is_special && appointment.status !== "Completed" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsSpecialCase(appointment.id);
+                                    setActiveActionMenu(null);
+                                  }}
+                                  disabled={updating}
+                                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm disabled:opacity-50"
+                                >
+                                  <Star className="w-4 h-4 text-purple-600" />
+                                  <span>حالة خاصة</span>
+                                </button>
+                              )}
 
-  {/* Row 2: WhatsApp Actions (Always visible for quick access) */}
-  <div className="flex gap-2">
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        sendWhatsAppReminder(appointment);
-      }}
-      className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
-    >
-      <MessageCircle className="w-4 h-4" />
-      <span>تذكير</span>
-    </button>
+                              {(user.role_id === 1 || user.role_id === 3) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedAppointment(appointment);
+                                    fetchAvailableSpecialties(appointment.id);
+                                    setActiveActionMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                                >
+                                  <RefreshCw className="w-4 h-4 text-indigo-600" />
+                                  <span>تغيير التخصص</span>
+                                </button>
+                              )}
 
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        sendEvaluationLinkViaWhatsApp(appointment, eventId);
-      }}
-      className="flex-1 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
-    >
-      <MessageCircle className="w-4 h-4" />
-      <span>استبيان</span>
-    </button>
-  </div>
-</div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadPDF(appointment);
+                                  setActiveActionMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                              >
+                                <Printer className="w-4 h-4 text-green-600" />
+                                <span>تحميل الموعد</span>
+                              </button>
+                              {appointment.status !== 'Pending' &&
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    printPatientCard(appointment);
+                                    setActiveActionMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 font-droid-arabic-kufi text-sm"
+                                >
+                                  <Printer className="w-4 h-4 text-blue-600" />
+                                  <span>طباعة بطاقة المتابعة</span>
+                                </button>}
+
+                              {user.role_id === 1 && (
+                                <>
+                                  <div className="border-t border-gray-200 my-1"></div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setAppointmentToDelete(appointment);
+                                      setShowDeleteConfirm(true);
+                                      setActiveActionMenu(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-red-600 font-droid-arabic-kufi text-sm"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>حذف الموعد</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: WhatsApp Actions (Always visible for quick access) */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sendWhatsAppReminder(appointment);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>تذكير</span>
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sendEvaluationLinkViaWhatsApp(appointment, eventId);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-sm"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>استبيان</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))
             )}
@@ -2822,6 +2942,18 @@ const getEvaluatedBadge = (appointment) => {
                       <span className="hidden sm:inline">تذكير WhatsApp</span>
                       <span className="sm:hidden">واتساب</span>
                     </button>
+                    {(user.role_id === 1 || user.role_id === 3) && (
+                            <button
+                              onClick={() => {
+                                setSelectedAppointment(selectedAppointment);
+                                fetchAvailableSpecialties(selectedAppointment.id);
+                              }}
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="تغيير التخصص"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          )}
 
                     <button
                       onClick={() => handleDownloadPDF(selectedAppointment)}
@@ -2832,14 +2964,14 @@ const getEvaluatedBadge = (appointment) => {
                       <span className="sm:hidden">تحميل</span>
                     </button>
                     {selectedAppointment.status === 'Pending' ?
-                    <button
-                      onClick={() => printPatientCard(selectedAppointment)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-xs sm:text-sm"
-                    >
-                      <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="hidden sm:inline">طباعة بطاقة المتابعة</span>
-                      <span className="sm:hidden">بطاقة</span>
-                    </button>: 'عليك تسجيل الحضور أولا'}
+                      <button
+                        onClick={() => printPatientCard(selectedAppointment)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors font-droid-arabic-kufi text-xs sm:text-sm"
+                      >
+                        <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">طباعة بطاقة المتابعة</span>
+                        <span className="sm:hidden">بطاقة</span>
+                      </button> : 'عليك تسجيل الحضور أولا'}
                   </>
                 ) : (
                   <>
@@ -3057,6 +3189,9 @@ const getEvaluatedBadge = (appointment) => {
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-droid-arabic-kufi text-sm sm:text-base"
                         />
                       </div>
+                      {!isEditing && (
+                        <PatientQRSection appointment={selectedAppointment} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -3124,27 +3259,17 @@ const getEvaluatedBadge = (appointment) => {
                         </div>
 
                         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-                          {(user.role_id === 1 || user.role_id === 5) && (apt.status == "Pending" || apt.status == "Absent") && (
-                            <button
-                              onClick={() => updatePresenceStatus(apt.id, "Present")}
-                              disabled={updating}
-                              className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold font-droid-arabic-kufi transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs sm:text-sm"
-                            >
-                              <CheckCheck className="w-3 h-3 sm:w-4 sm:h-4" />
-                              حاضر
-                            </button>
-                          )}
-
-                          {(user.role_id === 1 || user.role_id === 3) && !apt.is_special && apt.status !== "Completed" && (
-                            <button
-                              onClick={() => markAsSpecialCase(apt.id)}
-                              disabled={updating}
-                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold font-droid-arabic-kufi transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs sm:text-sm"
-                            >
-                              <Star className="w-3 h-3 sm:w-4 sm:h-4" />
-                              حالة خاصة
-                            </button>
-                          )}
+                          {/* Show QR Code */}
+                          <button
+                            onClick={() => {
+                              setSelectedQRAppointment(apt);
+                              setShowQRModal(true);
+                            }}
+                            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold font-droid-arabic-kufi transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
+                          >
+                            <QrCode className="w-3 h-3 sm:w-4 sm:h-4" />
+                            عرض QR
+                          </button>
                           {user.role_id === 1 && (
                             <button
                               onClick={() => {
@@ -3276,8 +3401,8 @@ const getEvaluatedBadge = (appointment) => {
                         key={specialty.event_specialty_id}
                         onClick={() => setSelectedTransferSpecialty(specialty)}
                         className={`border-2 rounded-lg p-3 sm:p-4 cursor-pointer transition-all ${selectedTransferSpecialty?.event_specialty_id === specialty.event_specialty_id
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
                           }`}
                       >
                         <div className="flex items-start justify-between">
@@ -3355,6 +3480,58 @@ const getEvaluatedBadge = (appointment) => {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showQRScanner && (
+          <QRScanner
+            onScanSuccess={handleQRScanSuccess}
+            onClose={() => setShowQRScanner(false)}
+            eventId={eventId}
+            actionTitle={
+              scanAction === 'present' ? 'مسح لتسجيل الحضور' :
+                scanAction === 'special' ? 'مسح لتسجيل حالة خاصة' :
+                  scanAction === 'details' ? 'مسح لعرض التفاصيل' :
+                    'مسح رمز QR'
+            }
+          />
+        )}
+
+        {/* QR Display Modal */}
+        {showQRModal && selectedQRAppointment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+              <button
+                onClick={() => {
+                  setShowQRModal(false);
+                  setSelectedQRAppointment(null);
+                }}
+                className="absolute top-4 left-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-500" />
+              </button>
+
+              <div className="flex flex-col items-center">
+                <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi mb-2">
+                  رمز QR للمريض
+                </h3>
+                <p className="text-gray-600 font-droid-arabic-kufi mb-6">
+                  {selectedQRAppointment.full_name} (#{selectedQRAppointment.patient_id})
+                </p>
+
+                <PatientQRSection appointment={selectedQRAppointment} />
+
+                <button
+                  onClick={() => {
+                    setShowQRModal(false);
+                    setSelectedQRAppointment(null);
+                  }}
+                  className="mt-6 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg transition-colors font-droid-arabic-kufi"
+                >
+                  إغلاق
+                </button>
               </div>
             </div>
           </div>

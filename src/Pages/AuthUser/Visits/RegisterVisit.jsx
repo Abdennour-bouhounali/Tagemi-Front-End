@@ -1,6 +1,8 @@
 import React, { useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import logo from './tagemi_logo.png';
 import { AppContext } from '../../../Context/AppContext';
+import { QRCodeSVG } from 'qrcode.react';
+
 import { useParams } from 'react-router-dom';
 import { Select } from '../../Common/FormInputs';
 import { Input } from '../../Common/FormInputs';
@@ -27,7 +29,9 @@ import {
   Upload,
   FileText,
   X,
-  Printer
+  Printer,
+    Download // <-- Add this
+
 } from 'lucide-react';
 import BirthdayInput from '../SuperAdmin/Components/BirthdayInput';
 import algeriaLocations from '../../../data/algeria_locations.json';
@@ -530,6 +534,7 @@ const RegisterVisit = () => {
   const [showMissingFields, setShowMissingFields] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
   const maxAllowedSpecialties = event?.nbr_of_allowed_specialties || 1;
+  const [patientId, setPatientId] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -906,6 +911,9 @@ const RegisterVisit = () => {
       }
       
       const data = await res.json();
+      if (data.patient_id) {
+        setPatientId(data.patient_id);
+      }
       
       setShowSuccessAnimation(true);
       setMessage({ 
@@ -1453,506 +1461,641 @@ const RegisterVisit = () => {
 
   // ==================== SUCCESS ANIMATION ====================
 
-  const SuccessAnimation = () => {
-    const getAppointmentSummary = () => {
-      const summaries = formData.specialties.map((spec, index) => {
-        const specialty = event?.event_specialties?.find(es => es.id == spec.event_specialty_id);
-        const day = specialty?.days?.find(d => d.id == spec.day_id);
-        const slot = availableSlots[`${index}`]?.find(s => s.hour_id == spec.hour_id);
-        
-        return {
-          specialty: specialty?.specialty?.name || 'غير محدد',
-          date: day ? new Date(day.day_date).toLocaleDateString('ar-DZ', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          }) : 'غير محدد',
-          time: slot?.time ? slot.time.substring(0, 5) : 'غير محدد'
-        };
-      });
+// Replace the SuccessAnimation component with this version
+const SuccessAnimation = () => {
+  const getAppointmentSummary = () => {
+    const summaries = formData.specialties.map((spec, index) => {
+      const specialty = event?.event_specialties?.find(es => es.id == spec.event_specialty_id);
+      const day = specialty?.days?.find(d => d.id == spec.day_id);
+      const slot = availableSlots[`${index}`]?.find(s => s.hour_id == spec.hour_id);
       
-      return summaries;
+      return {
+        specialty: specialty?.specialty?.name || 'غير محدد',
+        date: day ? new Date(day.day_date).toLocaleDateString('ar-DZ', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }) : 'غير محدد',
+        time: slot?.time ? slot.time.substring(0, 5) : 'غير محدد'
+      };
+    });
+    
+    return summaries;
+  };
+
+  const appointments = getAppointmentSummary();
+  const fullName = `${formData.name} ${formData.lastName}`;
+  
+  // QR Code value - patient_id:123 format
+  const qrValue = `patient_id:${patientId}`;
+
+  // Download QR Code function
+  const downloadQRCode = () => {
+    const svg = document.getElementById('patient-qr-code');
+    if (!svg) return;
+    
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = 300;
+      canvas.height = 300;
+      
+      // White background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw QR code
+      ctx.drawImage(img, 0, 0, 300, 300);
+      
+      const pngFile = canvas.toDataURL('image/png');
+      
+      const downloadLink = document.createElement('a');
+      downloadLink.download = `QR_Patient_${patientId}_${formData.name}_${formData.lastName}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
+  // Print PDF Function
+  const handleDownloadPDF = () => {
+    const printWindow = window.open("", "_blank");
+    const eventName = event?.name || "الحدث";
+    const date = new Date().toLocaleDateString("ar-SA");
+    const logoUrl = `${window.location.origin}/tagemi_logo.png`;
+    
+    const cityNames = {
+      tajnint: "تاجنينت",
+      bonora: "آت بونور",
+      taghardait: "تغردايت",
+      mlichat: "آت مليشت",
+      yazgan: "آت يزجن",
+      berian: "آت برقان",
+      karara: "القرارة",
+      warglen: "وارجلان"
     };
 
-    const appointments = getAppointmentSummary();
-    const fullName = `${formData.name} ${formData.lastName}`;
-
-    // Print PDF Function using window.open (like CheckPresence)
-   const handleDownloadPDF = () => {
-  const printWindow = window.open("", "_blank");
-  const eventName = event?.name || "الحدث";
-  const date = new Date().toLocaleDateString("ar-SA");
-  const logoUrl = `${window.location.origin}/tagemi_logo.png`;
-  const cityNames = {
-  tajnint: "تاجنينت",
-  bonora: "آت بونور",
-  taghardait: "تغردايت",
-  mlichat: "آت مليشت",
-  yazgan: "آت يزجن",
-  berian: "آت برقان",
-  karara: "القرارة",
-  warglen: "وارجلان"
-};
-
-  const birthday = formData.birthday 
-    ? new Date(formData.birthday).toLocaleDateString("en-UK") 
-    : "-";
-  const gender = formData.sex === '0' ? 'ذكر' : 'أنثى';
-  const diseases = formData.diseases && formData.diseases !== 'nothing' 
-    ? formData.diseases 
-    : 'لا يوجد';
-  
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html dir="rtl">
-    <head>
-      <meta charset="UTF-8">
-      <title>تأكيد الحجز - ${fullName}</title>
-      <style>
-        * { 
-          margin: 0; 
-          padding: 0; 
-          box-sizing: border-box; 
-        }
-        @page {
-          size: A4 portrait;
-          margin: 15mm;
-        }
-        body { 
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          direction: rtl;
-          line-height: 1.4;
-          color: #333;
-          font-size: 12px;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 15px;
-          padding-bottom: 10px;
-          border-bottom: 2px solid #2563eb;
-        }
-        .logo {
-          height: 60px;
-          max-width: 150px;
-          margin: 0 auto 8px;
-          display: block;
-        }
-        .header h1 {
-          color: #16a34a;
-          font-size: 22px;
-          margin-bottom: 5px;
-        }
-        .header .event-name {
-          color: #1e40af;
-          font-size: 16px;
-          font-weight: bold;
-          margin-bottom: 3px;
-        }
-        .header .date {
-          color: #64748b;
-          font-size: 11px;
-        }
-        .screenshot-note {
-          background: #fee2e2;
-          border: 2px solid #dc2626;
-          color: #991b1b;
-          padding: 8px;
-          border-radius: 6px;
-          text-align: center;
-          font-weight: bold;
-          margin-bottom: 12px;
-          font-size: 12px;
-        }
-        .section {
-          margin-bottom: 12px;
-          background: #f8fafc;
-          padding: 10px;
-          border-radius: 6px;
-          border: 1px solid #e2e8f0;
-        }
-        .section-title {
-          font-size: 14px;
-          font-weight: bold;
-          color: #1e40af;
-          margin-bottom: 8px;
-          padding-bottom: 5px;
-          border-bottom: 2px solid #dbeafe;
-        }
-        .info-line {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 15px;
-          margin-bottom: 5px;
-        }
-        .info-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-        }
-        .info-label {
-          font-weight: 600;
-          color: #475569;
-        }
-        .info-value {
-          color: #1e293b;
-        }
-        .divider {
-          color: #cbd5e1;
-          margin: 0 5px;
-        }
-        .documents-info {
-          background: #dcfce7;
-          border: 2px solid #16a34a;
-          padding: 8px;
-          border-radius: 6px;
-          text-align: center;
-          color: #166534;
-          font-weight: 600;
-          margin-bottom: 12px;
-          font-size: 12px;
-        }
-        .appointments-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 10px;
-        }
-        .appointment-card {
-          background: white;
-          padding: 10px;
-          border-radius: 6px;
-          border: 2px solid #3b82f6;
-        }
-        .appointment-header {
-          background: #3b82f6;
-          color: white;
-          padding: 5px 10px;
-          border-radius: 4px;
-          margin-bottom: 8px;
-          font-weight: bold;
-          text-align: center;
-          font-size: 12px;
-        }
-        .appointment-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 4px 0;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .appointment-row:last-child {
-          border-bottom: none;
-        }
-        .appointment-label {
-          color: #64748b;
-          font-size: 11px;
-        }
-        .appointment-value {
-          font-weight: 600;
-          color: #1e293b;
-          font-size: 11px;
-        }
-        .footer {
-          margin-top: 15px;
-          text-align: center;
-          padding-top: 10px;
-          border-top: 1px solid #e2e8f0;
-          color: #64748b;
-          font-size: 10px;
-        }
-        @media print {
-          body { 
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+    const birthday = formData.birthday 
+      ? new Date(formData.birthday).toLocaleDateString("en-UK") 
+      : "-";
+    const gender = formData.sex === '0' ? 'ذكر' : 'أنثى';
+    const diseases = formData.diseases && formData.diseases !== 'nothing' 
+      ? formData.diseases 
+      : 'لا يوجد';
+    
+    // Get QR code as base64 image
+    const svg = document.getElementById('patient-qr-code');
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const qrCodeBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>تأكيد الحجز - ${fullName}</title>
+        <style>
+          * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
           }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'" />
-        <h1>✓ تم الحجز بنجاح</h1>
-        <div class="event-name">${eventName}</div>
-        <div class="date">تاريخ الطباعة: ${date}</div>
-      </div>
-
-      <div class="screenshot-note">
-        📸 يرجى حفظ هذا المستند وإحضاره عند الحضور للفحص
-      </div>
-
-      ${medicalDocuments.length > 0 ? `
-        <div class="documents-info">
-          ✓ تم تحميل ${medicalDocuments.length} مستند طبي بنجاح
+          @page {
+            size: A4 portrait;
+            margin: 15mm;
+          }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            direction: rtl;
+            line-height: 1.4;
+            color: #333;
+            font-size: 12px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2563eb;
+          }
+          .logo {
+            height: 60px;
+            max-width: 150px;
+            margin: 0 auto 8px;
+            display: block;
+          }
+          .header h1 {
+            color: #16a34a;
+            font-size: 22px;
+            margin-bottom: 5px;
+          }
+          .header .event-name {
+            color: #1e40af;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 3px;
+          }
+          .header .date {
+            color: #64748b;
+            font-size: 11px;
+          }
+          .patient-id-badge {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size: 18px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          }
+          .screenshot-note {
+            background: #fee2e2;
+            border: 2px solid #dc2626;
+            color: #991b1b;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size: 12px;
+          }
+          .qr-section {
+            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+            border: 3px solid #3b82f6;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+          }
+          .qr-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+          }
+          .qr-code-container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          }
+          .qr-code {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto;
+            display: block;
+          }
+          .qr-instruction {
+            color: #1e40af;
+            font-size: 11px;
+            margin-top: 8px;
+            font-weight: 600;
+          }
+          .section {
+            margin-bottom: 12px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+          }
+          .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #dbeafe;
+          }
+          .info-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 5px;
+          }
+          .info-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+          }
+          .info-label {
+            font-weight: 600;
+            color: #475569;
+          }
+          .info-value {
+            color: #1e293b;
+          }
+          .divider {
+            color: #cbd5e1;
+            margin: 0 5px;
+          }
+          .documents-info {
+            background: #dcfce7;
+            border: 2px solid #16a34a;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            color: #166534;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 12px;
+          }
+          .appointments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+          }
+          .appointment-card {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            border: 2px solid #3b82f6;
+          }
+          .appointment-header {
+            background: #3b82f6;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 12px;
+          }
+          .appointment-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .appointment-row:last-child {
+            border-bottom: none;
+          }
+          .appointment-label {
+            color: #64748b;
+            font-size: 11px;
+          }
+          .appointment-value {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 11px;
+          }
+          .footer {
+            margin-top: 15px;
+            text-align: center;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 10px;
+          }
+          @media print {
+            body { 
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'" />
+          <h1>✓ تم الحجز بنجاح</h1>
+          <div class="event-name">${eventName}</div>
+          <div class="date">تاريخ الطباعة: ${date}</div>
         </div>
-      ` : ''}
 
-      <!-- Patient Information - Compact Inline -->
-      <div class="section">
-        <div class="section-title">معلومات المريض</div>
-        <div class="info-line">
-          <div class="info-item">
-            <span class="info-label">الاسم:</span>
-            <span class="info-value">${fullName}</span>
+        <div class="patient-id-badge">
+          رقم المريض: #${patientId}
+        </div>
+
+        <div class="screenshot-note">
+          📸 يرجى حفظ هذا المستند وإحضاره عند الحضور للفحص
+        </div>
+
+        <!-- QR Code Section -->
+        <div class="qr-section">
+          <div class="qr-title">🔍 رمز QR للحضور السريع</div>
+          <div class="qr-code-container">
+            <img src="${qrCodeBase64}" alt="QR Code" class="qr-code" />
           </div>
-          <span class="divider">|</span>
-          <div class="info-item">
-            <span class="info-label">تاريخ الميلاد:</span>
-            <span class="info-value">${birthday}</span>
-          </div>
-          <span class="divider">|</span>
-          <div class="info-item">
-            <span class="info-label">الجنس:</span>
-            <span class="info-value">${gender}</span>
+          <div class="qr-instruction">
+            امسح هذا الرمز عند الحضور لتسجيل حضورك بسرعة
           </div>
         </div>
-        <div class="info-line">
-          <div class="info-item">
-            <span class="info-label">الهاتف:</span>
-            <span class="info-value">${formData.phone}</span>
-          </div>
-          <span class="divider">|</span>
-          <div class="info-item">
-            <span class="info-label">هاتف ثانوي:</span>
-            <span class="info-value">${formData.phone2}</span>
-          </div>
-          <span class="divider">|</span>
 
-          <div class="info-item">
-            <span class="info-label">العنوان:</span>
-            <span class="info-value">${formData.state} - ${cityNames[formData.city] || formData.city}</span>
+        ${medicalDocuments.length > 0 ? `
+          <div class="documents-info">
+            ✓ تم تحميل ${medicalDocuments.length} مستند طبي بنجاح
           </div>
-      
-        </div>
-        <div class="info-line">
-          <div class="info-item">
-            <span class="info-label">الأمراض المزمنة:</span>
-            <span class="info-value">${diseases}</span>
-          </div>
-        </div>
-      </div>
+        ` : ''}
 
-      <!-- Appointments - Compact Grid -->
-      <div class="section">
-        <div class="section-title">تفاصيل المواعيد (${appointments.length})</div>
-        <div class="appointments-grid">
-          ${appointments.map((apt, index) => `
-            <div class="appointment-card">
-              ${appointments.length > 1 ? `
-                <div class="appointment-header">الموعد ${index + 1}</div>
-              ` : ''}
-              <div class="appointment-row">
-                <span class="appointment-label">التخصص:</span>
-                <span class="appointment-value">${apt.specialty}</span>
-              </div>
-              <div class="appointment-row">
-                <span class="appointment-label">التاريخ:</span>
-                <span class="appointment-value">${apt.date}</span>
-              </div>
-              <div class="appointment-row">
-                <span class="appointment-label">الوقت:</span>
-                <span class="appointment-value">${apt.time}</span>
-              </div>
+        <!-- Patient Information -->
+        <div class="section">
+          <div class="section-title">معلومات المريض</div>
+          <div class="info-line">
+            <div class="info-item">
+              <span class="info-label">الاسم:</span>
+              <span class="info-value">${fullName}</span>
             </div>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="footer">
-        <p>تم إصدار هذا المستند في: ${new Date().toLocaleString("ar-DZ")} | نظام إدارة المواعيد © ${new Date().getFullYear()}</p>
-      </div>
-    </body>
-    </html>
-  `);
-  
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-  }, 250);
-};
-
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 md:p-6">
-        <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl mx-auto animate-bounceIn max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
-          {/* Header Section */}
-          <div className="sticky top-0 bg-gradient-to-b from-green-50 to-white pt-6 pb-4 px-4 sm:px-6 md:px-8 border-b border-green-100">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-3 sm:mb-4 shadow-lg">
-                <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-pulse" />
-              </div>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 font-droid-arabic-kufi">
-                تم الحجز بنجاح!
-              </h3>
-              <p className="text-sm sm:text-base text-red-600 font-droid-arabic-kufi">
-                يرجى حفظ هذه المعلومات لعرضها عند الحضور للفحص
-              </p>
+            <span class="divider">|</span>
+            <div class="info-item">
+              <span class="info-label">تاريخ الميلاد:</span>
+              <span class="info-value">${birthday}</span>
+            </div>
+            <span class="divider">|</span>
+            <div class="info-item">
+              <span class="info-label">الجنس:</span>
+              <span class="info-value">${gender}</span>
             </div>
           </div>
+          <div class="info-line">
+            <div class="info-item">
+              <span class="info-label">الهاتف:</span>
+              <span class="info-value">${formData.phone}</span>
+            </div>
+            <span class="divider">|</span>
+            <div class="info-item">
+              <span class="info-label">هاتف ثانوي:</span>
+              <span class="info-value">${formData.phone2}</span>
+            </div>
+            <span class="divider">|</span>
+            <div class="info-item">
+              <span class="info-label">العنوان:</span>
+              <span class="info-value">${formData.state} - ${cityNames[formData.city] || formData.city}</span>
+            </div>
+          </div>
+          <div class="info-line">
+            <div class="info-item">
+              <span class="info-label">الأمراض المزمنة:</span>
+              <span class="info-value">${diseases}</span>
+            </div>
+          </div>
+        </div>
 
-          {/* Content Section */}
-          <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
-            {/* Patient Name */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-blue-200">
-              <div className="flex items-center gap-3 justify-center sm:justify-start">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        <!-- Appointments -->
+        <div class="section">
+          <div class="section-title">تفاصيل المواعيد (${appointments.length})</div>
+          <div class="appointments-grid">
+            ${appointments.map((apt, index) => `
+              <div class="appointment-card">
+                ${appointments.length > 1 ? `
+                  <div class="appointment-header">الموعد ${index + 1}</div>
+                ` : ''}
+                <div class="appointment-row">
+                  <span class="appointment-label">التخصص:</span>
+                  <span class="appointment-value">${apt.specialty}</span>
                 </div>
-                <div className="text-center sm:text-right">
-                  <p className="text-xs sm:text-sm text-gray-600 font-droid-arabic-kufi mb-1">
-                    السيد :
-                  </p>
-                  <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800 font-droid-arabic-kufi">
-                    {fullName}
-                  </p>
+                <div class="appointment-row">
+                  <span class="appointment-label">التاريخ:</span>
+                  <span class="appointment-value">${apt.date}</span>
+                </div>
+                <div class="appointment-row">
+                  <span class="appointment-label">الوقت:</span>
+                  <span class="appointment-value">${apt.time}</span>
                 </div>
               </div>
-            </div>
+            `).join('')}
+          </div>
+        </div>
 
-            {/* Document Upload Confirmation */}
-            {medicalDocuments.length > 0 && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 justify-center">
-                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
-                  <span className="text-sm sm:text-base font-semibold text-green-800 font-droid-arabic-kufi">
-                    تم تحميل {medicalDocuments.length} مستند طبي بنجاح
-                  </span>
-                </div>
+        <div class="footer">
+          <p>تم إصدار هذا المستند في: ${new Date().toLocaleString("ar-DZ")} | نظام إدارة المواعيد © ${new Date().getFullYear()}</p>
+        </div>
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 md:p-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl mx-auto animate-bounceIn max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* Header Section */}
+        <div className="sticky top-0 bg-gradient-to-b from-green-50 to-white pt-6 pb-4 px-4 sm:px-6 md:px-8 border-b border-green-100">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-3 sm:mb-4 shadow-lg">
+              <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-pulse" />
+            </div>
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 font-droid-arabic-kufi">
+              تم الحجز بنجاح!
+            </h3>
+            <p className="text-sm sm:text-base text-red-600 font-droid-arabic-kufi mb-2">
+              يرجى حفظ هذه المعلومات لعرضها عند الحضور للفحص
+            </p>
+            {patientId && (
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-bold text-lg shadow-lg">
+                رقم المريض: #{patientId}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
+          {/* QR Code Section */}
+          {patientId && (
+            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border-2 border-blue-300 shadow-lg">
+              <div className="text-center">
+
+                                <button
+                  type="button"
+                  onClick={downloadQRCode}
+                  className="my-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-droid-arabic-kufi text-sm flex items-center gap-2 mx-auto"
+                >
+                  <Download className="w-4 h-4" />
+                  تحميل رمز QR
+                </button>
+                
+                <div className="bg-white p-6 rounded-xl inline-block shadow-md">
+                  <QRCodeSVG
+                    id="patient-qr-code"
+                    value={qrValue}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                
+                <p className="text-sm text-blue-700 font-droid-arabic-kufi mt-4 font-semibold">
+                  📱 امسح هذا الرمز عند الحضور لتسجيل حضورك بسرعة
+                </p>
+                
+
+              </div>
+            </div>
+          )}
+
+          {/* Patient Name */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-blue-200">
+            <div className="flex items-center gap-3 justify-center sm:justify-start">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div className="text-center sm:text-right">
+                <p className="text-xs sm:text-sm text-gray-600 font-droid-arabic-kufi mb-1">
+                  السيد :
+                </p>
+                <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800 font-droid-arabic-kufi">
+                  {fullName}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Document Upload Confirmation */}
+          {medicalDocuments.length > 0 && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm">
+              <div className="flex items-center gap-2 sm:gap-3 justify-center">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
+                <span className="text-sm sm:text-base font-semibold text-green-800 font-droid-arabic-kufi">
+                  تم تحميل {medicalDocuments.length} مستند طبي بنجاح
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {/* Appointment Details */}
+          <div className="bg-gradient-to-br text-left from-blue-50 via-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-blue-200">
+            <h4 className="font-bold text-left text-base sm:text-lg md:text-xl text-gray-800 mb-3 sm:mb-4 font-droid-arabic-kufi flex items-center gap-2 justify-center sm:justify-start">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <span>تفاصيل المواعيد</span>
+            </h4>
             
-            {/* Appointment Details */}
-            <div className="bg-gradient-to-br text-left from-blue-50 via-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-blue-200">
-              <h4 className="font-bold text-left text-base sm:text-lg md:text-xl text-gray-800 mb-3 sm:mb-4 font-droid-arabic-kufi flex items-center gap-2 justify-center sm:justify-start">
-                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                <span>تفاصيل المواعيد</span>
-              </h4>
-              
-              <div className="space-y-3">
-                {appointments.map((apt, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-white text-left rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    {appointments.length > 1 && (
-                      <div className="flex text-left justify-center mb-3">
-                        <span className="inline-block px-3 py-1 bg-blue-500 text-white text-xs sm:text-sm font-bold rounded-full">
-                          الموعد {index + 1}
-                        </span>
+            <div className="space-y-3">
+              {appointments.map((apt, index) => (
+                <div 
+                  key={index} 
+                  className="bg-white text-left rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {appointments.length > 1 && (
+                    <div className="flex text-left justify-center mb-3">
+                      <span className="inline-block px-3 py-1 bg-blue-500 text-white text-xs sm:text-sm font-bold rounded-full">
+                        الموعد {index + 1}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
+                      <div className="text-left flex-1">
+                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">التخصص</p>
+                        <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800">
+                          {apt.specialty}
+                        </p>
                       </div>
-                    )}
+                    </div>
                     
-                    <div className="space-y-2 sm:space-y-3">
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
-                        <div className="text-left flex-1">
-                          <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">التخصص</p>
-                          <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800">
-                            {apt.specialty}
-                          </p>
-                        </div>
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
+                      <div className="text-left flex-1">
+                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">التاريخ</p>
+                        <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800 leading-relaxed">
+                          {apt.date}
+                        </p>
                       </div>
-                      
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
-                        <div className="text-left flex-1">
-                          <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">التاريخ</p>
-                          <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800 leading-relaxed">
-                            {apt.date}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
-                        <div className="text-left flex-1">
-                          <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">الوقت</p>
-                          <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800">
-                            {apt.time}
-                          </p>
-                        </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-1" />
+                      <div className="text-left flex-1">
+                        <p className="text-xs text-gray-500 font-droid-arabic-kufi mb-1">الوقت</p>
+                        <p className="font-semibold text-sm sm:text-base font-droid-arabic-kufi text-gray-800">
+                          {apt.time}
+                        </p>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Important Reminder */}
-            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm" dir="rtl">
-              <div className="flex items-start gap-2 sm:gap-3">
-                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 flex-shrink-0 mt-1" />
-                <div className="text-left flex-1">
-                  <h4 className="font-bold text-base sm:text-lg text-gray-800 font-droid-arabic-kufi mb-2 sm:mb-3">
-                    تنبيه مهم
-                  </h4>
-                  <ul className="space-y-2 text-xs sm:text-sm text-gray-700 font-droid-arabic-kufi leading-relaxed">
-                    <li className="flex items-start gap-2">
-                      <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
-                      <span>يرجى الالتزام بالموعد المحدد والحضور قبله بـ 15 دقيقة</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
-                      <span>في حالة عدم القدرة على الحضور، يرجى إبلاغنا مسبقاً</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
-                      <span>سنتواصل معك على الرقم: <span className="font-bold text-gray-800">{formData.phone}</span></span>
-                    </li>
-                    {formData.phone2 && (
-                      <li className="flex items-start gap-2">
-                        <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
-                        <span>أو الرقم الثانوي: <span className="font-bold text-gray-800">{formData.phone2}</span></span>
-                      </li>
-                    )}
-                  </ul>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
-
-          {/* Footer Buttons */}
-          <div className="sticky bottom-0 bg-gradient-to-t from-white to-transparent pt-4 pb-6 px-4 sm:px-6 md:px-8 space-y-3">
-            {/* Download PDF Button */}
-            <button
-              type="button"
-              onClick={handleDownloadPDF}
-              className="w-full px-6 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg sm:rounded-xl text-sm sm:text-base md:text-lg font-bold font-droid-arabic-kufi hover:from-green-600 hover:to-emerald-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-            >
-              <Printer className="w-5 h-5" />
-              تحميل تأكيد الحجز
-            </button>
-
-            {/* New Appointment Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowSuccessAnimation(false);
-                setFormData({
-                  name: '',
-                  lastName: '',
-                  birthday: '',
-                  state: '',
-                  city: '',
-                  diseases: '',
-                  phone: '',
-                  phone2: '',
-                  sex: '',
-                  specialties: [{ event_specialty_id: '', day_id: '', hour_id: '' }],
-                });
-                setMedicalDocuments([]);
-                setCurrentStep(0);
-                setAcceptedRules(false);
-                setAvailableCities([]);
-              }}
-              className="w-full px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg sm:rounded-xl text-sm sm:text-base md:text-lg font-bold font-droid-arabic-kufi hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl"
-            >
-              حجز موعد آخر
-            </button>
+          
+          {/* Important Reminder */}
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm" dir="rtl">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 flex-shrink-0 mt-1" />
+              <div className="text-left flex-1">
+                <h4 className="font-bold text-base sm:text-lg text-gray-800 font-droid-arabic-kufi mb-2 sm:mb-3">
+                  تنبيه مهم
+                </h4>
+                <ul className="space-y-2 text-xs sm:text-sm text-gray-700 font-droid-arabic-kufi leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                    <span>يرجى الالتزام بالموعد المحدد والحضور قبله بـ 15 دقيقة</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                    <span>احتفظ برمز QR أو رقم المريض #{patientId} لتسريع عملية التسجيل</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                    <span>في حالة عدم القدرة على الحضور، يرجى إبلاغنا مسبقاً</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 font-bold flex-shrink-0">•</span>
+                    <span>سنتواصل معك على الرقم: <span className="font-bold text-gray-800">{formData.phone}</span></span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    );
-  };
 
+        {/* Footer Buttons */}
+        <div className="sticky bottom-0 bg-gradient-to-t from-white to-transparent pt-4 pb-6 px-4 sm:px-6 md:px-8 space-y-3">
+          {/* Download PDF Button */}
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="w-full px-6 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg sm:rounded-xl text-sm sm:text-base md:text-lg font-bold font-droid-arabic-kufi hover:from-green-600 hover:to-emerald-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+          >
+            <Printer className="w-5 h-5" />
+            تحميل تأكيد الحجز (مع QR)
+          </button>
+
+          {/* New Appointment Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowSuccessAnimation(false);
+              setPatientId(null);
+              setFormData({
+                name: '',
+                lastName: '',
+                birthday: '',
+                state: '',
+                city: '',
+                diseases: '',
+                phone: '',
+                phone2: '',
+                sex: '',
+                specialties: [{ event_specialty_id: '', day_id: '', hour_id: '' }],
+              });
+              setMedicalDocuments([]);
+              setCurrentStep(0);
+              setAcceptedRules(false);
+              setAvailableCities([]);
+            }}
+            className="w-full px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg sm:rounded-xl text-sm sm:text-base md:text-lg font-bold font-droid-arabic-kufi hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl"
+          >
+            حجز موعد آخر
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
   // ==================== MAIN RENDER ====================
 
   if (loading) {

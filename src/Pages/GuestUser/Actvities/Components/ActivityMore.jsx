@@ -396,7 +396,7 @@ export default function ActivityMore() {
                             </div>
 
                             {/* Title */}
-                            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 font-droid-arabic-kufi leading-tight">
+                            <h1 className="text-2xl sm:text-xl md:text-4xl lg:text-5xl font-bold text-gray-900 font-droid-arabic-kufi leading-tight">
                                 {language === 'en' ? activity.title_en : activity.title_ar}
                             </h1>
 
