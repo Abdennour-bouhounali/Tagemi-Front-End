@@ -24,6 +24,7 @@ const GuestNavBar = ({ user, types }) => {
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isActivitiesDropdownOpen, setIsActivitiesDropdownOpen] = useState(false);
+    const [isActivitiesDropdownOpen2, setIsActivitiesDropdownOpen2] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
@@ -44,6 +45,9 @@ const GuestNavBar = ({ user, types }) => {
 
     const toggleActivitiesDropdown = () => {
         setIsActivitiesDropdownOpen(!isActivitiesDropdownOpen);
+    };
+        const toggleActivitiesDropdown2 = () => {
+        setIsActivitiesDropdownOpen2(!isActivitiesDropdownOpen2);
     };
 
     const closeNav = () => {
@@ -166,17 +170,19 @@ const GuestNavBar = ({ user, types }) => {
 
                                 {isActivitiesDropdownOpen && (
                                     <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                        {types.map((type) => (
-                                            <Link
-                                                key={type.id}
-                                                to={`activities/type/${type.id}`}
-                                                onClick={() => setIsActivitiesDropdownOpen(false)}
-                                                className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 transition-colors font-droid-arabic-kufi first:rounded-t-lg last:rounded-b-lg"
-                                            >
-                                                <Calendar className="w-4 h-4" />
-                                                <span>{language === 'en' ? type.name_en : type.name_ar}</span>
-                                            </Link>
-                                        ))}
+                                        {/* ... inside the mobile menu loop ... */}
+                                            {types.map((type) => (
+                                                <MobileNavLink
+                                                    key={type.id}
+                                                    // 👇 ADD THE SLASH AT THE BEGINNING HERE
+                                                    to={`/activities/type/${type.id}`} 
+                                                    onClick={closeNav}
+                                                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
+                                                >
+                                                    <Calendar className="w-4 h-4" />
+                                                    <span>{language === 'en' ? type.name_en : type.name_ar}</span>
+                                                </MobileNavLink>
+                                            ))}
                                     </div>
                                 )}
                             </div>
@@ -273,6 +279,38 @@ const GuestNavBar = ({ user, types }) => {
                                     <Info className="w-5 h-5" />
                                     <span>{language === 'en' ? 'About' : 'من نحن'}</span>
                                 </MobileNavLink>
+                                {user && (user.role_id === 1 || user.role_id === 7) && types && types.length > 0 && (
+                                    <div>
+                                        <button
+                                            onClick={toggleActivitiesDropdown2}
+                                            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 rounded-xl font-droid-arabic-kufi transition-all duration-200"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Calendar className="w-5 h-5" />
+                                                <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
+                                            </div>
+                                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isActivitiesDropdownOpen2 ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        
+                                        {isActivitiesDropdownOpen2 && (
+                                            <div className="mt-2 ml-4 space-y-1">
+                                               {/* ... inside the mobile menu loop ... */}
+    {types.map((type) => (
+        <MobileNavLink
+            key={type.id}
+            // 👇 ADD THE SLASH AT THE BEGINNING HERE
+            to={`/activities/type/${type.id}`} 
+            onClick={closeNav}
+            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
+        >
+            <Calendar className="w-4 h-4" />
+            <span>{language === 'en' ? type.name_en : type.name_ar}</span>
+        </MobileNavLink>
+    ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Mobile Activity Types Dropdown */}
                                 
@@ -303,36 +341,7 @@ const GuestNavBar = ({ user, types }) => {
                                     <LanguageSelector />
                                 </div>
                             </div>
-                            {user && user.role_id === 1 && types && types.length > 0 && (
-                                    <div>
-                                        <button
-                                            onClick={toggleActivitiesDropdown}
-                                            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-[#E03A6F] hover:bg-gray-50 rounded-xl font-droid-arabic-kufi transition-all duration-200"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Calendar className="w-5 h-5" />
-                                                <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
-                                            </div>
-                                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isActivitiesDropdownOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        
-                                        {isActivitiesDropdownOpen && (
-                                            <div className="mt-2 ml-4 space-y-1">
-                                                {types.map((type) => (
-                                                    <MobileNavLink
-                                                        key={type.id}
-                                                        to={`activities/type/${type.id}`}
-                                                        onClick={closeNav}
-                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
-                                                    >
-                                                        <Calendar className="w-4 h-4" />
-                                                        <span>{language === 'en' ? type.name_en : type.name_ar}</span>
-                                                    </MobileNavLink>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+
                                 { user && (user.role_id === 3 || user.role_id === 5) && 
                                         <MobileNavLink
                                             to={`/admin/check-presence/${user.event_id}`}

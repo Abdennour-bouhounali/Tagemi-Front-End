@@ -40,9 +40,7 @@ const AboutActvity = ({ TypeDescription }) => {
                     
                     {/* Description Content */}
                     <div
-                        className={`prose prose-lg max-w-none relative z-10 ${
-                            language === 'en' ? 'text-left' : 'text-right'
-                        }`}
+                        className='prose prose-lg max-w-none relative z-10 text-center'
                         style={{
                             direction: language === 'ar' ? 'rtl' : 'ltr'
                         }}
