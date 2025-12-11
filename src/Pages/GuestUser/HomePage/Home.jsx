@@ -1,11 +1,11 @@
-import VideoBanner from "./Components/VideoBanner";
+import { useEffect, useState } from "react";
+import { API_BASE_URL } from '../../../config/environment';
+import CallToAction from "./Components/CallToAction";
+import Donate from "./Components/Donate";
+import Footer from "./Components/Footer";
 import Introduction from "./Components/Introduction";
 import Statistics from "./Components/Statistics";
-import Footer from "./Components/Footer";
-import { API_BASE_URL } from '../../../config/environment';
-import { useEffect, useState } from "react";
-import Donate from "./Components/Donate";
-import CallToAction from "./Components/CallToAction";
+import VideoBanner from "./Components/VideoBanner";
 
 const apiUrl = API_BASE_URL; 
 
