@@ -1,38 +1,41 @@
-name: Deploy React App to Hostinger
+name: Deploy Vite React Frontend to VPS
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '16'  # Use the Node version compatible with your project
+          node-version: '20'
 
-      - name: Install dependencies and build
-        run: |
-          npm install
-          npm run build
-          
-      - name: Add Hostinger to known_hosts
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Vite React app
+        run: npm run build
+
+      - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.HOSTINGER_PORT }} ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
+          echo "$OCTENIUM_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+        env:
+          OCTENIUM_KEY: ${{ secrets.OCTENIUM_KEY }}
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.HOSTINGER_PRIVATE_KEY }}
-
-      - name: Deploy Build to Hostinger
+      - name: Deploy to VPS
+        env:
+          OCTENIUM_HOST: ${{ secrets.OCTENIUM_HOST }}
+          OCTENIUM_USER: ${{ secrets.OCTENIUM_USER }}
+          OCTENIUM_SSH_PORT: ${{ secrets.OCTENIUM_SSH_PORT }}
         run: |
-          scp -P ${{ secrets.HOSTINGER_PORT }} -r dist/* ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:/home/u412486568/domains/tagemi-foundation.org/public_html
+          # Use rsync to copy dist/ to public_html
+          rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -p ${OCTENIUM_SSH_PORT} " ./dist/ ${OCTENIUM_USER}@${OCTENIUM_HOST}:~/public_html
