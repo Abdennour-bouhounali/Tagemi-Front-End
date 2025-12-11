@@ -38,4 +38,4 @@ jobs:
           OCTENIUM_SSH_PORT: ${{ secrets.OCTENIUM_SSH_PORT }}
         run: |
           # Use rsync to copy dist/ to public_html
-          rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -p ${OCTENIUM_SSH_PORT} " ./dist/ ${OCTENIUM_USER}@${OCTENIUM_HOST}:~/public_html
+          rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -p ${OCTENIUM_SSH_PORT:-22}" --delete dist/ $OCTENIUM_USER@$OCTENIUM_HOST:/var/www/Tagemi-Front-End/public_html/
