@@ -63,10 +63,8 @@ export default function AdminLayout() {
 
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
-    headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-    headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
     headers.append('Authorization', `Bearer ${token}`);
-    
+
     const res = await fetch(`${apiUrl}/api/logout`, {
       method: "post",
       headers: headers,
@@ -81,7 +79,7 @@ export default function AdminLayout() {
   }
 
   return (
-    
+
     <div className="flex min-h-screen overflow-x-hidden bg-gray-50">
       {loggedIns ? (
         // Rules Modal
@@ -139,88 +137,88 @@ export default function AdminLayout() {
                   className="fixed inset-0 bg-black bg-opacity-30 z-20 top-[73px]"
                 />
               )}
-              
+
 
             </>
           )}
 
           {/* Main content wrapper */}
           <div className="flex flex-col w-full flex-grow">
-  {user && (
-    <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex justify-between items-center">
-          
-          {/* Left: Hamburger + Title */}
-          <div className="flex items-center gap-6">
-        <button
-          onClick={toggleMobileMenu}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors block lg:hidden"
-        >
-          {isMobileMenuOpen ? (
-            <X className="w-6 h-6 text-gray-700" />
-          ) : (
-            <Menu className="w-6 h-6 text-gray-700" />
-          )}
-</button>
+            {user && (
+              <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto px-6 py-4">
+                  <div className="flex justify-between items-center">
+
+                    {/* Left: Hamburger + Title */}
+                    <div className="flex items-center gap-6">
+                      <button
+                        onClick={toggleMobileMenu}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors block lg:hidden"
+                      >
+                        {isMobileMenuOpen ? (
+                          <X className="w-6 h-6 text-gray-700" />
+                        ) : (
+                          <Menu className="w-6 h-6 text-gray-700" />
+                        )}
+                      </button>
 
 
-            {/* <Link to="/" className="text-xl font-bold text-[#131842] font-droid-arabic-kufi">
+                      {/* <Link to="/" className="text-xl font-bold text-[#131842] font-droid-arabic-kufi">
               نظام المواعيد
             </Link> */}
+                    </div>
+
+                    {/* Center: Desktop Navigation */}
+                    <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-center max-w-full">
+                      {user.role_id === 2 && <GuestNavBar />}
+                      <AuthNavBar
+                        user={user}
+                        specialities={specialities}
+                        dropdownRef={dropdownRef}
+                        toggleDropdown={toggleDropdown}
+                        isOpen={isOpen}
+                        handlelogout={handlelogout}
+                        mobile={false}
+                      />
+                    </nav>
+
+                    {/* Right: Logout */}
+                    <button
+                      onClick={handlelogout}
+                      className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                      title="خروج"
+                    >
+                      <LogOut className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Mobile Menu Dropdown */}
+                  {isMobileMenuOpen && (
+                    <div className="lg:hidden border-t border-gray-200 mt-4 bg-white">
+                      <nav className="p-3 space-y-1">
+                        {user.role_id === 2 && <GuestNavBar mobile />}
+                        <AuthNavBar
+                          user={user}
+                          specialities={specialities}
+                          dropdownRef={dropdownRef}
+                          toggleDropdown={toggleDropdown}
+                          isOpen={isOpen}
+                          handlelogout={handlelogout}
+                          mobile={true}
+                        />
+                      </nav>
+                    </div>
+                  )}
+                </div>
+              </header>
+            )}
+            <main className="overflow-x-auto">
+              <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center px-4">
+                <Outlet />
+              </div>
+            </main>
+
           </div>
-
-          {/* Center: Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-center max-w-full">
-            {user.role_id === 2 && <GuestNavBar />}
-            <AuthNavBar 
-              user={user} 
-              specialities={specialities} 
-              dropdownRef={dropdownRef} 
-              toggleDropdown={toggleDropdown} 
-              isOpen={isOpen}
-              handlelogout={handlelogout}
-              mobile={false}
-            />
-          </nav>
-
-          {/* Right: Logout */}
-          <button 
-            onClick={handlelogout}
-            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-            title="خروج"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Mobile Menu Dropdown */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 mt-4 bg-white">
-            <nav className="p-3 space-y-1">
-              {user.role_id === 2 && <GuestNavBar mobile />}
-              <AuthNavBar 
-                user={user} 
-                specialities={specialities} 
-                dropdownRef={dropdownRef} 
-                toggleDropdown={toggleDropdown} 
-                isOpen={isOpen}
-                handlelogout={handlelogout}
-                mobile={true}
-              />
-            </nav>
-          </div>
-        )}
-      </div>
-    </header>
-  )}
-<main className="overflow-x-auto">
-  <div className="w-screen min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white flex flex-col items-center px-4">
-    <Outlet />
-  </div>
-</main>
-
-</div>
         </>
       )}
     </div>

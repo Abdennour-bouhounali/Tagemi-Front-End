@@ -29,8 +29,6 @@ export default function Login() {
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
-    headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-    headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
 
     try {
       const res = await fetch(`${apiUrl}/api/login`, {
@@ -40,7 +38,7 @@ export default function Login() {
       });
 
       const data = await res.json()
-      
+
       if (data.errors) {
         setErrors(data.errors)
         setIsLoading(false)
@@ -48,7 +46,7 @@ export default function Login() {
         setSuccess(true)
         localStorage.setItem('token', data.token)
         setToken(data.token);
-        
+
         // Navigate after showing success state
         setTimeout(() => {
           navigate("/home", { state: { loggedIn: true } });
@@ -69,10 +67,9 @@ export default function Login() {
 
       <div className="flex items-center justify-center w-full min-h-screen p-4">
         <div className="w-full max-w-md">
-          <div className={`bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${
-            success ? 'scale-105' : 'scale-100'
-          }`}>
-            
+          <div className={`bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${success ? 'scale-105' : 'scale-100'
+            }`}>
+
             {/* Header Section */}
             <div className="bg-gradient-to-br from-[#131842] to-[#2F3645] p-8 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
@@ -183,8 +180,8 @@ export default function Login() {
 
                 {/* Forgot Password Link */}
                 <div className="text-right">
-                  <Link 
-                    to="/forgot-password" 
+                  <Link
+                    to="/forgot-password"
                     className="text-sm text-[#131842] hover:text-[#2F3645] font-droid-arabic-kufi transition-colors hover:underline"
                   >
                     نسيت كلمة المرور؟
