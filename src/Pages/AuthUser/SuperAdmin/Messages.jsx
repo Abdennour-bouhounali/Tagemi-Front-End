@@ -4,11 +4,13 @@ import { API_BASE_URL } from '../../../config/environment';
 import { Filter, Check, X, Trash2, ChevronDown, ChevronUp, Download, Phone, MapPin, MessageSquare, User, Calendar, MessageCircle } from "lucide-react";
 import { Select } from '../../Common/FormInputs';
 import { AppContext } from "../../../Context/AppContext";
+import { useTranslation } from 'react-i18next';
 
 const apiUrl = API_BASE_URL;
 
 const Messages = () => {
   const { token } = useContext(AppContext);
+  const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -118,15 +120,15 @@ const Messages = () => {
 
   const formatPhoneForWhatsApp = (phone) => {
     if (!phone) return '';
-    
+
     // Remove all non-digit characters (spaces, dashes, parentheses, plus signs, etc.)
     let cleaned = phone.toString().replace(/\D/g, '');
-    
+
     // Handle Algerian numbers
     // Algerian mobile numbers are 10 digits starting with 0 (e.g., 0555123456)
     // Or 9 digits without the leading 0 (e.g., 555123456)
     // Country code is 213
-    
+
     if (cleaned.startsWith('213')) {
       // Already has country code, just return it
       return cleaned;
@@ -157,31 +159,31 @@ const Messages = () => {
 
   const sendWhatsAppMessage = () => {
     if (!whatsappModal) return;
-    
+
     const phoneNumber = formatPhoneForWhatsApp(whatsappModal.phone);
-    
+
     // Validate phone number
     if (!phoneNumber || phoneNumber.length < 10) {
       alert('رقم الهاتف غير صحيح. الرجاء التحقق من الرقم.');
       console.error('Invalid phone number:', whatsappModal.phone, '-> formatted:', phoneNumber);
       return;
     }
-    
+
     // Encode message for URL
     const encodedMessage = encodeURIComponent(whatsappMessage);
-    
+
     // Build WhatsApp URL (no + sign, no spaces, just digits)
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-    
+
     // Log for debugging
     console.log('📱 WhatsApp Details:');
     console.log('Original phone:', whatsappModal.phone);
     console.log('Formatted phone:', phoneNumber);
     console.log('WhatsApp URL:', whatsappUrl);
-    
+
     // Open WhatsApp
     window.open(whatsappUrl, '_blank');
-    
+
     // Close modal
     setWhatsappModal(null);
     setWhatsappMessage('');
@@ -198,7 +200,7 @@ const Messages = () => {
       'الحالة': msg.treated ? 'معالجة' : 'غير معالجة',
       'تاريخ الإرسال': new Date(msg.created_at).toLocaleDateString('ar-DZ')
     }));
-    
+
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'messages');
@@ -286,23 +288,23 @@ const Messages = () => {
       <div className="w-full">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-4xl font-droid-arabic-kufi text-gray-800 mb-2">الرسائل</h1>
-          <p className="text-sm sm:text-base text-gray-600 font-droid-arabic-kufi">إدارة وعرض جميع الرسائل الواردة</p>
+          <h1 className="text-2xl sm:text-4xl font-droid-arabic-kufi text-gray-800 mb-2">{t('admin.messages')}</h1>
+          <p className="text-sm sm:text-base text-gray-600 font-droid-arabic-kufi">{t('admin.manageViewMessages')}</p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
           <div className="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4 text-center">
             <p className="text-lg sm:text-2xl font-bold text-gray-800 font-droid-arabic-kufi">{totalMessages}</p>
-            <p className="text-xs sm:text-sm text-gray-600 font-droid-arabic-kufi">إجمالي</p>
+            <p className="text-xs sm:text-sm text-gray-600 font-droid-arabic-kufi">{t('admin.total')}</p>
           </div>
           <div className="bg-emerald-50 rounded-lg sm:rounded-xl shadow p-3 sm:p-4 text-center border border-emerald-200">
             <p className="text-lg sm:text-2xl font-bold text-emerald-700 font-droid-arabic-kufi">{treatedCount}</p>
-            <p className="text-xs sm:text-sm text-emerald-600 font-droid-arabic-kufi">معالجة</p>
+            <p className="text-xs sm:text-sm text-emerald-600 font-droid-arabic-kufi">{t('admin.treated')}</p>
           </div>
           <div className="bg-orange-50 rounded-lg sm:rounded-xl shadow p-3 sm:p-4 text-center border border-orange-200">
             <p className="text-lg sm:text-2xl font-bold text-orange-700 font-droid-arabic-kufi">{untreatedCount}</p>
-            <p className="text-xs sm:text-sm text-orange-600 font-droid-arabic-kufi">غير معالجة</p>
+            <p className="text-xs sm:text-sm text-orange-600 font-droid-arabic-kufi">{t('admin.untreated')}</p>
           </div>
         </div>
 
@@ -422,11 +424,10 @@ const Messages = () => {
                         <button
                           onClick={() => handleToggleTreated(message.id)}
                           disabled={processingId === message.id}
-                          className={`p-2 rounded-full transition-all ${
-                            message.treated
+                          className={`p-2 rounded-full transition-all ${message.treated
                               ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                               : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
-                          } ${processingId === message.id ? 'opacity-50 cursor-wait' : ''}`}
+                            } ${processingId === message.id ? 'opacity-50 cursor-wait' : ''}`}
                           title={message.treated ? 'تم المعالجة' : 'غير معالجة'}
                         >
                           {processingId === message.id ? (
@@ -559,11 +560,10 @@ const Messages = () => {
                   <button
                     onClick={() => handleToggleTreated(message.id)}
                     disabled={processingId === message.id}
-                    className={`p-2 rounded-full transition-all ${
-                      message.treated
+                    className={`p-2 rounded-full transition-all ${message.treated
                         ? 'bg-emerald-500 text-white'
                         : 'bg-gray-200 text-gray-500'
-                    } ${processingId === message.id ? 'opacity-50' : ''}`}
+                      } ${processingId === message.id ? 'opacity-50' : ''}`}
                   >
                     {processingId === message.id ? (
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -631,11 +631,10 @@ const Messages = () => {
                 {/* Status Badge and Action Buttons */}
                 <div className="flex items-center justify-between gap-2">
                   <span
-                    className={`text-xs px-3 py-1 rounded-full font-droid-arabic-kufi ${
-                      message.treated
+                    className={`text-xs px-3 py-1 rounded-full font-droid-arabic-kufi ${message.treated
                         ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                         : 'bg-orange-100 text-orange-700 border border-orange-300'
-                    }`}
+                      }`}
                   >
                     {message.treated ? '✓ تم المعالجة' : '⏳ غير معالجة'}
                   </span>
@@ -799,11 +798,10 @@ const Messages = () => {
               <button
                 onClick={sendWhatsAppMessage}
                 disabled={!whatsappMessage.trim()}
-                className={`flex-1 px-4 py-2 sm:py-2.5 text-white text-sm sm:text-base font-droid-arabic-kufi rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2 ${
-                  whatsappMessage.trim()
+                className={`flex-1 px-4 py-2 sm:py-2.5 text-white text-sm sm:text-base font-droid-arabic-kufi rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2 ${whatsappMessage.trim()
                     ? 'bg-green-500 hover:bg-green-600 focus:ring-green-500'
                     : 'bg-gray-400 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 إرسال عبر واتساب

@@ -2,6 +2,7 @@ import { useContext, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { AppContext } from "../../../Context/AppContext";
 import { API_BASE_URL } from '../../../config/environment';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 import logo from '/tagemi_logo.png';
@@ -20,6 +21,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [success, setSuccess] = useState(false)
+  const { t } = useTranslation()
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -53,7 +55,7 @@ export default function Login() {
         }, 800);
       }
     } catch (error) {
-      setErrors({ general: ['حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.'] })
+      setErrors({ general: [t('auth.connectionError')] })
       setIsLoading(false)
     }
   }
@@ -78,10 +80,10 @@ export default function Login() {
                   <img src={logo} alt="Tagemi Logo" className="w-full h-full object-contain" />
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold font-droid-arabic-kufi text-white mb-2">
-                  أهلاً بك
+                  {t('auth.loginTitle')}
                 </h1>
                 <p className="text-white/80 text-sm font-droid-arabic-kufi">
-                  سجل دخولك للمتابعة
+                  {t('auth.loginSubtitle')}
                 </p>
               </div>
             </div>
@@ -93,7 +95,7 @@ export default function Login() {
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 animate-in slide-in-from-top">
                   <CheckCircle2 className="text-green-600 flex-shrink-0" size={20} />
                   <p className="text-green-700 text-sm font-droid-arabic-kufi">
-                    تم تسجيل الدخول بنجاح! جاري التحويل...
+                    {t('auth.loginSuccess')}
                   </p>
                 </div>
               )}
@@ -112,7 +114,7 @@ export default function Login() {
                 {/* Email Input */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    البريد الإلكتروني
+                    {t('auth.email')}
                   </label>
                   <div className="relative">
                     <input
@@ -143,7 +145,7 @@ export default function Login() {
                 {/* Password Input */}
                 <div className="space-y-2">
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    كلمة المرور
+                    {t('auth.password')}
                   </label>
                   <div className="relative">
                     <input
@@ -184,7 +186,7 @@ export default function Login() {
                     to="/forgot-password"
                     className="text-sm text-[#131842] hover:text-[#2F3645] font-droid-arabic-kufi transition-colors hover:underline"
                   >
-                    نسيت كلمة المرور؟
+                    {t('auth.forgotPassword')}
                   </Link>
                 </div>
 
@@ -201,15 +203,15 @@ export default function Login() {
                   {isLoading ? (
                     <>
                       <Loader2 className="animate-spin" size={20} />
-                      <span>جاري تسجيل الدخول...</span>
+                      <span>{t('auth.loggingIn')}</span>
                     </>
                   ) : success ? (
                     <>
                       <CheckCircle2 size={20} />
-                      <span>تم بنجاح!</span>
+                      <span>{t('auth.successMessage')}</span>
                     </>
                   ) : (
-                    <span>تسجيل الدخول</span>
+                    <span>{t('auth.loginButton')}</span>
                   )}
                 </button>
 
@@ -231,7 +233,7 @@ export default function Login() {
 
           {/* Footer Text */}
           <p className="text-center mt-6 text-sm text-gray-600 font-droid-arabic-kufi">
-            © 2024 مؤسسة تاجمي. جميع الحقوق محفوظة.
+            {t('auth.copyright')}
           </p>
         </div>
       </div>

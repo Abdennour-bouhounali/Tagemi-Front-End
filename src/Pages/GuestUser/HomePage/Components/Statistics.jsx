@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUsers, faCalendarAlt, faPeopleArrows, faChartLine, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { AppContext } from '../../../../Context/AppContext';
 import { useLanguage } from '../../../../Context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 const apiUrl = API_BASE_URL;
 
@@ -14,18 +15,18 @@ const AnimatedCounter = ({ end, duration = 2000, suffix = '+' }) => {
     useEffect(() => {
         let startTime;
         const endValue = parseInt(end);
-        
+
         const animate = (currentTime) => {
             if (!startTime) startTime = currentTime;
             const progress = Math.min((currentTime - startTime) / duration, 1);
-            
+
             setCount(Math.floor(progress * endValue));
-            
+
             if (progress < 1) {
                 requestAnimationFrame(animate);
             }
         };
-        
+
         requestAnimationFrame(animate);
     }, [end, duration]);
 
@@ -35,28 +36,29 @@ const AnimatedCounter = ({ end, duration = 2000, suffix = '+' }) => {
 const Statistics = () => {
     const { token } = useContext(AppContext);
     const { language } = useLanguage();
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [stats, setStats] = useState([
-        { 
-            label: language === 'en' ? 'Number of Volunteers' : 'عدد المتطوعين', 
-            value: '500', 
+        {
+            label: t('home.numberOfVolunteers'),
+            value: '500',
             icon: faUsers,
             color: 'from-blue-500 to-blue-600',
             bgColor: 'bg-blue-50',
             iconColor: 'text-blue-600'
         },
-        { 
-            label: language === 'en' ? 'Events Organized' : 'البرامج المنظمة', 
-            value: '350', 
+        {
+            label: t('home.eventsOrganized'),
+            value: '350',
             icon: faCalendarAlt,
             color: 'from-purple-500 to-purple-600',
             bgColor: 'bg-purple-50',
             iconColor: 'text-purple-600'
         },
-        { 
-            label: language === 'en' ? 'People Benefited' : 'عدد المستفيدين', 
-            value: '50000', 
+        {
+            label: t('home.peopleBenefited'),
+            value: '50000',
             icon: faPeopleArrows,
             color: 'from-pink-500 to-pink-600',
             bgColor: 'bg-pink-50',
@@ -80,27 +82,27 @@ const Statistics = () => {
             if (data.length > 0) {
                 const statisticsData = JSON.parse(data[0].value);
                 setMoreStatisticsLink(data[2]?.value || '');
-                
+
                 setStats([
-                    { 
-                        label: language === 'en' ? 'Number of Volunteers' : 'عدد المتطوعين', 
-                        value: statisticsData['number_of_volunteers'], 
+                    {
+                        label: t('home.numberOfVolunteers'),
+                        value: statisticsData['number_of_volunteers'],
                         icon: faUsers,
                         color: 'from-blue-500 to-blue-600',
                         bgColor: 'bg-blue-50',
                         iconColor: 'text-blue-600'
                     },
-                    { 
-                        label: language === 'en' ? 'Events Organized' : 'البرامج المنظمة', 
-                        value: statisticsData['events_organized'], 
+                    {
+                        label: t('home.eventsOrganized'),
+                        value: statisticsData['events_organized'],
                         icon: faCalendarAlt,
                         color: 'from-purple-500 to-purple-600',
                         bgColor: 'bg-purple-50',
                         iconColor: 'text-purple-600'
                     },
-                    { 
-                        label: language === 'en' ? 'People Benefited' : 'عدد المستفيدين', 
-                        value: statisticsData['people_benefited'], 
+                    {
+                        label: t('home.peopleBenefited'),
+                        value: statisticsData['people_benefited'],
                         icon: faPeopleArrows,
                         color: 'from-pink-500 to-pink-600',
                         bgColor: 'bg-pink-50',
@@ -110,7 +112,7 @@ const Statistics = () => {
             }
         } catch (error) {
             console.error(error);
-            setError(language === 'en' ? 'Failed to load statistics' : 'فشل في تحميل الإحصائيات');
+            setError(t('home.failedToLoad'));
         } finally {
             setIsLoading(false);
         }
@@ -144,7 +146,7 @@ const Statistics = () => {
     }, [hasAnimated]);
 
     return (
-        <section 
+        <section
             id="statistics-section"
             className="relative py-20 md:py-28 bg-gradient-to-br from-gray-50 via-white to-blue-50 overflow-hidden"
         >
@@ -159,12 +161,12 @@ const Statistics = () => {
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#101E58]/10 rounded-full mb-6">
                         <FontAwesomeIcon icon={faChartLine} className="text-[#101E58]" />
                         <span className="text-sm font-semibold text-[#101E58] font-droid-arabic-kufi">
-                            {language === 'en' ? 'Our Impact' : 'تأثيرنا'}
+                            {t('home.ourImpact')}
                         </span>
                     </div>
 
                     <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#101E58] font-droid-arabic-kufi mb-6">
-                        {language === 'en' ? 'Statistics & Achievements' : 'الإحصائيات والإنجازات'}
+                        {t('home.statisticsTitle')}
                     </h2>
 
                     <div className="flex justify-center mb-6">
@@ -172,9 +174,7 @@ const Statistics = () => {
                     </div>
 
                     <p className="text-gray-600 text-lg md:text-xl max-w-2xl mx-auto font-droid-arabic-kufi">
-                        {language === 'en'
-                            ? 'Numbers that reflect our continuous commitment to serving the community'
-                            : 'أرقام تعكس التزامنا المستمر بخدمة المجتمع'}
+                        {t('home.statisticsDesc')}
                     </p>
                 </div>
 
@@ -194,11 +194,11 @@ const Statistics = () => {
                     // Error State
                     <div className="text-center py-12">
                         <div className="text-red-500 text-lg mb-4">{error}</div>
-                        <button 
+                        <button
                             onClick={getStaticContent}
                             className="px-6 py-3 bg-[#101E58] text-white rounded-lg hover:bg-[#1a2d78] transition-colors"
                         >
-                            {language === 'en' ? 'Try Again' : 'حاول مرة أخرى'}
+                            {t('home.tryAgain')}
                         </button>
                     </div>
                 ) : (
@@ -215,8 +215,8 @@ const Statistics = () => {
 
                                 {/* Icon Container */}
                                 <div className={`relative w-20 h-20 ${stat.bgColor} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-500`}>
-                                    <FontAwesomeIcon 
-                                        icon={stat.icon} 
+                                    <FontAwesomeIcon
+                                        icon={stat.icon}
                                         className={`text-4xl ${stat.iconColor}`}
                                     />
                                 </div>

@@ -5,13 +5,14 @@ import AboutActvity from "./Components/AboutActvity";
 import Footer from "../HomePage/Components/Footer";
 import ActivityModal from "./Components/ActivityModal";
 import { useLanguage } from "../../../Context/LanguageContext";
+import { useTranslation } from 'react-i18next';
 import { AppContext } from "../../../Context/AppContext";
-import { 
-    Calendar, 
-    MapPin, 
-    ArrowRight, 
-    Grid3x3, 
-    List, 
+import {
+    Calendar,
+    MapPin,
+    ArrowRight,
+    Grid3x3,
+    List,
     Search,
     Filter,
     Play,
@@ -31,10 +32,10 @@ const apiUrl = API_BASE_URL;
 export default function Activities() {
     const { TypeId } = useParams();
     const { user, token } = useContext(AppContext);
-    const [type, setType] = useState({ 
-        image_url: '/tagemi_consept.png', 
-        description_en: '', 
-        description_ar: '' 
+    const [type, setType] = useState({
+        image_url: '/tagemi_consept.png',
+        description_en: '',
+        description_ar: ''
     });
     const [activities, setActivities] = useState([]);
     const [filteredActivities, setFilteredActivities] = useState([]);
@@ -44,9 +45,10 @@ export default function Activities() {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('newest');
     // 1. New State for Year Filter
-    const [selectedYear, setSelectedYear] = useState('all'); 
+    const [selectedYear, setSelectedYear] = useState('all');
     const { language } = useLanguage();
-    
+    const { t } = useTranslation();
+
     // Admin state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedActivity, setSelectedActivity] = useState(null);
@@ -132,7 +134,7 @@ export default function Activities() {
                 const title = language === 'en' ? activity.title_en : activity.title_ar;
                 const description = language === 'en' ? activity.description_en : activity.description_ar;
                 return title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       description.toLowerCase().includes(searchQuery.toLowerCase());
+                    description.toLowerCase().includes(searchQuery.toLowerCase());
             });
         }
 
@@ -219,7 +221,7 @@ export default function Activities() {
     const handleModalSuccess = (savedActivity) => {
         if (selectedActivity) {
             // Update existing activity
-            setActivities(activities.map(a => 
+            setActivities(activities.map(a =>
                 a.id === savedActivity.id ? savedActivity : a
             ));
         } else {
@@ -249,13 +251,10 @@ export default function Activities() {
                 <Search className="w-16 h-16 text-gray-400" />
             </div>
             <h3 className="text-2xl font-bold text-gray-700 mb-3 font-droid-arabic-kufi">
-                {language === 'en' ? 'No Activities Found' : 'لا توجد أنشطة'}
+                {t('activitiesPage.noActivitiesFound')}
             </h3>
             <p className="text-gray-500 mb-6 font-droid-arabic-kufi max-w-md mx-auto">
-                {language === 'en' 
-                    ? 'Try adjusting your search or filters to find what you\'re looking for.' 
-                    : 'حاول ضبط البحث أو الفلاتر للعثور على ما تبحث عنه.'
-                }
+                {t('activitiesPage.tryAdjustingSearch')}
             </p>
             {(searchQuery || selectedYear !== 'all') && (
                 <button
@@ -265,55 +264,55 @@ export default function Activities() {
                     }}
                     className="px-6 py-3 bg-[#E03A6F] text-white rounded-full hover:bg-[#c8102e] transition-all duration-300 font-droid-arabic-kufi"
                 >
-                    {language === 'en' ? 'Clear Filters' : 'مسح الفلاتر'}
+                    {t('activitiesPage.clearFilters')}
                 </button>
             )}
         </div>
     );
-        // Format time ago
+    // Format time ago
     const getTimeAgo = (dateString) => {
         if (!dateString) return '';
         const now = new Date();
         const updated = new Date(dateString);
         const diffInSeconds = Math.floor((now - updated) / 1000);
-        
-        if (diffInSeconds < 60) return language === 'en' ? 'Just now' : 'الآن';
-        if (diffInSeconds < 3600) {
-            const mins = Math.floor(diffInSeconds / 60);
-            return language === 'en' ? `${mins}m ago` : `منذ ${mins} دقيقة`;
+
+        if (diffInSeconds < 60) return t('activitiesPage.justNow');
+        const mins = Math.floor(diffInSeconds / 60);
+        if (mins < 60) {
+            return t('activitiesPage.minutesAgo', { mins });
         }
-        if (diffInSeconds < 86400) {
-            const hours = Math.floor(diffInSeconds / 3600);
-            return language === 'en' ? `${hours}h ago` : `منذ ${hours} ساعة`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) {
+            return t('activitiesPage.hoursAgo', { hours });
         }
-        const days = Math.floor(diffInSeconds / 86400);
-        return language === 'en' ? `${days}d ago` : `منذ ${days} يوم`;
+        const days = Math.floor(hours / 24);
+        return t('activitiesPage.daysAgo', { days });
     };
 
     // Check if user is super admin (role_id === 1)
     const isSuperAdmin = user && user.role_id === 1;
     // Render Last Updated By Badge (Only for Super Admin)
-const renderUpdaterBadge = (activity) => {
-    if (!isSuperAdmin || !activity.updater) return null;
+    const renderUpdaterBadge = (activity) => {
+        if (!isSuperAdmin || !activity.updater) return null;
 
-    return (
-        <div className="my-3 pt-3 border-t border-gray-200">
-            <div className="flex items-center gap-2 text-xs text-gray-600 font-droid-arabic-kufi">
-                <UserCheck className="w-4 h-4 text-blue-600" />
-                <span className="font-medium">
-                    {language === 'en' ? 'Last updated by:' : 'آخر تحديث بواسطة:'}
-                </span>
-                <span className="font-semibold text-gray-900">
-                    {activity.updater.name}
-                </span>
-                <span className="text-gray-400">•</span>
-                <span className="text-gray-500">
-                    {getTimeAgo(activity.updated_at)}
-                </span>
+        return (
+            <div className="my-3 pt-3 border-t border-gray-200">
+                <div className="flex items-center gap-2 text-xs text-gray-600 font-droid-arabic-kufi">
+                    <UserCheck className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium">
+                        {t('activitiesPage.lastUpdatedBy')}
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                        {activity.updater.name}
+                    </span>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-gray-500">
+                        {getTimeAgo(activity.updated_at)}
+                    </span>
+                </div>
             </div>
-        </div>
-    );
-};
+        );
+    };
 
     return (
         <div className="min-h-screen bg-white">
@@ -335,7 +334,7 @@ const renderUpdaterBadge = (activity) => {
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                             </svg>
-                            {language === 'en' ? 'Home' : 'الرئيسية'}
+                            {t('nav.home')}
                         </Link>
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -351,7 +350,7 @@ const renderUpdaterBadge = (activity) => {
                             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg">
                                 <Shield className="w-4 h-4 text-white" />
                                 <span className="text-white text-sm font-droid-arabic-kufi font-medium">
-                                    {language === 'en' ? 'Admin Mode' : 'وضع المدير'}
+                                    {t('activitiesPage.adminMode')}
                                 </span>
                             </div>
                         </div>
@@ -364,7 +363,7 @@ const renderUpdaterBadge = (activity) => {
                                 <div className="inline-flex items-center gap-2 bg-[#E03A6F]/20 backdrop-blur-sm px-4 py-2 rounded-full border border-[#E03A6F]/30">
                                     <TrendingUp className="w-4 h-4 text-[#E03A6F]" />
                                     <span className="text-[#E03A6F] text-sm font-droid-arabic-kufi font-medium">
-                                        {language === 'en' ? 'Activity Category' : 'فئة النشاط'}
+                                        {t('activitiesPage.activityCategory')}
                                     </span>
                                 </div>
 
@@ -391,7 +390,7 @@ const renderUpdaterBadge = (activity) => {
                                                 {activities.length}
                                             </div>
                                             <div className="text-sm text-white/70 font-droid-arabic-kufi">
-                                                {language === 'en' ? 'Activities' : 'نشاط'}
+                                                {t('nav.activities')}
                                             </div>
                                         </div>
                                     </div>
@@ -405,7 +404,7 @@ const renderUpdaterBadge = (activity) => {
                                                 {new Date().getFullYear()}
                                             </div>
                                             <div className="text-sm text-white/70 font-droid-arabic-kufi">
-                                                {language === 'en' ? 'Current Year' : 'السنة الحالية'}
+                                                {t('activitiesPage.currentYear')}
                                             </div>
                                         </div>
                                     </div>
@@ -416,7 +415,7 @@ const renderUpdaterBadge = (activity) => {
                                         onClick={() => window.scrollTo({ top: document.getElementById('activities-section')?.offsetTop - 100, behavior: 'smooth' })}
                                         className="group inline-flex items-center gap-3 bg-[#E03A6F] hover:bg-[#c8102e] text-white px-8 py-4 rounded-full font-droid-arabic-kufi font-medium text-lg transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
                                     >
-                                        {language === 'en' ? 'Explore Activities' : 'استكشف الأنشطة'}
+                                        {t('activitiesPage.exploreActivities')}
                                         <ArrowRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${language === 'ar' ? 'rotate-180' : ''}`} />
                                     </button>
                                 </div>
@@ -427,10 +426,10 @@ const renderUpdaterBadge = (activity) => {
                             <div className="relative">
                                 <div className="absolute -top-4 -left-4 w-72 h-72 bg-[#E03A6F] rounded-full opacity-20 blur-3xl"></div>
                                 <div className="absolute -bottom-4 -right-4 w-72 h-72 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
-                                
+
                                 <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 backdrop-blur-sm transform hover:scale-105 transition-transform duration-500">
-                                    <img 
-                                        src={`${apiUrl}/${type.image_url}`} 
+                                    <img
+                                        src={`${apiUrl}/${type.image_url}`}
                                         className="w-full h-[400px] object-cover"
                                         alt={language === 'en' ? type.name_en : type.name_ar}
                                         onError={(e) => {
@@ -438,13 +437,13 @@ const renderUpdaterBadge = (activity) => {
                                         }}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#101E58]/50 to-transparent"></div>
-                                    
+
                                     <div className="absolute bottom-6 left-6 right-6">
                                         <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl">
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <div className="text-sm text-gray-600 font-droid-arabic-kufi mb-1">
-                                                        {language === 'en' ? 'Total Activities' : 'مجموع الأنشطة'}
+                                                        {t('activitiesPage.totalActivities')}
                                                     </div>
                                                     <div className="text-2xl font-bold text-[#101E58]">
                                                         {activities.length}
@@ -463,16 +462,16 @@ const renderUpdaterBadge = (activity) => {
                 </div>
             </div>
 
-            <AboutActvity 
-                TypeDescription={language === 'en' ? type.description_en : type.description_ar} 
-                ImageUrl={`${apiUrl}/${type.image_url}`} 
+            <AboutActvity
+                TypeDescription={language === 'en' ? type.description_en : type.description_ar}
+                ImageUrl={`${apiUrl}/${type.image_url}`}
             />
 
             {/* Search and Filter Section */}
-            <section 
+            <section
                 id="activities-section"
                 className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-gray-50 to-white"
-            >               
+            >
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
                         {/* Search Bar */}
@@ -480,7 +479,7 @@ const renderUpdaterBadge = (activity) => {
                             <Search className={`absolute ${language === 'en' ? 'right-4' : 'left-4'} top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5`} />
                             <input
                                 type="text"
-                                placeholder={language === 'en' ? 'Search activities...' : 'البحث عن الأنشطة...'}
+                                placeholder={t('activitiesPage.searchPlaceholder')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className={`w-full ${language === 'en' ? 'pl-12 pr-4' : 'pr-12 pl-4'} py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent transition-all font-droid-arabic-kufi`}
@@ -504,7 +503,7 @@ const renderUpdaterBadge = (activity) => {
                                     className="px-4 py-3 bg-[#E03A6F] text-white rounded-xl hover:bg-[#c8102e] transition-colors flex items-center gap-2 font-droid-arabic-kufi"
                                 >
                                     <Plus className="w-5 h-5" />
-                                    <span className="hidden sm:inline">{language === 'en' ? 'Add Activity' : 'إضافة نشاط'}</span>
+                                    <span className="hidden sm:inline">{t('activitiesPage.addActivity')}</span>
                                 </button>
                             )}
 
@@ -516,7 +515,7 @@ const renderUpdaterBadge = (activity) => {
                                     onChange={(e) => setSelectedYear(e.target.value)}
                                     className="pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E03A6F] appearance-none bg-white cursor-pointer font-droid-arabic-kufi"
                                 >
-                                    <option value="all">{language === 'en' ? 'All Years' : 'كل السنوات'}</option>
+                                    <option value="all">{t('activitiesPage.allYears')}</option>
                                     {availableYears.map(year => (
                                         <option key={year} value={year}>{year}</option>
                                     ))}
@@ -531,9 +530,9 @@ const renderUpdaterBadge = (activity) => {
                                     onChange={(e) => setSortBy(e.target.value)}
                                     className="pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E03A6F] appearance-none bg-white cursor-pointer font-droid-arabic-kufi"
                                 >
-                                    <option value="newest">{language === 'en' ? 'Newest First' : 'الأحدث أولاً'}</option>
-                                    <option value="oldest">{language === 'en' ? 'Oldest First' : 'الأقدم أولاً'}</option>
-                                    <option value="title">{language === 'en' ? 'By Title' : 'حسب العنوان'}</option>
+                                    <option value="newest">{t('activitiesPage.newestFirst')}</option>
+                                    <option value="oldest">{t('activitiesPage.oldestFirst')}</option>
+                                    <option value="title">{t('activitiesPage.byTitle')}</option>
                                 </select>
                             </div>
 
@@ -542,14 +541,14 @@ const renderUpdaterBadge = (activity) => {
                                 <button
                                     onClick={() => setViewMode('grid')}
                                     className={`p-3 transition-colors ${viewMode === 'grid' ? 'bg-[#E03A6F] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                    title={language === 'en' ? 'Grid View' : 'عرض الشبكة'}
+                                    title={t('activitiesPage.gridView')}
                                 >
                                     <Grid3x3 className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={() => setViewMode('list')}
                                     className={`p-3 transition-colors ${viewMode === 'list' ? 'bg-[#E03A6F] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                    title={language === 'en' ? 'List View' : 'عرض القائمة'}
+                                    title={t('activitiesPage.listView')}
                                 >
                                     <List className="w-5 h-5" />
                                 </button>
@@ -560,10 +559,10 @@ const renderUpdaterBadge = (activity) => {
                     {/* Results count */}
                     {!loading && (
                         <div className="mt-4 text-sm text-gray-600 font-droid-arabic-kufi">
-                            {language === 'en' 
-                                ? `Showing ${filteredActivities.length} of ${activities.length} activities` 
-                                : `عرض ${filteredActivities.length} من ${activities.length} نشاط`
-                            }
+                            {t('activitiesPage.showingResults', {
+                                showing: filteredActivities.length,
+                                total: activities.length
+                            })}
                         </div>
                     )}
                 </div>
@@ -585,7 +584,7 @@ const renderUpdaterBadge = (activity) => {
                             {filteredActivities.map((activity, index) => (
                                 viewMode === 'grid' ? (
                                     // Grid View Card
-                                    <div 
+                                    <div
                                         key={activity.id}
                                         className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 flex flex-col animate-fade-in relative"
                                         style={{ animationDelay: `${index * 100}ms` }}
@@ -596,14 +595,14 @@ const renderUpdaterBadge = (activity) => {
                                                 <button
                                                     onClick={(e) => handleEditActivity(activity, e)}
                                                     className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                                    title={language === 'en' ? 'Edit' : 'تعديل'}
+                                                    title={t('common.edit')}
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDeleteActivity(activity.id, e)}
                                                     className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                                                    title={language === 'en' ? 'Delete' : 'حذف'}
+                                                    title={t('common.delete')}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -647,14 +646,14 @@ const renderUpdaterBadge = (activity) => {
                                                     <Eye className="w-16 h-16 text-gray-400" />
                                                 </div>
                                             )}
-                                            
+
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                            
+
                                             <div className="absolute top-4 right-4">
                                                 <span className="px-3 py-1 bg-[#E03A6F] text-white text-xs font-bold rounded-full shadow-lg font-droid-arabic-kufi">
-                                                        {activity.status === 'upcoming' ? language === 'en' ? 'Upcoming' : 'قادم' : ''}
-                                                        {activity.status === 'ongoing' ? language === 'en' ? 'Ongoing' : 'جاري': ''}
-                                                        {activity.status === 'completed' ? language === 'en' ? 'Completed' : 'مكتمل': ''}
+                                                    {activity.status === 'upcoming' ? t('activityModal.upcoming') : ''}
+                                                    {activity.status === 'ongoing' ? t('activityModal.ongoing') : ''}
+                                                    {activity.status === 'completed' ? t('activityModal.completed') : ''}
                                                 </span>
                                             </div>
                                         </div>
@@ -663,57 +662,57 @@ const renderUpdaterBadge = (activity) => {
                                             <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#E03A6F] transition-colors font-droid-arabic-kufi leading-tight">
                                                 {language === 'en' ? activity.title_en : activity.title_ar}
                                             </h3>
-                                            
+
                                             <p className="text-gray-600 mb-4 line-clamp-3 flex-1 font-droid-arabic-kufi text-sm leading-relaxed">
                                                 {truncateHtml(
-                                                    language === 'en' ? activity.description_en : activity.description_ar, 
+                                                    language === 'en' ? activity.description_en : activity.description_ar,
                                                     150
                                                 )}
                                             </p>
-<div className="flex items-center gap-2 mb-3 text-gray-700">
-  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#56e03a] flex-shrink-0" />
-  <span className="font-droid-arabic-kufi text-xs sm:text-sm">
-    {activity.event_end_date ? (
-      <>
-        <strong>{language === 'en' ? 'Duration:' : 'المدة:'} </strong>
-        {new Date(activity.event_date).toLocaleDateString(
-          language === 'en' ? 'en-US' : 'ar-DZ',
-          { year: 'numeric', month: 'short', day: 'numeric' }
-        )}
-        {' '}<span className="text-gray-500">{language === 'en' ? '→' : '←'}</span>{' '}
-        {new Date(activity.event_end_date).toLocaleDateString(
-          language === 'en' ? 'en-US' : 'ar-DZ',
-          { year: 'numeric', month: 'short', day: 'numeric' }
-        )}
-      </>
-    ) : (
-      <>
-        <strong>{language === 'en' ? 'Date:' : 'التاريخ:'} </strong>
-        {new Date(activity.event_date).toLocaleDateString(
-          language === 'en' ? 'en-US' : 'ar-DZ',
-          { year: 'numeric', month: 'long', day: 'numeric' }
-        )}
-      </>
-    )}
-  </span>
-</div>
+                                            <div className="flex items-center gap-2 mb-3 text-gray-700">
+                                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#56e03a] flex-shrink-0" />
+                                                <span className="font-droid-arabic-kufi text-xs sm:text-sm">
+                                                    {activity.event_end_date ? (
+                                                        <>
+                                                            <strong>{t('activityModal.duration')}: </strong>
+                                                            {new Date(activity.event_date).toLocaleDateString(
+                                                                language === 'en' ? 'en-US' : 'ar-DZ',
+                                                                { year: 'numeric', month: 'short', day: 'numeric' }
+                                                            )}
+                                                            {' '}<span className="text-gray-500">{language === 'en' ? '→' : '←'}</span>{' '}
+                                                            {new Date(activity.event_end_date).toLocaleDateString(
+                                                                language === 'en' ? 'en-US' : 'ar-DZ',
+                                                                { year: 'numeric', month: 'short', day: 'numeric' }
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <strong>{t('activitiesPage.date')}: </strong>
+                                                            {new Date(activity.event_date).toLocaleDateString(
+                                                                language === 'en' ? 'en-US' : 'ar-DZ',
+                                                                { year: 'numeric', month: 'long', day: 'numeric' }
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </span>
+                                            </div>
 
 
 
                                             {renderUpdaterBadge(activity)}
 
-                                            <Link 
-                                                to={`/activities/${activity.id}`} 
+                                            <Link
+                                                to={`/activities/${activity.id}`}
                                                 className="group/btn inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#101E58] to-[#1a2d78] text-white rounded-full hover:from-[#E03A6F] hover:to-[#c8102e] transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-droid-arabic-kufi font-medium text-sm"
                                             >
-                                                {language === 'en' ? 'Read More' : 'إقرأ المزيد'}
+                                                {t('activities.readMore')}
                                                 <ArrowRight className={`w-4 h-4 ${language === 'en' ? 'ml-2 group-hover/btn:translate-x-1' : 'mr-2 rotate-180 group-hover/btn:-translate-x-1'} transition-transform`} />
                                             </Link>
                                         </div>
                                     </div>
                                 ) : (
                                     // List View Card
-                                    <div 
+                                    <div
                                         key={activity.id}
                                         className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-300 flex flex-col sm:flex-row animate-fade-in relative"
                                         style={{ animationDelay: `${index * 100}ms` }}
@@ -771,10 +770,10 @@ const renderUpdaterBadge = (activity) => {
                                                     <Eye className="w-16 h-16 text-gray-400" />
                                                 </div>
                                             )}
-                                            
+
                                             <div className="absolute top-4 right-4">
                                                 <span className="px-3 py-1 bg-[#E03A6F] text-white text-xs font-bold rounded-full shadow-lg font-droid-arabic-kufi">
-                                                    {language === 'en' ? 'New' : 'جديد'}
+                                                    {t('activitiesPage.new')}
                                                 </span>
                                             </div>
                                         </div>
@@ -783,10 +782,10 @@ const renderUpdaterBadge = (activity) => {
                                             <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#E03A6F] transition-colors font-droid-arabic-kufi">
                                                 {language === 'en' ? activity.title_en : activity.title_ar}
                                             </h3>
-                                            
+
                                             <p className="text-gray-600 mb-4 flex-1 font-droid-arabic-kufi leading-relaxed">
                                                 {truncateHtml(
-                                                    language === 'en' ? activity.description_en : activity.description_ar, 
+                                                    language === 'en' ? activity.description_en : activity.description_ar,
                                                     300
                                                 )}
                                             </p>
@@ -801,11 +800,11 @@ const renderUpdaterBadge = (activity) => {
                                             </div>
                                             {renderUpdaterBadge(activity)}
 
-                                            <Link 
-                                                to={`/activities/${activity.id}`} 
+                                            <Link
+                                                to={`/activities/${activity.id}`}
                                                 className="group/btn inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-[#101E58] to-[#1a2d78] text-white rounded-full hover:from-[#E03A6F] hover:to-[#c8102e] transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-droid-arabic-kufi font-medium w-fit"
                                             >
-                                                {language === 'en' ? 'Read More' : 'إقرأ المزيد'}
+                                                {t('activities.readMore')}
                                                 <ArrowRight className={`w-5 h-5 ${language === 'en' ? 'ml-2 group-hover/btn:translate-x-1' : 'mr-2 rotate-180 group-hover/btn:-translate-x-1'} transition-transform`} />
                                             </Link>
                                         </div>
@@ -835,13 +834,10 @@ const renderUpdaterBadge = (activity) => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full p-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-                            {language === 'en' ? 'Confirm Delete' : 'تأكيد الحذف'}
+                            {t('activityMore.confirmDelete')}
                         </h3>
                         <p className="text-gray-600 mb-6 font-droid-arabic-kufi">
-                            {language === 'en' 
-                                ? 'Are you sure you want to delete this activity? This action cannot be undone.' 
-                                : 'هل أنت متأكد من حذف هذا النشاط؟ لا يمكن التراجع عن هذا الإجراء.'
-                            }
+                            {t('activityMore.confirmDeleteMessage')}
                         </p>
                         <div className="flex gap-3 justify-end">
                             <button
@@ -851,13 +847,13 @@ const renderUpdaterBadge = (activity) => {
                                 }}
                                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-droid-arabic-kufi"
                             >
-                                {language === 'en' ? 'Cancel' : 'إلغاء'}
+                                {t('common.cancel')}
                             </button>
                             <button
                                 onClick={confirmDelete}
                                 className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-droid-arabic-kufi"
                             >
-                                {language === 'en' ? 'Delete' : 'حذف'}
+                                {t('common.delete')}
                             </button>
                         </div>
                     </div>

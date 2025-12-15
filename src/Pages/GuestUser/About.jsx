@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../Context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import Footer from './HomePage/Components/Footer';
 import { API_BASE_URL } from '../../config/environment';
 import {
@@ -18,6 +19,7 @@ import {
 
 const About = () => {
     const { language } = useLanguage();
+    const { t } = useTranslation();
     const [types, setTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [videoPlaying, setVideoPlaying] = useState(false);
@@ -44,23 +46,17 @@ const About = () => {
     const goals = [
         {
             icon: Heart,
-            text: language === 'en' 
-                ? 'Promoting humane behavior in line with nature' 
-                : 'ترقية السلوك الإنساني بما يتماشى و الفطرة',
+            text: t('about.goal1'),
             color: 'from-pink-500 to-rose-500'
         },
         {
             icon: Users,
-            text: language === 'en' 
-                ? 'Maintaining public health for families and the community' 
-                : 'المحافظة على الصحة العامة للأسرة و المجتمع',
+            text: t('about.goal2'),
             color: 'from-blue-500 to-cyan-500'
         },
         {
             icon: Award,
-            text: language === 'en' 
-                ? 'Promoting science as a cultural and human value' 
-                : 'ترقية العلم كقيمة حضارية و إنسانية',
+            text: t('about.goal3'),
             color: 'from-purple-500 to-indigo-500'
         }
     ];
@@ -68,27 +64,19 @@ const About = () => {
     const objectives = [
         {
             icon: Heart,
-            text: language === 'en' 
-                ? 'Enhancing humanitarian and solidarity work and providing relief' 
-                : 'تعزيز العمل الإنساني و التضامني و تقديم الإغاثة'
+            text: t('about.objective1')
         },
         {
             icon: TrendingUp,
-            text: language === 'en' 
-                ? 'Contributing to social, health, educational, and cultural development' 
-                : 'المساهمة في تحقيق تنمية و رعاية إجتماعية، صحية، تعليمية و حضارية'
+            text: t('about.objective2')
         },
         {
             icon: Globe,
-            text: language === 'en' 
-                ? 'Working towards sustainable development' 
-                : 'العمل و المساهمة في تحقيق تنمية مستدامة'
+            text: t('about.objective3')
         },
         {
             icon: Sparkles,
-            text: language === 'en' 
-                ? 'Preserving social, Islamic, and national values' 
-                : 'المحافظة على القيم الإجتماعية و الإسلامية و الوطنية'
+            text: t('about.objective4')
         }
     ];
 
@@ -113,17 +101,15 @@ const About = () => {
                     <div className="text-center animate-fade-in">
                         <div className="inline-block bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full mb-6">
                             <span className="text-white font-semibold font-droid-arabic-kufi">
-                                {language === 'en' ? 'TAGEMI Foundation' : 'مؤسسة تجمي'}
+                                {t('about.foundation')}
                             </span>
                         </div>
                         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-white font-droid-arabic-kufi drop-shadow-2xl">
-                            {language === 'en' ? 'About Us' : 'من نحن'}
+                            {t('about.title')}
                         </h1>
                         <div className="w-20 h-1 bg-white mx-auto mb-8"></div>
                         <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 font-droid-arabic-kufi max-w-4xl mx-auto">
-                            {language === 'en'
-                                ? "Let's work together for eternal life"
-                                : 'لنعمل سويا من أجل حياة أبدية'}
+                            {t('about.subtitle')}
                         </p>
                     </div>
                 </div>
@@ -139,15 +125,13 @@ const About = () => {
                             </div>
                             <div>
                                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 font-droid-arabic-kufi text-gray-900">
-                                    {language === 'en' ? 'Our Mission' : 'مهمتنا'}
+                                    {t('about.mission')}
                                 </h2>
                                 <div className="w-16 h-1 bg-[#E03A6F]"></div>
                             </div>
                         </div>
                         <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-gray-700 font-droid-arabic-kufi">
-                            {language === 'en'
-                                ? 'TAGEMI Foundation is a humanitarian charity dedicated to contributing to human development in its social, economic, educational, and scientific aspects, aiming for a prosperous and leading Algeria. Established on 15/07/2018, it is an extension of the Tajmi Association, founded on May 29, 2006, which is a humanitarian and social association located in Saha Souk, Aïn Témouchent, Ghardaia.'
-                                : 'مؤسسة تـجـمـي ، خيرية إنسانية غايتنا المساهمة في تحقيق تنمية انسانية بجوانبها الإجتماعية، الإقتصادية، التربوية و العلمية لجزائر مزدهرة و رائدة تأسست بتاريخ 15/07/2018 و هي امتداد لنشاط جمعية تجمي التي تأسست بتاريخ : 29 ماي 2006 و هي جمعية ذات طابع إنساني اجتماعي، الكائن مقرها بساحة السوق، بلدية العطف ولاية غرداية.'}
+                            {t('about.missionText')}
                         </p>
                     </div>
                 </div>
@@ -161,7 +145,7 @@ const About = () => {
                         <div className="order-2 lg:order-1 space-y-8">
                             <div className="text-center lg:text-left">
                                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font-droid-arabic-kufi text-gray-900">
-                                    {language === 'en' ? 'Our Goals' : 'غايتنا'}
+                                    {t('about.goals')}
                                 </h2>
                                 <div className="w-20 h-1 bg-[#E03A6F] mx-auto lg:mx-0 mb-8"></div>
                             </div>
@@ -199,7 +183,7 @@ const About = () => {
                                     className="absolute inset-0 w-full h-full"
                                     onLoad={() => setVideoPlaying(true)}
                                 ></iframe>
-                                
+
                                 {/* Video Overlay */}
                                 {!videoPlaying && (
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center">
@@ -219,13 +203,11 @@ const About = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-12 md:mb-16">
                         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-droid-arabic-kufi text-gray-900 mb-4">
-                            {language === 'en' ? 'Our Objectives' : 'أهدافنا'}
+                            {t('about.objectives')}
                         </h2>
                         <div className="w-20 h-1 bg-[#E03A6F] mx-auto mb-6"></div>
                         <p className="text-lg md:text-xl text-gray-600 font-droid-arabic-kufi max-w-3xl mx-auto">
-                            {language === 'en' 
-                                ? 'Working together to achieve sustainable development and positive change' 
-                                : 'نعمل معاً لتحقيق التنمية المستدامة والتغيير الإيجابي'}
+                            {t('about.objectivesSubtitle')}
                         </p>
                     </div>
 
@@ -238,7 +220,7 @@ const About = () => {
                             >
                                 {/* Background decoration */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#E03A6F]/5 to-transparent rounded-bl-full transform translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-500"></div>
-                                
+
                                 <div className="relative flex items-start gap-4">
                                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#E03A6F] to-[#c8102e] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
                                         <objective.icon className="w-6 h-6 text-white" />
@@ -258,13 +240,11 @@ const About = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-12 md:mb-16">
                         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-droid-arabic-kufi text-gray-900 mb-4">
-                            {language === 'en' ? 'Our Activities' : 'مجالات الأنشطة'}
+                            {t('about.activities')}
                         </h2>
                         <div className="w-20 h-1 bg-[#E03A6F] mx-auto mb-6"></div>
                         <p className="text-lg md:text-xl text-gray-600 font-droid-arabic-kufi max-w-3xl mx-auto">
-                            {language === 'en' 
-                                ? 'Explore our diverse programs and initiatives' 
-                                : 'استكشف برامجنا ومبادراتنا المتنوعة'}
+                            {t('about.activitiesSubtitle')}
                         </p>
                     </div>
 
@@ -293,20 +273,20 @@ const About = () => {
                                                 e.target.src = '/tagemi_consept.png';
                                             }}
                                         />
-                                        
+
                                         {/* Gradient Overlay */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
-                                        
+
                                         {/* Content */}
                                         <div className="absolute inset-0 flex flex-col items-center justify-end p-6">
                                             <h3 className="text-xl md:text-2xl font-bold font-droid-arabic-kufi text-white text-center mb-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                                                 {language === 'en' ? type.name_en : type.name_ar}
                                             </h3>
-                                            
+
                                             {/* Arrow Button */}
                                             <div className="flex items-center justify-center gap-2 text-white opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                                                 <span className="font-semibold font-droid-arabic-kufi">
-                                                    {language === 'en' ? 'Explore' : 'استكشف'}
+                                                    {t('about.explore')}
                                                 </span>
                                                 <ArrowRight className={`w-5 h-5 ${language === 'ar' ? 'rotate-180' : ''}`} />
                                             </div>
@@ -314,7 +294,7 @@ const About = () => {
 
                                         {/* Corner Badge */}
                                         <div className="absolute top-4 right-4 bg-[#E03A6F] text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            {language === 'en' ? 'View' : 'عرض'}
+                                            {t('about.view')}
                                         </div>
                                     </div>
                                 </Link>
@@ -322,20 +302,20 @@ const About = () => {
                         </div>
                     )}
                 </div>
-            </section> 
+            </section>
 
             {/* Stats Section */}
             <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#101E58] to-[#1a2d78]">
                 <div className="max-w-7xl mx-auto">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         {[
-                            { number: '19+', label: language === 'en' ? 'Years of Service' : 'سنة من الخدمة' },
-                            { number: '100+', label: language === 'en' ? 'Projects' : 'مشروع' },
-                            { number: '50K+', label: language === 'en' ? 'Lives Impacted' : 'حياة تأثرت' },
-                            { number: '500+', label: language === 'en' ? 'Volunteers' : 'متطوع' }
+                            { number: '19+', label: t('about.yearsOfService') },
+                            { number: '100+', label: t('about.projects') },
+                            { number: '50K+', label: t('about.livesImpacted') },
+                            { number: '500+', label: t('about.volunteers') }
                         ].map((stat, index) => (
-                            <div 
-                                key={index} 
+                            <div
+                                key={index}
                                 className="text-center animate-fade-in"
                                 style={{ animationDelay: `${index * 150}ms` }}
                             >

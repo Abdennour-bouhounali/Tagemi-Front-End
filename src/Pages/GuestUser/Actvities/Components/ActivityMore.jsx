@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { API_BASE_URL } from '../../../../config/environment';
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "../../../../Context/LanguageContext";
+import { useTranslation } from 'react-i18next';
 import { AppContext } from "../../../../Context/AppContext";
 
 import ActivityModal from "./ActivityModal";
@@ -31,34 +32,35 @@ export default function ActivityMore() {
     const navigate = useNavigate();
     const { user, token } = useContext(AppContext);
     const { language } = useLanguage();
-    
+    const { t } = useTranslation();
+
     const [activity, setActivity] = useState(null);
     const [types, setTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
+
     // Gallery state
     const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
     const [showGallery, setShowGallery] = useState(false);
-    
+
     // Admin state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    
+
     const isSuperAdmin = user && (user.role_id === 1 || user.role_id === 7);
 
     // Helper function to get correct media URL
     const getMediaUrl = (url) => {
         if (!url) return '/tagemi_consept.png';
-        
+
         // Remove any leading slashes
         url = url.replace(/^\/+/, '');
-        
+
         // If URL already starts with 'storage/', just prepend apiUrl
         if (url.startsWith('storage/')) {
             return `${apiUrl}/${url}`;
         }
-        
+
         // Otherwise, add 'storage/' prefix
         return `${apiUrl}/storage/${url}`;
     };
@@ -78,11 +80,11 @@ export default function ActivityMore() {
             setLoading(true);
             setError(null);
             const res = await fetch(`${apiUrl}/api/activities/${Actvityid}`);
-            
+
             if (!res.ok) {
                 throw new Error('Activity not found');
             }
-            
+
             const data = await res.json();
             console.log('Activity data:', data);
             console.log('Media data:', data.media);
@@ -151,12 +153,12 @@ export default function ActivityMore() {
 
     const getStatusText = (status) => {
         const statusMap = {
-            upcoming: { en: 'Upcoming', ar: 'قادم' },
-            ongoing: { en: 'Ongoing', ar: 'جاري' },
-            completed: { en: 'Completed', ar: 'مكتمل' },
-            cancelled: { en: 'Cancelled', ar: 'ملغى' }
+            upcoming: t('activityModal.upcoming'),
+            ongoing: t('activityModal.ongoing'),
+            completed: t('activityModal.completed'),
+            cancelled: t('activityModal.cancelled')
         };
-        return language === 'en' ? statusMap[status]?.en : statusMap[status]?.ar;
+        return statusMap[status] || status;
     };
 
     const nextMedia = () => {
@@ -198,20 +200,17 @@ export default function ActivityMore() {
                         <X className="w-12 h-12 sm:w-16 sm:h-16 text-red-600" />
                     </div>
                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 font-droid-arabic-kufi">
-                        {language === 'en' ? 'Activity Not Found' : 'النشاط غير موجود'}
+                        {t('activities.activityNotFound')}
                     </h3>
                     <p className="text-sm sm:text-base text-gray-600 mb-6 font-droid-arabic-kufi px-4">
-                        {language === 'en' 
-                            ? 'The activity you are looking for does not exist or has been removed.' 
-                            : 'النشاط الذي تبحث عنه غير موجود أو تم حذفه.'
-                        }
+                        {t('activityMore.activityNotFoundDesc')}
                     </p>
                     <Link
                         to="/"
                         className="inline-flex items-center px-6 py-3 bg-[#E03A6F] text-white rounded-full hover:bg-[#c8102e] transition-colors font-droid-arabic-kufi"
                     >
                         <ArrowLeft className={`w-5 h-5 ${language === 'en' ? 'mr-2' : 'ml-2 rotate-180'}`} />
-                        {language === 'en' ? 'Back to Home' : 'العودة للرئيسية'}
+                        {t('common.backToHome')}
                     </Link>
                 </div>
             </div>
@@ -227,14 +226,14 @@ export default function ActivityMore() {
                         {/* Breadcrumb */}
                         <nav className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-droid-arabic-kufi text-gray-600 overflow-x-auto w-full sm:w-auto">
                             <Link to="/" className="hover:text-[#E03A6F] transition-colors whitespace-nowrap flex-shrink-0">
-                                {language === 'en' ? 'Home' : 'الرئيسية'}
+                                {t('nav.home')}
                             </Link>
                             <span className="flex-shrink-0">/</span>
-                            <Link 
-                                to={`/activities/type/${activity.type_id}`} 
+                            <Link
+                                to={`/activities/type/${activity.type_id}`}
                                 className="hover:text-[#E03A6F] transition-colors whitespace-nowrap flex-shrink-0 hidden xs:inline"
                             >
-                                {activity.type ? (language === 'en' ? activity.type.name_en : activity.type.name_ar) : (language === 'en' ? 'Activities' : 'الأنشطة')}
+                                {activity.type ? (language === 'en' ? activity.type.name_en : activity.type.name_ar) : t('nav.activities')}
                             </Link>
                             <span className="flex-shrink-0 hidden xs:inline">/</span>
                             <span className="text-gray-900 font-medium truncate">
@@ -248,20 +247,20 @@ export default function ActivityMore() {
                                 <div className="hidden md:flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200">
                                     <Shield className="w-4 h-4 text-[#E03A6F]" />
                                     <span className="text-sm font-droid-arabic-kufi text-gray-700">
-                                        {language === 'en' ? 'Admin' : 'مدير'}
+                                        {t('activityMore.admin')}
                                     </span>
                                 </div>
                                 <button
                                     onClick={handleEdit}
                                     className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
-                                    title={language === 'en' ? 'Edit Activity' : 'تعديل النشاط'}
+                                    title={t('activityModal.editActivity')}
                                 >
                                     <Edit className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => setShowDeleteConfirm(true)}
                                     className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex-shrink-0"
-                                    title={language === 'en' ? 'Delete Activity' : 'حذف النشاط'}
+                                    title={t('activityMore.deleteActivity')}
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -280,7 +279,7 @@ export default function ActivityMore() {
                             {activity.media && activity.media.length > 0 ? (
                                 <>
                                     {/* Main Media Display */}
-                                    <div 
+                                    <div
                                         className="relative h-64 sm:h-80 lg:h-96 rounded-xl sm:rounded-2xl overflow-hidden bg-gray-200 cursor-pointer group"
                                         onClick={() => setShowGallery(true)}
                                     >
@@ -302,7 +301,7 @@ export default function ActivityMore() {
                                                 playsInline
                                             />
                                         )}
-                                        
+
                                         {/* Navigation Arrows */}
                                         {activity.media.length > 1 && (
                                             <>
@@ -342,11 +341,10 @@ export default function ActivityMore() {
                                                 <div
                                                     key={index}
                                                     onClick={() => setSelectedMediaIndex(index)}
-                                                    className={`relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                                                        index === selectedMediaIndex 
-                                                            ? 'ring-2 sm:ring-4 ring-[#E03A6F] scale-105' 
-                                                            : 'ring-1 sm:ring-2 ring-gray-300 hover:ring-[#E03A6F] opacity-70 hover:opacity-100'
-                                                    }`}
+                                                    className={`relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden cursor-pointer transition-all ${index === selectedMediaIndex
+                                                        ? 'ring-2 sm:ring-4 ring-[#E03A6F] scale-105'
+                                                        : 'ring-1 sm:ring-2 ring-gray-300 hover:ring-[#E03A6F] opacity-70 hover:opacity-100'
+                                                        }`}
                                                 >
                                                     {media.type === 'image' ? (
                                                         <img
@@ -373,7 +371,7 @@ export default function ActivityMore() {
                                     <div className="text-center text-gray-400">
                                         <Calendar className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3" />
                                         <p className="font-droid-arabic-kufi text-sm sm:text-base">
-                                            {language === 'en' ? 'No media available' : 'لا توجد وسائط'}
+                                            {t('activityMore.noMediaAvailable')}
                                         </p>
                                     </div>
                                 </div>
@@ -390,7 +388,7 @@ export default function ActivityMore() {
                                 {activity.featured && (
                                     <span className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-yellow-100 text-yellow-800 font-droid-arabic-kufi flex items-center gap-1.5 sm:gap-2">
                                         <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                        {language === 'en' ? 'Featured' : 'مميز'}
+                                        {t('activityMore.featured')}
                                     </span>
                                 )}
                             </div>
@@ -408,12 +406,12 @@ export default function ActivityMore() {
                                         <span className="font-droid-arabic-kufi text-sm sm:text-base">{activity.location}</span>
                                     </div>
                                 )}
-                                
+
                                 {activity.event_date && (
                                     <div className="flex items-center gap-2.5 sm:gap-3 text-gray-700">
                                         <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#56e03a] flex-shrink-0" />
                                         <span className="font-droid-arabic-kufi text-sm sm:text-base">
-                                            <strong>{language === 'en' ? 'Start:' : 'البداية:'} </strong>
+                                            <strong>{t('activityMore.start')}: </strong>
                                             {new Date(activity.event_date).toLocaleDateString(
                                                 language === 'en' ? 'en-US' : 'ar-DZ',
                                                 { year: 'numeric', month: 'long', day: 'numeric' }
@@ -424,7 +422,7 @@ export default function ActivityMore() {
                                             <div className="flex items-center gap-2.5 sm:gap-3 text-gray-700">
                                                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#e91054] flex-shrink-0" />
                                                 <span className="font-droid-arabic-kufi text-sm sm:text-base">
-                                                    <strong>{language === 'en' ? 'End:' : 'النهاية:'} </strong>
+                                                    <strong>{t('activityMore.end')}: </strong>
                                                     {new Date(activity.event_end_date).toLocaleDateString(
                                                         language === 'en' ? 'en-US' : 'ar-DZ',
                                                         { year: 'numeric', month: 'long', day: 'numeric' }
@@ -435,13 +433,13 @@ export default function ActivityMore() {
                                     </div>
                                 )}
 
-                                
+
 
                                 {activity.created_at && (
                                     <div className="flex items-center gap-2.5 sm:gap-3 text-gray-600 text-xs sm:text-sm">
                                         <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                                         <span className="font-droid-arabic-kufi">
-                                            {language === 'en' ? 'Published: ' : 'نشر في: '}
+                                            {t('activityMore.published')}
                                             {new Date(activity.created_at).toLocaleDateString(
                                                 language === 'en' ? 'en-US' : 'ar-DZ'
                                             )}
@@ -464,13 +462,13 @@ export default function ActivityMore() {
                                                         {activity.participants_count}
                                                     </div>
                                                     <div className="text-xs sm:text-sm text-blue-700 font-droid-arabic-kufi">
-                                                        {language === 'en' ? 'Participants' : 'مشارك'}
+                                                        {t('activityMore.participants')}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {activity.beneficiaries_count > 0 && (
                                         <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-3 sm:p-4">
                                             <div className="flex items-center gap-2 sm:gap-3">
@@ -482,7 +480,7 @@ export default function ActivityMore() {
                                                         {activity.beneficiaries_count}
                                                     </div>
                                                     <div className="text-xs sm:text-sm text-pink-700 font-droid-arabic-kufi">
-                                                        {language === 'en' ? 'Beneficiaries' : 'مستفيد'}
+                                                        {t('activityMore.beneficiaries')}
                                                     </div>
                                                 </div>
                                             </div>
@@ -492,7 +490,7 @@ export default function ActivityMore() {
                             )}
 
                             {/* Share Button */}
-                            <button 
+                            <button
                                 onClick={() => {
                                     if (navigator.share) {
                                         navigator.share({
@@ -504,7 +502,7 @@ export default function ActivityMore() {
                                 className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-droid-arabic-kufi flex items-center justify-center gap-2 text-sm sm:text-base"
                             >
                                 <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                                {language === 'en' ? 'Share Activity' : 'مشاركة النشاط'}
+                                {t('activityMore.shareActivity')}
                             </button>
                         </div>
                     </div>
@@ -516,14 +514,14 @@ export default function ActivityMore() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-6 sm:p-8 md:p-12">
                         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 sm:mb-6 font-droid-arabic-kufi border-b-4 border-[#E03A6F] pb-2 sm:pb-3 inline-block">
-                            {language === 'en' ? 'About This Activity' : 'عن هذا النشاط'}
+                            {t('activityMore.aboutThisActivity')}
                         </h2>
-                        
-                        <div 
+
+                        <div
                             className="prose prose-sm sm:prose-base lg:prose-lg max-w-none font-droid-arabic-kufi text-gray-700 leading-relaxed"
                             style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}
-                            dangerouslySetInnerHTML={{ 
-                                __html: language === 'en' ? activity.description_en : activity.description_ar 
+                            dangerouslySetInnerHTML={{
+                                __html: language === 'en' ? activity.description_en : activity.description_ar
                             }}
                         />
                     </div>
@@ -538,7 +536,7 @@ export default function ActivityMore() {
                         className="inline-flex items-center px-5 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-[#101E58] to-[#1a2d78] text-white rounded-full hover:from-[#E03A6F] hover:to-[#c8102e] transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-droid-arabic-kufi font-medium text-sm sm:text-base"
                     >
                         <ArrowLeft className={`w-4 h-4 sm:w-5 sm:h-5 ${language === 'en' ? 'mr-2' : 'ml-2 rotate-180'}`} />
-                        {language === 'en' ? 'Back to Activities' : 'العودة للأنشطة'}
+                        {t('activityMore.backToActivities')}
                     </Link>
                 </div>
             </section>
@@ -615,26 +613,23 @@ export default function ActivityMore() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6">
                         <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 font-droid-arabic-kufi">
-                            {language === 'en' ? 'Confirm Delete' : 'تأكيد الحذف'}
+                            {t('activityMore.confirmDelete')}
                         </h3>
                         <p className="text-sm sm:text-base text-gray-600 mb-5 sm:mb-6 font-droid-arabic-kufi">
-                            {language === 'en' 
-                                ? 'Are you sure you want to delete this activity? This action cannot be undone.' 
-                                : 'هل أنت متأكد من حذف هذا النشاط؟ لا يمكن التراجع عن هذا الإجراء.'
-                            }
+                            {t('activityMore.confirmDeleteMessage')}
                         </p>
                         <div className="flex gap-3 justify-end">
                             <button
                                 onClick={() => setShowDeleteConfirm(false)}
                                 className="px-5 py-2 sm:px-6 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-droid-arabic-kufi text-sm sm:text-base"
                             >
-                                {language === 'en' ? 'Cancel' : 'إلغاء'}
+                                {t('common.cancel')}
                             </button>
                             <button
                                 onClick={handleDelete}
                                 className="px-5 py-2 sm:px-6 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-droid-arabic-kufi text-sm sm:text-base"
                             >
-                                {language === 'en' ? 'Delete' : 'حذف'}
+                                {t('common.delete')}
                             </button>
                         </div>
                     </div>

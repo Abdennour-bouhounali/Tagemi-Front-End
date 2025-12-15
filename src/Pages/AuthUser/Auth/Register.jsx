@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import { API_BASE_URL } from '../../../config/environment';
 import { Eye, EyeOff, User, Phone, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import logo from '/tagemi_logo.png';
 
@@ -11,6 +12,7 @@ const apiUrl = API_BASE_URL;
 export default function Register() {
   const { token, setToken } = useContext(AppContext);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [FormData, setFormData] = useState({
     name: '',
     phone: '',
@@ -57,7 +59,7 @@ export default function Register() {
         }, 800);
       }
     } catch (error) {
-      setErrors({ general: ['حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.'] });
+      setErrors({ general: [t('auth.connectionError')] });
       setIsLoading(false);
     }
   }
@@ -82,10 +84,10 @@ export default function Register() {
                   <img src={logo} alt="Tagemi Logo" className="w-full h-full object-contain" />
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold font-droid-arabic-kufi text-white mb-2">
-                  إنشاء حساب جديد
+                  {t('auth.registerTitle')}
                 </h1>
                 <p className="text-white/80 text-sm font-droid-arabic-kufi">
-                  انضم إلينا وابدأ رحلة العطاء
+                  {t('auth.joinUs')}
                 </p>
               </div>
             </div>
@@ -97,7 +99,7 @@ export default function Register() {
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 animate-in slide-in-from-top">
                   <CheckCircle2 className="text-green-600 flex-shrink-0" size={20} />
                   <p className="text-green-700 text-sm font-droid-arabic-kufi">
-                    تم إنشاء الحساب بنجاح! جاري التحويل...
+                    {t('auth.accountCreated')}
                   </p>
                 </div>
               )}
@@ -116,7 +118,7 @@ export default function Register() {
                 {/* Name Input */}
                 <div className="space-y-2">
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    الاسم الكامل
+                    {t('auth.fullName')}
                   </label>
                   <div className="relative">
                     <input
@@ -131,7 +133,7 @@ export default function Register() {
                         transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
                         ${errors.name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
                       `}
-                      placeholder="أدخل اسمك الكامل"
+                      placeholder={t('auth.enterName')}
                       required
                       dir="rtl"
                     />
@@ -148,7 +150,7 @@ export default function Register() {
                 {/* Phone Input */}
                 <div className="space-y-2">
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    رقم الهاتف
+                    {t('auth.phone')}
                   </label>
                   <div className="relative">
                     <input
@@ -180,7 +182,7 @@ export default function Register() {
                 {/* Email Input */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    البريد الإلكتروني
+                    {t('auth.email')}
                   </label>
                   <div className="relative">
                     <input
@@ -212,7 +214,7 @@ export default function Register() {
                 {/* Password Input */}
                 <div className="space-y-2">
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    كلمة المرور
+                    {t('auth.password')}
                   </label>
                   <div className="relative">
                     <input
@@ -252,7 +254,7 @@ export default function Register() {
                 {/* Confirm Password Input */}
                 <div className="space-y-2">
                   <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    تأكيد كلمة المرور
+                    {t('auth.confirmPassword')}
                   </label>
                   <div className="relative">
                     <input
@@ -302,27 +304,27 @@ export default function Register() {
                   {isLoading ? (
                     <>
                       <Loader2 className="animate-spin" size={20} />
-                      <span>جاري إنشاء الحساب...</span>
+                      <span>{t('auth.creatingAccount')}</span>
                     </>
                   ) : success ? (
                     <>
                       <CheckCircle2 size={20} />
-                      <span>تم بنجاح!</span>
+                      <span>{t('auth.successMessage')}</span>
                     </>
                   ) : (
-                    <span>إنشاء حساب</span>
+                    <span>{t('auth.createAccount')}</span>
                   )}
                 </button>
 
                 {/* Login Link */}
                 <div className="text-center pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                    لديك حساب بالفعل؟{' '}
+                    {t('auth.alreadyHaveAccount')}{' '}
                     <Link
                       to="/login"
                       className="text-[#131842] font-bold hover:text-[#2F3645] transition-colors hover:underline"
                     >
-                      تسجيل الدخول
+                      {t('auth.login')}
                     </Link>
                   </p>
                 </div>
@@ -332,7 +334,7 @@ export default function Register() {
 
           {/* Footer Text */}
           <p className="text-center mt-6 text-sm text-gray-600 font-droid-arabic-kufi">
-            © 2024 مؤسسة تاجمي. جميع الحقوق محفوظة.
+            {t('auth.copyright')}
           </p>
         </div>
       </div>

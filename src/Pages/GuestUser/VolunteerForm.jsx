@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../../config/environment';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLanguage } from "../../Context/LanguageContext";
+import { useTranslation } from 'react-i18next';
 import Footer from './HomePage/Components/Footer';
 import { Input, Select, Textarea, FormGroup } from '../Common/FormInputs';
 import {
@@ -21,10 +22,11 @@ import {
 } from 'lucide-react';
 import algeriaLocations from '../../data/algeria_locations.json';
 
-const apiUrl = API_BASE_URL; 
+const apiUrl = API_BASE_URL;
 
 const VolunteerForm = () => {
     const { language } = useLanguage();
+    const { t } = useTranslation();
     const [types, setTypes] = useState([]);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -58,17 +60,17 @@ const VolunteerForm = () => {
     // NEW: Handle state change
     const handleStateChange = useCallback((e) => {
         const stateName = e.target.value;
-        setFormData(prev => ({ 
-            ...prev, 
-            state: stateName, 
+        setFormData(prev => ({
+            ...prev,
+            state: stateName,
             city: '' // Reset city when state changes
         }));
-        
+
         // Find the selected wilaya and set its communes
         const selectedWilaya = algeriaLocations.algeria_locations.find(
             loc => loc.name_ar === stateName
         );
-        
+
         if (selectedWilaya) {
             setAvailableCities(selectedWilaya.communes);
         } else {
@@ -80,7 +82,7 @@ const VolunteerForm = () => {
         const res = await fetch(`${apiUrl}/api/types`);
         const data = await res.json();
         setTypes(data);
-    } 
+    }
 
     useEffect(() => {
         getTypes();
@@ -90,7 +92,7 @@ const VolunteerForm = () => {
         e.preventDefault();
         setLoading(true);
         setMessage('');
-        
+
         try {
             const response = await fetch(`${apiUrl}/api/volunteers`, {
                 method: 'POST',
@@ -102,7 +104,7 @@ const VolunteerForm = () => {
 
             if (response.ok) {
                 setMessageType('success');
-                setMessage(language === 'en' ? 'Form submitted successfully!' : 'تم إرسال النموذج بنجاح!');
+                setMessage(t('volunteer.successMessage'));
 
                 // Reset form
                 setFormData({
@@ -132,27 +134,27 @@ const VolunteerForm = () => {
                 }, 5000);
             } else {
                 setMessageType('error');
-                setMessage(language === 'en' ? 'Error submitting form' : 'خطأ في إرسال النموذج');
+                setMessage(t('volunteer.errorMessage'));
             }
         } catch (error) {
             console.error('Error:', error);
             setMessageType('error');
-            setMessage(language === 'en' ? 'Error submitting form' : 'خطأ في إرسال النموذج');
+            setMessage(t('volunteer.errorMessage'));
         } finally {
             setLoading(false);
         }
     };
 
     const genderOptions = [
-        { value: 'Male', label: language === 'en' ? 'Male' : 'ذكر' },
-        { value: 'Female', label: language === 'en' ? 'Female' : 'أنثى' }
+        { value: 'Male', label: t('volunteer.male') },
+        { value: 'Female', label: t('volunteer.female') }
     ];
 
     // Prepare state options
     const stateOptions = algeriaLocations.algeria_locations.map(loc => ({
         value: loc.name_ar,
-        label: language === 'en' 
-            ? `${loc.name_en} - ${loc.code}` 
+        label: language === 'en'
+            ? `${loc.name_en} - ${loc.code}`
             : `${loc.name_ar} - ${loc.code}`
     }));
 
@@ -161,18 +163,17 @@ const VolunteerForm = () => {
         value: city,
         label: city
     }));
-    
+
     return (
         <>
             <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-5xl mx-auto">
                     {/* Success/Error Message */}
                     {message && (
-                        <div className={`mb-8 animate-fade-in ${
-                            messageType === 'success' 
-                                ? 'bg-green-50 border-r-4 border-green-500' 
-                                : 'bg-red-50 border-r-4 border-red-500'
-                        } p-6 rounded-xl shadow-lg`}>
+                        <div className={`mb-8 animate-fade-in ${messageType === 'success'
+                            ? 'bg-green-50 border-r-4 border-green-500'
+                            : 'bg-red-50 border-r-4 border-red-500'
+                            } p-6 rounded-xl shadow-lg`}>
                             <div className="flex items-center gap-4">
                                 {messageType === 'success' ? (
                                     <div className="bg-green-100 p-3 rounded-full">
@@ -184,17 +185,15 @@ const VolunteerForm = () => {
                                     </div>
                                 )}
                                 <div>
-                                    <h3 className={`text-lg font-bold font-droid-arabic-kufi ${
-                                        messageType === 'success' ? 'text-green-800' : 'text-red-800'
-                                    }`}>
-                                        {messageType === 'success' 
-                                            ? (language === 'en' ? 'Success!' : 'نجح!') 
-                                            : (language === 'en' ? 'Error!' : 'خطأ!')
+                                    <h3 className={`text-lg font-bold font-droid-arabic-kufi ${messageType === 'success' ? 'text-green-800' : 'text-red-800'
+                                        }`}>
+                                        {messageType === 'success'
+                                            ? t('volunteer.success')
+                                            : t('volunteer.error')
                                         }
                                     </h3>
-                                    <p className={`mt-1 font-droid-arabic-kufi ${
-                                        messageType === 'success' ? 'text-green-700' : 'text-red-700'
-                                    }`}>
+                                    <p className={`mt-1 font-droid-arabic-kufi ${messageType === 'success' ? 'text-green-700' : 'text-red-700'
+                                        }`}>
                                         {message}
                                     </p>
                                 </div>
@@ -208,16 +207,13 @@ const VolunteerForm = () => {
                             <Users className="w-12 h-12 text-white" />
                         </div>
                         <h1 className="text-5xl font-bold mb-4 gradient-text font-droid-arabic-kufi">
-                            {language === 'en' ? 'Volunteer Form' : 'إستمارة المتطوعين'}
+                            {t('volunteer.title')}
                         </h1>
                         <p className="text-2xl text-[#E03A6F] font-semibold font-droid-arabic-kufi mb-2">
-                            {language === 'en' ? "Let's work together for a better future" : 'لنعمل سويا من أجل حياة أبدية'}
+                            {t('volunteer.subtitle')}
                         </p>
                         <p className="text-gray-600 max-w-2xl mx-auto font-droid-arabic-kufi">
-                            {language === 'en' 
-                                ? 'Join our community of volunteers and make a difference in the lives of others' 
-                                : 'انضم إلى مجتمع المتطوعين لدينا وأحدث فرقًا في حياة الآخرين'
-                            }
+                            {t('volunteer.description')}
                         </p>
                     </div>
 
@@ -231,14 +227,14 @@ const VolunteerForm = () => {
                                         <User className="w-6 h-6 text-[#101E58]" />
                                     </div>
                                     <h2 className="text-2xl font-bold text-[#101E58] font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Personal Information' : 'المعلومات الشخصية'}
+                                        {t('volunteer.personalInfo')}
                                     </h2>
                                 </div>
 
                                 <FormGroup columns={2}>
                                     <Input
                                         icon={User}
-                                        label={language === 'en' ? 'Full Name' : 'الاسم الكامل'}
+                                        label={t('volunteer.fullName')}
                                         name="full_name"
                                         type="text"
                                         value={formData.full_name}
@@ -248,7 +244,7 @@ const VolunteerForm = () => {
 
                                     <Input
                                         icon={Calendar}
-                                        label={language === 'en' ? 'Date of Birth' : 'تاريخ الميلاد'}
+                                        label={t('volunteer.dateOfBirth')}
                                         name="date_of_birth"
                                         type="date"
                                         value={formData.date_of_birth}
@@ -258,18 +254,18 @@ const VolunteerForm = () => {
 
                                     <Select
                                         icon={User}
-                                        label={language === 'en' ? 'Gender' : 'الجنس'}
+                                        label={t('volunteer.gender')}
                                         name="gender"
                                         value={formData.gender}
                                         onChange={handleChange}
-                                        placeholder={language === 'en' ? 'Select Gender' : 'اختر الجنس'}
+                                        placeholder={t('volunteer.selectGender')}
                                         options={genderOptions}
                                         required
                                     />
 
                                     <Input
                                         icon={Phone}
-                                        label={language === 'en' ? 'Phone Number' : 'رقم الهاتف'}
+                                        label={t('volunteer.phoneNumber')}
                                         name="phone_number"
                                         type="tel"
                                         value={formData.phone_number}
@@ -286,14 +282,14 @@ const VolunteerForm = () => {
                                         <MapPin className="w-6 h-6 text-[#E03A6F]" />
                                     </div>
                                     <h2 className="text-2xl font-bold text-[#E03A6F] font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Contact Information' : 'معلومات الاتصال'}
+                                        {t('volunteer.contactInfo')}
                                     </h2>
                                 </div>
 
                                 <FormGroup columns={1}>
                                     <Input
                                         icon={Mail}
-                                        label={language === 'en' ? 'Email' : 'الايمايل'}
+                                        label={t('volunteer.email')}
                                         name="email_address"
                                         type="email"
                                         value={formData.email_address}
@@ -305,25 +301,25 @@ const VolunteerForm = () => {
                                 <FormGroup columns={2} className="mt-4">
                                     <Select
                                         icon={MapPin}
-                                        label={language === 'en' ? 'State' : 'الولاية'}
+                                        label={t('volunteer.state')}
                                         name="state"
                                         value={formData.state}
                                         onChange={handleStateChange}
-                                        placeholder={language === 'en' ? 'Select State' : 'اختر الولاية'}
+                                        placeholder={t('volunteer.selectState')}
                                         options={stateOptions}
                                         required
                                     />
 
                                     <Select
                                         icon={Home}
-                                        label={language === 'en' ? 'City/Commune' : 'البلدية'}
+                                        label={t('volunteer.city')}
                                         name="city"
                                         value={formData.city}
                                         onChange={handleChange}
                                         placeholder={
-                                            formData.state 
-                                                ? (language === 'en' ? 'Select City' : 'اختر البلدية')
-                                                : (language === 'en' ? 'Select State First' : 'اختر الولاية أولاً')
+                                            formData.state
+                                                ? t('volunteer.selectCity')
+                                                : t('volunteer.selectStateFirst')
                                         }
                                         options={cityOptions}
                                         disabled={!formData.state || availableCities.length === 0}
@@ -339,14 +335,14 @@ const VolunteerForm = () => {
                                         <Briefcase className="w-6 h-6 text-[#101E58]" />
                                     </div>
                                     <h2 className="text-2xl font-bold text-[#101E58] font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Professional Information' : 'المعلومات المهنية'}
+                                        {t('volunteer.professionalInfo')}
                                     </h2>
                                 </div>
 
                                 <div className="space-y-4">
                                     <Textarea
                                         icon={Award}
-                                        label={language === 'en' ? 'Relevant Skills' : 'المهارات ذات الصلة'}
+                                        label={t('volunteer.relevantSkills')}
                                         name="relevant_skills"
                                         value={formData.relevant_skills}
                                         onChange={handleChange}
@@ -355,7 +351,7 @@ const VolunteerForm = () => {
 
                                     <Textarea
                                         icon={Users}
-                                        label={language === 'en' ? 'Previous Volunteering Experience' : 'الخبرة السابقة في التطوع'}
+                                        label={t('volunteer.previousExperience')}
                                         name="previous_volunteering_experience"
                                         value={formData.previous_volunteering_experience}
                                         onChange={handleChange}
@@ -364,7 +360,7 @@ const VolunteerForm = () => {
 
                                     <Textarea
                                         icon={Briefcase}
-                                        label={language === 'en' ? 'Professional Background' : 'الخلفية المهنية'}
+                                        label={t('volunteer.professionalBackground')}
                                         name="professional_background"
                                         value={formData.professional_background}
                                         onChange={handleChange}
@@ -380,14 +376,14 @@ const VolunteerForm = () => {
                                         <Heart className="w-6 h-6 text-[#E03A6F]" />
                                     </div>
                                     <h2 className="text-2xl font-bold text-[#E03A6F] font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Interests & Preferences' : 'الاهتمامات والتفضيلات'}
+                                        {t('volunteer.interestsPreferences')}
                                     </h2>
                                 </div>
 
                                 <div className="space-y-4">
                                     <Textarea
                                         icon={Target}
-                                        label={language === 'en' ? 'Areas of Interest' : 'مجالات الاهتمام'}
+                                        label={t('volunteer.areasOfInterest')}
                                         name="areas_of_interest"
                                         value={formData.areas_of_interest}
                                         onChange={handleChange}
@@ -396,7 +392,7 @@ const VolunteerForm = () => {
 
                                     <Textarea
                                         icon={Award}
-                                        label={language === 'en' ? 'Preferred Types of Activities' : 'أنواع الأنشطة المفضلة'}
+                                        label={t('volunteer.preferredActivities')}
                                         name="preferred_types_of_activities"
                                         value={formData.preferred_types_of_activities}
                                         onChange={handleChange}
@@ -405,7 +401,7 @@ const VolunteerForm = () => {
 
                                     <Textarea
                                         icon={Heart}
-                                        label={language === 'en' ? 'Reasons for Volunteering' : 'أسباب التطوع'}
+                                        label={t('volunteer.reasonsForVolunteering')}
                                         name="reasons_for_volunteering"
                                         value={formData.reasons_for_volunteering}
                                         onChange={handleChange}
@@ -423,17 +419,17 @@ const VolunteerForm = () => {
                                 >
                                     {/* Animated shine effect */}
                                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
-                                    
+
                                     <span className="relative flex items-center justify-center gap-3">
                                         {loading ? (
                                             <>
                                                 <Loader className="w-5 h-5 animate-spin" />
-                                                {language === 'en' ? 'Submitting...' : 'جاري الإرسال...'}
+                                                {t('volunteer.submitting')}
                                             </>
                                         ) : (
                                             <>
                                                 <CheckCircle className="w-5 h-5" />
-                                                {language === 'en' ? 'Submit' : 'إرسال'}
+                                                {t('volunteer.submit')}
                                             </>
                                         )}
                                     </span>
@@ -445,15 +441,12 @@ const VolunteerForm = () => {
                     {/* Additional Info Section */}
                     <div className="mt-12 text-center animate-fade-in">
                         <p className="text-gray-600 font-droid-arabic-kufi">
-                            {language === 'en' 
-                                ? 'Thank you for your interest in volunteering with us!' 
-                                : 'شكراً لك على اهتمامك بالتطوع معنا!'
-                            }
+                            {t('volunteer.thankYou')}
                         </p>
                     </div>
                 </div>
             </div>
-       
+
             <Footer types={types} />
         </>
     );

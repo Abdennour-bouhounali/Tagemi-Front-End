@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from './Context/LanguageContext';
 import { ChevronDown, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const LanguageSelector = () => {
   const { language, handleLanguageChange } = useLanguage();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -89,7 +91,7 @@ const LanguageSelector = () => {
           aria-expanded={isOpen}
         >
           <Globe className="w-4 h-4 text-gray-600 group-hover:text-blue-600 transition-colors" />
-          
+
           <div className="flex items-center gap-2">
             <img
               src={currentLanguage.flag}
@@ -103,25 +105,24 @@ const LanguageSelector = () => {
             </span>
           </div>
 
-          <ChevronDown 
-            className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${
-              isOpen ? 'rotate-180 text-blue-600' : ''
-            }`} 
+          <ChevronDown
+            className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : ''
+              }`}
           />
         </button>
 
         {/* Dropdown Menu */}
         {isOpen && (
           <>
-            <div 
-              className="fixed inset-0 z-10 md:hidden" 
+            <div
+              className="fixed inset-0 z-10 md:hidden"
               onClick={() => setIsOpen(false)}
             ></div>
 
             <div className="absolute right-0 z-20 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden animate-slideDown">
               <div className="px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  {language === 'en' ? 'Select Language' : 'اختر اللغة'}
+                  {t('common.selectLanguage')}
                 </p>
               </div>
 
@@ -130,11 +131,10 @@ const LanguageSelector = () => {
                   <button
                     key={lang.code}
                     onClick={() => handleSelect(lang.code)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 ${
-                      language === lang.code
+                    className={`w-full flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 ${language === lang.code
                         ? 'bg-blue-50 text-blue-700 font-semibold'
                         : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <img
                       src={lang.flag}
@@ -149,12 +149,12 @@ const LanguageSelector = () => {
                     </span>
 
                     {language === lang.code && (
-                      <svg 
-                        className="w-5 h-5 text-blue-600" 
-                        fill="currentColor" 
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="currentColor"
                         viewBox="0 0 24 24"
                       >
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                       </svg>
                     )}
                   </button>

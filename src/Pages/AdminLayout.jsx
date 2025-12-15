@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
 import { Menu, X, LogOut } from "lucide-react";
 import { API_BASE_URL } from "../config/environment";
+import { useTranslation } from 'react-i18next';
 
 import AuthNavBar from "./Headers/AuthNavBar";
 import GuestNavBar from "./Headers/GuestNavBar";
@@ -20,6 +21,7 @@ export default function AdminLayout() {
   const loggedIn = location.state?.loggedIn;
   const [loggedIns, setIoggedIns] = useState(loggedIn);
   const [acceptedRules, setAcceptedRules] = useState(false);
+  const { t } = useTranslation();
 
   const dropdownRef = useRef(null);
 
@@ -85,23 +87,23 @@ export default function AdminLayout() {
         // Rules Modal
         <div className="rules w-screen max-w-[600px] border-[#131842] border-2 p-2 h-auto bg-white shadow-lg rounded-lg sm:p-2 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50" dir="rtl">
           <h1 className="text-2xl font-semibold mb-4 sm:mb-6 mt-8 text-center text-[#131842] font-droid-arabic-kufi">
-            ضوابط نظام الفحوصات الطبية
+            {t('admin.rulesTitle')}
           </h1>
           <ul className="list-disc list-inside mb-4 px-4 sm:mb-6 space-y-2 text-gray-800">
             <li className="font-bold font-droid-arabic-kufi">
-              الالتزام بالمواعيد والحضور الفعّال طوال فترة الحملة.
+              {t('admin.rule1')}
             </li>
             <li className="font-bold font-droid-arabic-kufi">
-              اتباع التعليمات والبروتوكولات المعتمدة من الفريق المسؤول.
+              {t('admin.rule2')}
             </li>
             <li className="font-bold font-droid-arabic-kufi">
-              التعاون والعمل بروح الفريق لتحقيق أهداف الحملة.
+              {t('admin.rule3')}
             </li>
             <li className="font-bold font-droid-arabic-kufi">
-              التعامل بمرونة واحترام مع الجمهور والفريق.
+              {t('admin.rule4')}
             </li>
             <li className="font-bold font-droid-arabic-kufi">
-              الحفاظ على سرية المعلومات والامتناع عن تقديم استشارات غير مخولة.
+              {t('admin.rule5')}
             </li>
           </ul>
           <div className="flex items-center text-center mb-4 px-4">
@@ -112,7 +114,7 @@ export default function AdminLayout() {
               onChange={(e) => setAcceptedRules(e.target.checked)}
             />
             <label htmlFor="acceptRules" className="mx-3 text-gray-700 text-lg font-droid-arabic-kufi">
-              سألتزم بالتعليمات
+              {t('admin.acceptRulesLabel')}
             </label>
           </div>
           <div className="text-center">
@@ -121,7 +123,7 @@ export default function AdminLayout() {
               className="text-white bg-blue-600 mb-7 w-1/2 mx-auto focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-lg px-8 py-3 text-center disabled:bg-gray-300 font-droid-arabic-kufi"
               disabled={!acceptedRules}
             >
-              تأكيد
+              {t('common.confirm')}
             </button>
           </div>
         </div>

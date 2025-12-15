@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../../../config/environment';
 import { useParams, Link } from 'react-router-dom';
 import Footer from '../HomePage/Components/Footer';
 import { useLanguage } from '../../../Context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 const apiUrl = API_BASE_URL;
 
@@ -13,6 +14,7 @@ const ActivityDetails = () => {
     const [loading, setLoading] = useState(true);
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
     const { language } = useLanguage();
+    const { t } = useTranslation();
 
     async function getTypes() {
         try {
@@ -48,7 +50,7 @@ const ActivityDetails = () => {
 
     const nextMedia = () => {
         if (activity?.media && activity.media.length > 1) {
-            setCurrentMediaIndex((prev) => 
+            setCurrentMediaIndex((prev) =>
                 prev === activity.media.length - 1 ? 0 : prev + 1
             );
         }
@@ -56,7 +58,7 @@ const ActivityDetails = () => {
 
     const prevMedia = () => {
         if (activity?.media && activity.media.length > 1) {
-            setCurrentMediaIndex((prev) => 
+            setCurrentMediaIndex((prev) =>
                 prev === 0 ? activity.media.length - 1 : prev - 1
             );
         }
@@ -68,7 +70,7 @@ const ActivityDetails = () => {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#E03A6F] mx-auto"></div>
                     <p className="mt-4 text-gray-600 font-droid-arabic-kufi">
-                        {language === 'en' ? 'Loading...' : 'جاري التحميل...'}
+                        {t('common.loading')}
                     </p>
                 </div>
             </div>
@@ -80,13 +82,13 @@ const ActivityDetails = () => {
             <div className="min-h-screen flex items-center justify-center bg-white">
                 <div className="text-center">
                     <p className="text-xl text-gray-600 font-droid-arabic-kufi">
-                        {language === 'en' ? 'Activity not found' : 'النشاط غير موجود'}
+                        {t('activities.activityNotFound')}
                     </p>
-                    <Link 
-                        to="/" 
+                    <Link
+                        to="/"
                         className="mt-4 inline-block px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors font-droid-arabic-kufi"
                     >
-                        {language === 'en' ? 'Go Home' : 'العودة للرئيسية'}
+                        {t('common.backToHome')}
                     </Link>
                 </div>
             </div>
@@ -103,7 +105,7 @@ const ActivityDetails = () => {
                         <ol className="inline-flex items-center space-x-1 md:space-x-3 font-droid-arabic-kufi">
                             <li className="inline-flex items-center">
                                 <Link to="/" className="text-gray-600 hover:text-blue-600 transition-colors">
-                                    {language === 'en' ? 'Home' : 'الرئيسية'}
+                                    {t('nav.home')}
                                 </Link>
                             </li>
                             <li>
@@ -112,7 +114,7 @@ const ActivityDetails = () => {
                                         <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                                     </svg>
                                     <span className="text-gray-500">
-                                        {language === 'en' ? 'Activities' : 'الأنشطة'}
+                                        {t('nav.activities')}
                                     </span>
                                 </div>
                             </li>
@@ -199,11 +201,10 @@ const ActivityDetails = () => {
                                                 <button
                                                     key={index}
                                                     onClick={() => setCurrentMediaIndex(index)}
-                                                    className={`relative aspect-video rounded-lg overflow-hidden transition-all ${
-                                                        currentMediaIndex === index
+                                                    className={`relative aspect-video rounded-lg overflow-hidden transition-all ${currentMediaIndex === index
                                                             ? 'ring-4 ring-blue-600 scale-105'
                                                             : 'hover:scale-105 opacity-70 hover:opacity-100'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {mediaItem.type === 'image' ? (
                                                         <img
@@ -230,9 +231,8 @@ const ActivityDetails = () => {
                         <div className="order-2">
                             <div className="prose prose-lg max-w-none">
                                 <div
-                                    className={`text-gray-700 leading-relaxed text-base sm:text-lg font-droid-arabic-kufi ${
-                                        language === 'en' ? 'text-left' : 'text-right'
-                                    }`}
+                                    className={`text-gray-700 leading-relaxed text-base sm:text-lg font-droid-arabic-kufi ${language === 'en' ? 'text-left' : 'text-right'
+                                        }`}
                                     dangerouslySetInnerHTML={{
                                         __html: language === 'en' ? activity.description_en : activity.description_ar,
                                     }}

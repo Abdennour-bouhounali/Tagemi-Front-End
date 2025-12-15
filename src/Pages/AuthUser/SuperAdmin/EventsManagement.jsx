@@ -6,6 +6,7 @@ import AppointmentDistribution from "./Components/AppointmentDistribution";
 import { Plus, X, FileText } from "lucide-react";
 import { API_BASE_URL } from '../../../config/environment';
 import { Link } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 
 const apiUrl = API_BASE_URL;
 
@@ -14,6 +15,7 @@ export default function EventsManagement() {
   const [selectedEventForDistribution, setSelectedEventForDistribution] = useState(null);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const { token } = useContext(AppContext);
+  const { t } = useTranslation();
 
   async function getEvents() {
     const res = await fetch(`${apiUrl}/api/events`, {
@@ -59,10 +61,10 @@ export default function EventsManagement() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-            إدارة الأحداث
+            {t('admin.eventsManagement')}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            عرض وإدارة جميع الفعاليات والمناسبات المسجلة
+            {t('admin.viewManageEvents')}
           </p>
         </div>
 
@@ -72,7 +74,7 @@ export default function EventsManagement() {
             className="flex-1 md:flex-none justify-center items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-lg text-sm font-medium transition-all shadow-sm"
           >
             <FileText className="w-4 h-4" />
-            <span>تقييم الأحداث</span>
+            <span>{t('admin.eventEvaluation')}</span>
           </Link>
 
           <button
@@ -80,7 +82,7 @@ export default function EventsManagement() {
             className="flex-1 md:flex-none justify-center items-center gap-2 px-5 py-2.5 bg-gray-900 text-white hover:bg-gray-800 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            <span>إضافة حدث جديد</span>
+            <span>{t('admin.addNewEvent')}</span>
           </button>
         </div>
       </div>
@@ -101,7 +103,7 @@ export default function EventsManagement() {
           <div className="relative w-full h-full sm:h-auto sm:max-w-6xl sm:max-h-[90vh] bg-white sm:rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
               <h2 className="text-lg font-bold text-gray-800">
-                توزيع المواعيد
+                {t('admin.appointmentDistribution')}
               </h2>
               <button
                 onClick={handleCloseDistribution}
@@ -134,7 +136,7 @@ export default function EventsManagement() {
                   <Plus className="w-5 h-5 text-gray-700" />
                 </div>
                 <h2 className="text-lg font-bold text-gray-800">
-                  إضافة حدث جديد
+                  {t('admin.addNewEvent')}
                 </h2>
               </div>
               <button

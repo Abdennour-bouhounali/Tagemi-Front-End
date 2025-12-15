@@ -5,11 +5,12 @@ import { AppContext } from "../../Context/AppContext";
 import 'flag-icons/css/flag-icons.min.css';
 import LanguageSelector from "../../LanguageSelector";
 import { useLanguage } from "../../Context/LanguageContext";
-import { 
-    Menu, 
-    X, 
-    Calendar, 
-    LogOut, 
+import { useTranslation } from 'react-i18next';
+import {
+    Menu,
+    X,
+    Calendar,
+    LogOut,
     ChevronDown,
     User as UserIcon,
     Home as HomeIcon,
@@ -31,6 +32,7 @@ const GuestNavBar = ({ user, types }) => {
 
     const { token, setToken, setUser } = useContext(AppContext);
     const { language } = useLanguage();
+    const { t } = useTranslation();
 
     // Check if user is super admin
     const isSuperAdmin = user?.role_id === 1;
@@ -46,7 +48,7 @@ const GuestNavBar = ({ user, types }) => {
     const toggleActivitiesDropdown = () => {
         setIsActivitiesDropdownOpen(!isActivitiesDropdownOpen);
     };
-        const toggleActivitiesDropdown2 = () => {
+    const toggleActivitiesDropdown2 = () => {
         setIsActivitiesDropdownOpen2(!isActivitiesDropdownOpen2);
     };
 
@@ -64,7 +66,7 @@ const GuestNavBar = ({ user, types }) => {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
-    
+
     async function handleLogout(e) {
         e.preventDefault();
         try {
@@ -125,21 +127,20 @@ const GuestNavBar = ({ user, types }) => {
     }, [isNavOpen]);
 
     return (
-        <header className={`sticky top-0 z-50 bg-white transition-all duration-300 ${
-            scrolled ? 'shadow-lg' : 'shadow-md'
-        }`}>
+        <header className={`sticky top-0 z-50 bg-white transition-all duration-300 ${scrolled ? 'shadow-lg' : 'shadow-md'
+            }`}>
             <nav className='max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8'>
                 <div className='flex items-center justify-between h-14 sm:h-16 md:h-18 lg:h-20 gap-4'>
                     {/* Logo - Always on one side */}
                     <div className="flex-shrink-0">
-                        <Link 
-                            to={user ? "/home" : "/"} 
+                        <Link
+                            to={user ? "/home" : "/"}
                             className="block transform transition-transform hover:scale-105 duration-200"
                         >
-                            <img 
-                                src="/tagemi_logo.png" 
-                                className="h-8 sm:h-10 md:h-11 lg:h-12 w-auto" 
-                                alt="TAGEMI Logo" 
+                            <img
+                                src="/tagemi_logo.png"
+                                className="h-8 sm:h-10 md:h-11 lg:h-12 w-auto"
+                                alt="TAGEMI Logo"
                             />
                         </Link>
                     </div>
@@ -149,11 +150,11 @@ const GuestNavBar = ({ user, types }) => {
                         {/* Main Navigation Links */}
                         <NavLink to={user ? "/home" : "/"} language={language}>
                             <HomeIcon className="w-4 h-4" />
-                            <span>{language === 'en' ? 'Home' : 'الرئيسية'}</span>
+                            <span>{t('nav.home')}</span>
                         </NavLink>
                         <NavLink to="/about" language={language}>
                             <Info className="w-4 h-4" />
-                            <span>{language === 'en' ? 'About' : 'من نحن'}</span>
+                            <span>{t('nav.about')}</span>
                         </NavLink>
 
                         {/* Activity Types Dropdown */}
@@ -164,25 +165,25 @@ const GuestNavBar = ({ user, types }) => {
                                     className="group flex items-center gap-2 px-3 py-2 text-sm xl:text-base text-gray-700 hover:text-[#E03A6F] font-droid-arabic-kufi transition-all duration-200 rounded-lg hover:bg-gray-50 whitespace-nowrap"
                                 >
                                     <Calendar className="w-4 h-4" />
-                                    <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
+                                    <span>{t('nav.activities')}</span>
                                     <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isActivitiesDropdownOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
                                 {isActivitiesDropdownOpen && (
                                     <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                                         {/* ... inside the mobile menu loop ... */}
-                                            {types.map((type) => (
-                                                <MobileNavLink
-                                                    key={type.id}
-                                                    // 👇 ADD THE SLASH AT THE BEGINNING HERE
-                                                    to={`/activities/type/${type.id}`} 
-                                                    onClick={closeNav}
-                                                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
-                                                >
-                                                    <Calendar className="w-4 h-4" />
-                                                    <span>{language === 'en' ? type.name_en : type.name_ar}</span>
-                                                </MobileNavLink>
-                                            ))}
+                                        {types.map((type) => (
+                                            <MobileNavLink
+                                                key={type.id}
+                                                // 👇 ADD THE SLASH AT THE BEGINNING HERE
+                                                to={`/activities/type/${type.id}`}
+                                                onClick={closeNav}
+                                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
+                                            >
+                                                <Calendar className="w-4 h-4" />
+                                                <span>{language === 'en' ? type.name_en : type.name_ar}</span>
+                                            </MobileNavLink>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -190,18 +191,18 @@ const GuestNavBar = ({ user, types }) => {
 
                         <NavLink to="/contact" language={language}>
                             <Phone className="w-4 h-4" />
-                            <span>{language === 'en' ? 'Contact' : 'اتصل'}</span>
+                            <span>{t('nav.contact')}</span>
                         </NavLink>
                         <NavLink to="/volunteer" language={language}>
                             <Heart className="w-4 h-4" />
-                            <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
+                            <span>{t('nav.volunteer')}</span>
                         </NavLink>
 
                         {/* Manage Events Link - Only for Super Admin */}
                         {isSuperAdmin && (
                             <NavLink to="admin/manage-events" language={language}>
                                 <Calendar className="w-4 h-4" />
-                                <span>{language === 'en' ? 'Manage' : 'إدارة'}</span>
+                                <span>{t('nav.manage')}</span>
                             </NavLink>
                         )}
                     </div>
@@ -241,23 +242,22 @@ const GuestNavBar = ({ user, types }) => {
 
                 {/* Mobile Navigation Overlay */}
                 {isNavOpen && (
-                    <div 
+                    <div
                         className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
                         onClick={closeNav}
                     ></div>
                 )}
 
                 {/* Mobile Navigation Drawer */}
-                <div className={`lg:hidden fixed top-0 ${language === 'ar' ? 'left-0' : 'right-0'} bottom-0 w-[85%] max-w-sm bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
-                    isNavOpen ? 'translate-x-0' : (language === 'ar' ? '-translate-x-full' : 'translate-x-full')
-                }`}>
+                <div className={`lg:hidden fixed top-0 ${language === 'ar' ? 'left-0' : 'right-0'} bottom-0 w-[85%] max-w-sm bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isNavOpen ? 'translate-x-0' : (language === 'ar' ? '-translate-x-full' : 'translate-x-full')
+                    }`}>
                     <div className="flex flex-col h-full">
                         {/* Mobile Header */}
                         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                            <img 
-                                src="/tagemi_logo.png" 
-                                className="h-8 w-auto" 
-                                alt="TAGEMI Logo" 
+                            <img
+                                src="/tagemi_logo.png"
+                                className="h-8 w-auto"
+                                alt="TAGEMI Logo"
                             />
                             <button
                                 onClick={closeNav}
@@ -273,11 +273,11 @@ const GuestNavBar = ({ user, types }) => {
                             <div className="space-y-2">
                                 <MobileNavLink to={user ? "/home" : "/"} language={language} onClick={closeNav}>
                                     <HomeIcon className="w-5 h-5" />
-                                    <span>{language === 'en' ? 'Home' : 'الرئيسية'}</span>
+                                    <span>{t('nav.home')}</span>
                                 </MobileNavLink>
                                 <MobileNavLink to="/about" language={language} onClick={closeNav}>
                                     <Info className="w-5 h-5" />
-                                    <span>{language === 'en' ? 'About' : 'من نحن'}</span>
+                                    <span>{t('nav.about')}</span>
                                 </MobileNavLink>
                                 {user && (user.role_id === 1 || user.role_id === 7) && types && types.length > 0 && (
                                     <div>
@@ -287,47 +287,47 @@ const GuestNavBar = ({ user, types }) => {
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Calendar className="w-5 h-5" />
-                                                <span>{language === 'en' ? 'Activities' : 'الأنشطة'}</span>
+                                                <span>{t('nav.activities')}</span>
                                             </div>
                                             <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isActivitiesDropdownOpen2 ? 'rotate-180' : ''}`} />
                                         </button>
-                                        
+
                                         {isActivitiesDropdownOpen2 && (
                                             <div className="mt-2 ml-4 space-y-1">
-                                               {/* ... inside the mobile menu loop ... */}
-    {types.map((type) => (
-        <MobileNavLink
-            key={type.id}
-            // 👇 ADD THE SLASH AT THE BEGINNING HERE
-            to={`/activities/type/${type.id}`} 
-            onClick={closeNav}
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
-        >
-            <Calendar className="w-4 h-4" />
-            <span>{language === 'en' ? type.name_en : type.name_ar}</span>
-        </MobileNavLink>
-    ))}
+                                                {/* ... inside the mobile menu loop ... */}
+                                                {types.map((type) => (
+                                                    <MobileNavLink
+                                                        key={type.id}
+                                                        // 👇 ADD THE SLASH AT THE BEGINNING HERE
+                                                        to={`/activities/type/${type.id}`}
+                                                        onClick={closeNav}
+                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:text-[#E03A6F] hover:bg-gray-50 rounded-lg font-droid-arabic-kufi transition-all duration-200"
+                                                    >
+                                                        <Calendar className="w-4 h-4" />
+                                                        <span>{language === 'en' ? type.name_en : type.name_ar}</span>
+                                                    </MobileNavLink>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
                                 )}
 
                                 {/* Mobile Activity Types Dropdown */}
-                                
+
 
                                 <MobileNavLink to="/contact" language={language} onClick={closeNav}>
                                     <Phone className="w-5 h-5" />
-                                    <span>{language === 'en' ? 'Contact' : 'اتصل'}</span>
+                                    <span>{t('nav.contact')}</span>
                                 </MobileNavLink>
                                 <MobileNavLink to="/volunteer" language={language} onClick={closeNav}>
                                     <Heart className="w-5 h-5" />
-                                    <span>{language === 'en' ? 'Volunteer' : 'تطوع'}</span>
+                                    <span>{t('nav.volunteer')}</span>
                                 </MobileNavLink>
                                 {/* Manage Events Link - Only for Super Admin */}
                                 {isSuperAdmin && (
                                     <MobileNavLink to="/admin/manage-events" language={language} onClick={closeNav}>
                                         <Calendar className="w-5 h-5" />
-                                        <span>{language === 'en' ? 'Manage Events' : 'إدارة الفعاليات'}</span>
+                                        <span>{t('nav.manageEvents')}</span>
                                     </MobileNavLink>
                                 )}
                             </div>
@@ -335,35 +335,35 @@ const GuestNavBar = ({ user, types }) => {
                             {/* Language Selector in Mobile */}
                             <div className="mt-6 pt-6 border-t border-gray-200">
                                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 px-3 font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Language' : 'اللغة'}
+                                    {t('nav.language')}
                                 </p>
                                 <div className="px-3">
                                     <LanguageSelector />
                                 </div>
                             </div>
 
-                                { user && (user.role_id === 3 || user.role_id === 5) && 
-                                        <MobileNavLink
-                                            to={`/admin/check-presence/${user.event_id}`}
-                                            className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r  from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
-                                        >
-                                            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
-                                            <span className="relative flex items-center gap-1.5 xl:gap-2">
-                                                <Calendar className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-                                                <span className="hidden xl:inline">{language === 'en' ? 'Appointments' : 'المواعيد'}</span>
-                                                <span className="xl:hidden">{language === 'en' ? 'Appt' : 'مواعيد'}</span>
-                                            </span>
-                                        </MobileNavLink>
-                                    }
+                            {user && (user.role_id === 3 || user.role_id === 5) &&
+                                <MobileNavLink
+                                    to={`/admin/check-presence/${user.event_id}`}
+                                    className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r  from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
+                                >
+                                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                                    <span className="relative flex items-center gap-1.5 xl:gap-2">
+                                        <Calendar className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+                                        <span className="hidden xl:inline">{t('nav.appointments')}</span>
+                                        <span className="xl:hidden">{t('nav.appointmentsShort')}</span>
+                                    </span>
+                                </MobileNavLink>
+                            }
 
                             {/* Mobile User Actions */}
                             <div className="mt-6 pt-6 border-t border-gray-200">
                                 {user ? (
-                                    <MobileUserMenu 
-                                        user={user} 
-                                        language={language} 
-                                        handleLogout={handleLogout} 
-                                        onClick={closeNav} 
+                                    <MobileUserMenu
+                                        user={user}
+                                        language={language}
+                                        handleLogout={handleLogout}
+                                        onClick={closeNav}
                                     />
                                 ) : (
                                     <MobileAuthLinks language={language} onClick={closeNav} />
@@ -414,6 +414,7 @@ const MobileNavLink = ({ to, children, onClick }) => (
 // Desktop User Menu Component
 const UserMenu = ({ user, language, handleLogout }) => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const specialties = user?.specialties || [];
 
     const handleSpecialtyChange = (e) => {
@@ -426,7 +427,7 @@ const UserMenu = ({ user, language, handleLogout }) => {
     return (
         <div className="flex items-center gap-2">
             {/* All Appointments Button - Role 3 */}
-            { (user.role_id === 3 || user.role_id === 5) && (
+            {(user.role_id === 3 || user.role_id === 5) && (
                 <Link
                     to={`/admin/check-presence/${user.event_id}`}
                     className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
@@ -434,8 +435,8 @@ const UserMenu = ({ user, language, handleLogout }) => {
                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                     <span className="relative flex items-center gap-1.5 xl:gap-2">
                         <Calendar className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-                        <span className="hidden xl:inline">{language === 'en' ? 'Appointments' : 'المواعيد'}</span>
-                        <span className="xl:hidden">{language === 'en' ? 'Appt' : 'مواعيد'}</span>
+                        <span className="hidden xl:inline">{t('nav.appointments')}</span>
+                        <span className="xl:hidden">{t('nav.appointmentsShort')}</span>
                     </span>
                 </Link>
             )}
@@ -449,13 +450,13 @@ const UserMenu = ({ user, language, handleLogout }) => {
                         defaultValue=""
                     >
                         <option value="" disabled className="bg-white text-gray-900">
-                            {language === 'en' ? '📋 List' : '📋 قائمة'}
+                            {t('nav.list')}
                         </option>
                         {specialties
                             .filter((specialty) => specialty.id !== 6)
                             .map((specialty) => (
-                                <option 
-                                    key={specialty.id} 
+                                <option
+                                    key={specialty.id}
                                     value={specialty.id}
                                     className="bg-white text-gray-900 py-2"
                                 >
@@ -477,7 +478,7 @@ const UserMenu = ({ user, language, handleLogout }) => {
                 <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                 <span className="relative flex items-center gap-1.5 xl:gap-2">
                     <LogOut className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-                    <span className="hidden xl:inline">{language === 'en' ? 'Logout' : 'خروج'}</span>
+                    <span className="hidden xl:inline">{t('nav.logout')}</span>
                 </span>
             </button>
         </div>
@@ -487,6 +488,7 @@ const UserMenu = ({ user, language, handleLogout }) => {
 // Mobile User Menu Component
 const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const specialties = user?.specialties || [];
 
     const handleSpecialtyChange = (e) => {
@@ -508,7 +510,7 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
                 >
                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-active:translate-x-full transition-transform duration-500"></span>
                     <Calendar className="w-5 h-5 relative" />
-                    <span className="relative">{language === 'en' ? 'All Appointments' : 'جميع المواعيد'}</span>
+                    <span className="relative">{t('nav.allAppointments')}</span>
                 </Link>
             )}
 
@@ -521,13 +523,13 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
                         defaultValue=""
                     >
                         <option value="" disabled className="bg-white text-gray-900">
-                            {language === 'en' ? '📋 Waiting List' : '📋 قائمة الانتظار'}
+                            {t('admin.waitingList')}
                         </option>
                         {specialties
                             .filter((specialty) => specialty.id !== 6)
                             .map((specialty) => (
-                                <option 
-                                    key={specialty.id} 
+                                <option
+                                    key={specialty.id}
                                     value={specialty.id}
                                     className="bg-white text-gray-900 py-2"
                                 >
@@ -551,36 +553,42 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
             >
                 <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-active:translate-x-full transition-transform duration-500"></span>
                 <LogOut className="w-5 h-5 relative" />
-                <span className="relative">{language === 'en' ? 'Log Out' : 'خروج'}</span>
+                <span className="relative">{t('nav.logout')}</span>
             </button>
         </div>
     );
 };
 
 // Desktop Auth Links Component
-const AuthLinks = ({ language }) => (
-    <div className="flex items-center gap-2">
-        <Link
-            to="/login"
-            className="px-4 xl:px-5 py-2 text-sm xl:text-base font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] hover:shadow-lg rounded-full transition-all duration-300 font-droid-arabic-kufi hover:scale-105 transform"
-        >
-            {language === 'en' ? 'Login' : 'دخول'}
-        </Link>
-    </div>
-);
+const AuthLinks = ({ language }) => {
+    const { t } = useTranslation();
+    return (
+        <div className="flex items-center gap-2">
+            <Link
+                to="/login"
+                className="px-4 xl:px-5 py-2 text-sm xl:text-base font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] hover:shadow-lg rounded-full transition-all duration-300 font-droid-arabic-kufi hover:scale-105 transform"
+            >
+                {t('nav.login')}
+            </Link>
+        </div>
+    );
+};
 
 // Mobile Auth Links Component
-const MobileAuthLinks = ({ language, onClick }) => (
-    <div className="space-y-3 px-3">
-        <Link
-            to="/login"
-            className="flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] rounded-xl font-droid-arabic-kufi transition-all duration-200 hover:shadow-lg active:scale-95 transform"
-            onClick={onClick}
-        >
-            <UserIcon className="w-5 h-5" />
-            <span>{language === 'en' ? 'Log In' : 'دخول'}</span>
-        </Link>
-    </div>
-);
+const MobileAuthLinks = ({ language, onClick }) => {
+    const { t } = useTranslation();
+    return (
+        <div className="space-y-3 px-3">
+            <Link
+                to="/login"
+                className="flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-[#E03A6F] to-[#c8102e] rounded-xl font-droid-arabic-kufi transition-all duration-200 hover:shadow-lg active:scale-95 transform"
+                onClick={onClick}
+            >
+                <UserIcon className="w-5 h-5" />
+                <span>{t('nav.login')}</span>
+            </Link>
+        </div>
+    );
+};
 
 export default GuestNavBar;

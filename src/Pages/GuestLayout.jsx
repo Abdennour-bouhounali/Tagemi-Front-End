@@ -71,7 +71,7 @@ export default function GuestLayout() {
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#E03A6F] mx-auto"></div>
                             <p className="mt-4 text-gray-600 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Loading...' : 'جاري التحميل...'}
+                                {t('common.loading')}
                             </p>
                         </div>
                     </div>

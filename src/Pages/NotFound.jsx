@@ -1,8 +1,10 @@
 // src/components/NotFound.js
 import React from "react";
 import { Home, AlertCircle, ArrowRight } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const NotFound = () => {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-[#131842] via-[#1a2254] to-[#0f1230] text-white px-4">
       {/* Animated Background Elements */}
@@ -28,21 +30,21 @@ const NotFound = () => {
         {/* Error Message */}
         <div className="space-y-3">
           <h2 className="text-3xl md:text-4xl font-bold">
-            عذراً، الصفحة غير موجودة
+            {t('common.pageNotFound')}
           </h2>
           <p className="text-lg md:text-xl text-gray-300 max-w-md mx-auto font-droid-arabic-kufi">
-            الصفحة التي تبحث عنها قد تكون محذوفة أو تم نقلها إلى موقع آخر
+            {t('common.pageNotFoundDesc')}
           </p>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-          
-           <a href="/"
+
+          <a href="/"
             className="group flex items-center gap-3 px-8 py-4 bg-white text-[#131842] rounded-xl shadow-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300"
           >
             <Home className="w-5 h-5" />
-            <span className="font-droid-arabic-kufi">العودة للرئيسية</span>
+            <span className="font-droid-arabic-kufi">{t('common.backToHome')}</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </a>
 
@@ -50,13 +52,13 @@ const NotFound = () => {
             onClick={() => window.history.back()}
             className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold hover:bg-white/20 transition-all duration-300 border border-white/20"
           >
-            <span className="font-droid-arabic-kufi">رجوع</span>
+            <span className="font-droid-arabic-kufi">{t('common.goBack')}</span>
           </button>
         </div>
 
         {/* Additional Info */}
         <div className="pt-12 text-gray-400 text-sm font-droid-arabic-kufi">
-          <p>إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع الدعم</p>
+          <p>{t('common.contactSupport')}</p>
         </div>
       </div>
 

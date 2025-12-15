@@ -1,7 +1,10 @@
 import React from "react";
 import Introduction from "./GuestUser/HomePage/Components/Introduction";
 import About from "./GuestUser/About";
+import { useTranslation } from 'react-i18next';
+
 export default function Tagemi() {
+  const { t } = useTranslation();
   return (
     <div className="bg-white text-[#131842] font-droid-arabic-kufi">
       {/* About Section */}
@@ -10,17 +13,17 @@ export default function Tagemi() {
       <section className="p-8 bg-gray-100">
         {/* <h2 className="text-2xl font-bold mb-4 text-center">مجالات الأنشطة</h2> */}
 
-            <About />
+        <About />
       </section>
 
       {/* Contacts Section */}
       <section className="p-8 bg-gray-200">
-        <h2 className="text-2xl font-bold text-center mb-4">الاتصال</h2>
+        <h2 className="text-2xl font-bold text-center mb-4">{t('contact.contact')}</h2>
         <p className="text-center">
-          <span>الهاتف: </span>029254300
+          <span>{t('contact.phone')}: </span>029254300
         </p>
         <p className="text-center">
-          <span>البريد الإلكتروني: </span>tagemifondation@gmail.com
+          <span>{t('contact.email')}: </span>tagemifondation@gmail.com
         </p>
       </section>
     </div>

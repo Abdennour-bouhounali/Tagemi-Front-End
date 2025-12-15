@@ -4,15 +4,18 @@ import { Link } from "react-router-dom";
 import VideoBanner from "../HomePage/Components/VideoBanner";
 import Footer from "../HomePage/Components/Footer";
 import { useLanguage } from "../../../Context/LanguageContext";
+import { useTranslation } from 'react-i18next';
 
-const apiUrl = API_BASE_URL; 
+const apiUrl = API_BASE_URL;
 export default function FuturProjects() {
     // const { TypeId } = useParams();
     // const [type, setType] = useState({ image_url: '/tagemi_consept.jpg', description: '' });
 
     const [projects, setProjects] = useState([]);
     const [types, setTypes] = useState([]);
-const {language} = useLanguage();
+    const { language } = useLanguage();
+    const { t } = useTranslation();
+
     async function getTypes() {
         const res = await fetch(`${apiUrl}/api/types`);
         const data = await res.json();
@@ -88,11 +91,11 @@ const {language} = useLanguage();
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl font-extrabold text-[#101E58] font-droid-arabic-kufi">
-                        {language === 'en' ? 'Futur Projects': 'مشاريعنا المستقبلية ' }
+                            {t('home.futureProjects')}
                         </h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {( projects  && projects.length > 0 ) ?  projects.map((project) => (
+                        {(projects && projects.length > 0) ? projects.map((project) => (
                             <div key={project.id} className="bg-white rounded-lg shadow-lg overflow-hidden min-h-[560px]">
                                 {project.project_images[0] && (
                                     <img
@@ -106,20 +109,20 @@ const {language} = useLanguage();
                                     {/* <p className="my-4 pb-4 h-7 text-gray-600">{activity.description}</p> */}
                                     <div
                                         className="my-4 pb-4 h-7 text-gray-600"
-                                        dangerouslySetInnerHTML={{ __html: truncateHtml(language === 'en' ? project.description_en :project.description_ar , 100) }}
+                                        dangerouslySetInnerHTML={{ __html: truncateHtml(language === 'en' ? project.description_en : project.description_ar, 100) }}
                                     />
-                                    
-                                    <Link to={`/future-prjects/${project.id}`} className="QC_primary-btn m-auto mt-4"> 
-                                    
-                                    {language === 'en' ? 'Read More' : 'إقرأ المزيد'}
+
+                                    <Link to={`/future-prjects/${project.id}`} className="QC_primary-btn m-auto mt-4">
+
+                                        {t('home.readMore')}
                                     </Link>
                                 </div>
                             </div>
-                        )):(
-                        <h1 className="text-2xl font-extrabold text-[#101E58] font-droid-arabic-kufi text-center mx-auto">
-                        {language == 'en' ? 'No Projects For Now' : 'لا توجد مشاريع حاليا'}
-                        
-                        </h1>
+                        )) : (
+                            <h1 className="text-2xl font-extrabold text-[#101E58] font-droid-arabic-kufi text-center mx-auto">
+                                {t('home.noProjectsForNow')}
+
+                            </h1>
                         )}
                     </div>
                 </div>

@@ -147,7 +147,7 @@ export default function Settings() {
   return (
     <div className="container min-h-screen" >
       <h4 className="mb-6 text-xl font-bold text-black">
-        Settings
+        {t('admin.settings')}
       </h4>
       <div className="px-8  mb-4 text-sm text-green-800 rounded-lg bg-green-5 dark:text-green-400" role="alert">
         <span className="font-medium"></span>
@@ -168,8 +168,8 @@ export default function Settings() {
       <table className="table-auto max-w-6xl m-auto ">
         <thead>
           <tr>
-            <th>Functionality</th>
-            <th>Button</th>
+            <th>{t('admin.functionality')}</th>
+            <th>{t('admin.button')}</th>
 
           </tr>
         </thead>
@@ -185,25 +185,25 @@ export default function Settings() {
             </th>
           </tr> */}
           <tr>
-            <th>Delete Duplicates </th>
+            <th>{t('admin.deleteDuplicates')} </th>
             <th>
               <button onClick={handleDeleteDuplicates}
                 className="text-green-700 mx-3 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
 
               >
-                Delete Duplicate Appointments
+                {t('admin.deleteDuplicateAppointments')}
               </button>
 
             </th>
           </tr>
           <tr>
-            <th> Download Appoitments In Excel </th>
+            <th> {t('admin.downloadAppointmentsExcel')} </th>
             <th>
               <button
                 onClick={(e) => handleDownload(e)}
                 type="button"
                 className="text-green-700 mx-3 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
-              >Download</button>
+              >{t('admin.download')}</button>
             </th>
           </tr>
           <tr>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Trash2 , Calendar ,  Video ,MapPin} from 'lucide-react';
+import { X, Upload, Trash2, Calendar, Video, MapPin } from 'lucide-react';
 import { useLanguage } from '../../../../Context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import ReactQuill from 'react-quill';
 import { API_BASE_URL } from '../../../../config/environment';
 import 'react-quill/dist/quill.snow.css';
@@ -9,6 +10,7 @@ const apiUrl = API_BASE_URL;
 
 const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) => {
     const { language } = useLanguage();
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         type_id: typeId || '',
         title_en: '',
@@ -33,20 +35,20 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
     // Helper function to get correct media URL
     const getMediaUrl = (url) => {
         if (!url) return '/tagemi_consept.png';
-        
+
         // If it's a blob URL (for newly uploaded files), return as is
         if (url.startsWith('blob:') || url.startsWith('data:')) {
             return url;
         }
-        
+
         // Remove any leading slashes
         url = url.replace(/^\/+/, '');
-        
+
         // If URL already starts with 'storage/', just prepend apiUrl
         if (url.startsWith('storage/')) {
             return `${apiUrl}/${url}`;
         }
-        
+
         // Otherwise, add 'storage/' prefix
         return `${apiUrl}/storage/${url}`;
     };
@@ -59,9 +61,9 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
             [{ 'size': ['small', false, 'large', 'huge'] }],
             ['bold', 'italic', 'underline', 'strike'],
             [{ 'color': [] }, { 'background': [] }],
-            [{ 'script': 'sub'}, { 'script': 'super' }],
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'script': 'sub' }, { 'script': 'super' }],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+            [{ 'indent': '-1' }, { 'indent': '+1' }],
             [{ 'direction': 'rtl' }],
             [{ 'align': [] }],
             ['blockquote', 'code-block'],
@@ -128,7 +130,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
             setMediaFiles([]);
         }
     }, [activity, typeId, isOpen]);
-        // Helper function to format date for input field (YYYY-MM-DD)
+    // Helper function to format date for input field (YYYY-MM-DD)
     const formatDateForInput = (dateString) => {
         if (!dateString) return '';
         // Extract just the date part (YYYY-MM-DD) from datetime strings
@@ -193,7 +195,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
     const removeMedia = (index) => {
         const mediaToRemove = mediaPreview[index];
-        
+
         // If it's an existing media, we don't remove it from mediaFiles
         // We just mark it for deletion by removing from preview
         if (mediaToRemove.existing) {
@@ -215,7 +217,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                 }
                 return i !== newUploadIndex;
             });
-            
+
             const newMediaPreview = mediaPreview.filter((_, i) => i !== index);
             setMediaFiles(newMediaFiles);
             setMediaPreview(newMediaPreview);
@@ -229,7 +231,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
         try {
             const formDataToSend = new FormData();
-            
+
             // Append all form fields
             formDataToSend.append('type_id', formData.type_id);
             formDataToSend.append('title_en', formData.title_en);
@@ -250,9 +252,9 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                 const currentMediaIds = mediaPreview
                     .filter(m => m.existing && m.id)
                     .map(m => m.id);
-                
+
                 const mediaToDelete = existingMediaIds.filter(id => !currentMediaIds.includes(id));
-                
+
                 if (mediaToDelete.length > 0) {
                     mediaToDelete.forEach((id, index) => {
                         formDataToSend.append(`delete_media[${index}]`, id);
@@ -267,10 +269,10 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
             });
 
             // For updates, use POST with _method override (Laravel doesn't handle PUT with files well)
-            const url = activity 
+            const url = activity
                 ? `${apiUrl}/api/activities/${activity.id}`
                 : `${apiUrl}/api/activities`;
-            
+
             if (activity) {
                 formDataToSend.append('_method', 'PUT');
             }
@@ -311,9 +313,9 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10">
                     <h2 className="text-2xl font-bold text-[#101E58] font-droid-arabic-kufi">
-                        {activity 
-                            ? (language === 'en' ? 'Edit Activity' : 'تعديل النشاط')
-                            : (language === 'en' ? 'Add New Activity' : 'إضافة نشاط جديد')
+                        {activity
+                            ? t('activityModal.editActivity')
+                            : t('activityModal.addNewActivity')
                         }
                     </h2>
                     <button
@@ -330,7 +332,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Title (English)' : 'العنوان (الإنجليزية)'}
+                                {t('activityModal.titleEnglish')}
                                 <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -348,7 +350,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Title (Arabic)' : 'العنوان (العربية)'}
+                                {t('activityModal.titleArabic')}
                                 <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -370,7 +372,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                     <div className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Description (English)' : 'الوصف (الإنجليزية)'}
+                                {t('activityModal.descriptionEnglish')}
                             </label>
                             <div className="border border-gray-300 rounded-lg overflow-hidden">
                                 <ReactQuill
@@ -391,7 +393,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Description (Arabic)' : 'الوصف (العربية)'}
+                                {t('activityModal.descriptionArabic')}
                             </label>
                             <div className="border border-gray-300 rounded-lg overflow-hidden" dir="rtl">
                                 <ReactQuill
@@ -411,18 +413,18 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                         </div>
                     </div>
 
-                                       {/* Location Field - NEW */}
+                    {/* Location Field - NEW */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            {language === 'en' ? 'Location' : 'الموقع'}
+                            {t('activityModal.location')}
                         </label>
                         <input
                             type="text"
                             name="location"
                             value={formData.location}
                             onChange={handleChange}
-                            placeholder={language === 'en' ? 'Enter event location...' : 'أدخل موقع الحدث...'}
+                            placeholder={t('activityModal.locationPlaceholder')}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent"
                         />
                         {errors.location && (
@@ -431,12 +433,12 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                     </div>
 
                     {/* Location, Date, Status */}
-                                   {/* Date Fields - NOW WITH END DATE */}
+                    {/* Date Fields - NOW WITH END DATE */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                Start Date
+                                {t('activityModal.startDate')}
                             </label>
                             <input
                                 type="date"
@@ -454,7 +456,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                End Date
+                                {t('activityModal.endDate')}
                             </label>
                             <input
                                 type="date"
@@ -469,14 +471,14 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                             )}
                             {formData.event_date && formData.event_end_date && (
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Duration: {Math.ceil((new Date(formData.event_end_date) - new Date(formData.event_date)) / (1000 * 60 * 60 * 24)) + 1} days
+                                    {t('activityModal.duration')}: {Math.ceil((new Date(formData.event_end_date) - new Date(formData.event_date)) / (1000 * 60 * 60 * 24)) + 1} {t('activityModal.days')}
                                 </p>
                             )}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Status<span className="text-red-500">*</span>
+                                {t('activityModal.status')}<span className="text-red-500">*</span>
                             </label>
                             <select
                                 name="status"
@@ -485,10 +487,10 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E03A6F] focus:border-transparent"
                             >
-                                <option value="upcoming">Upcoming</option>
-                                <option value="ongoing">Ongoing</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="upcoming">{t('activityModal.upcoming')}</option>
+                                <option value="ongoing">{t('activityModal.ongoing')}</option>
+                                <option value="completed">{t('activityModal.completed')}</option>
+                                <option value="cancelled">{t('activityModal.cancelled')}</option>
                             </select>
                         </div>
                     </div>
@@ -497,7 +499,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Participants Count' : 'عدد المشاركين'}
+                                {t('activityModal.participantsCount')}
                             </label>
                             <input
                                 type="number"
@@ -511,7 +513,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Beneficiaries Count' : 'عدد المستفيدين'}
+                                {t('activityModal.beneficiariesCount')}
                             </label>
                             <input
                                 type="number"
@@ -535,16 +537,16 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                             className="w-4 h-4 text-[#E03A6F] border-gray-300 rounded focus:ring-[#E03A6F]"
                         />
                         <label htmlFor="featured" className="ml-2 text-sm font-medium text-gray-700 font-droid-arabic-kufi">
-                            {language === 'en' ? 'Featured Activity' : 'نشاط مميز'}
+                            {t('activityModal.featuredActivity')}
                         </label>
                     </div>
 
                     {/* Media Upload */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi">
-                            {language === 'en' ? 'Media (Images/Videos)' : 'الوسائط (صور/فيديوهات)'}
+                            {t('activityModal.media')}
                         </label>
-                        
+
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#E03A6F] transition-colors">
                             <input
                                 type="file"
@@ -560,10 +562,10 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                             >
                                 <Upload className="w-12 h-12 text-gray-400 mb-2" />
                                 <span className="text-sm text-gray-600 font-droid-arabic-kufi">
-                                    {language === 'en' ? 'Click to upload media' : 'انقر لتحميل الوسائط'}
+                                    {t('activityModal.clickToUpload')}
                                 </span>
                                 <span className="text-xs text-gray-500 mt-1">
-                                    {language === 'en' ? 'Images and videos' : 'صور وفيديوهات'}
+                                    {t('activityModal.imagesAndVideos')}
                                 </span>
                             </label>
                         </div>
@@ -610,7 +612,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                             onClick={onClose}
                             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-droid-arabic-kufi"
                         >
-                            {language === 'en' ? 'Cancel' : 'إلغاء'}
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -620,10 +622,10 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                             {loading ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    {language === 'en' ? 'Saving...' : 'جاري الحفظ...'}
+                                    {t('activityModal.saving')}
                                 </>
                             ) : (
-                                language === 'en' ? 'Save Activity' : 'حفظ النشاط'
+                                t('activityModal.saveActivity')
                             )}
                         </button>
                     </div>

@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
-import { useLanguage } from '../../../../Context/LanguageContext';
 import { API_BASE_URL } from '../../../../config/environment';
+import { useTranslation } from 'react-i18next';
 
-const AllActivities = ({TypeId}) => {
+const AllActivities = ({ TypeId }) => {
     const { token } = useContext(AppContext);
     const [activities, setActivities] = useState([]);
-    const {language}=useLanguage();
+    const { t } = useTranslation();
     const apiUrl = API_BASE_URL;
 
     async function getAllActivities() {
@@ -41,10 +41,10 @@ const AllActivities = ({TypeId}) => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl font-extrabold text-[#101E58] font-droid-arabic-kufi">
-                    {language === 'en' ? 'Actvities' :  'أنشطة المجال  '}
+                        {t('home.activities')}
 
                     </h2>
-                   
+
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {activities}
@@ -73,10 +73,10 @@ const AllActivities = ({TypeId}) => {
                                 {/* <p className="my-4 pb-4 h-7 text-gray-600">{activity.description}</p> */}
                                 <div
                                     className="my-4 pb-4 h-7 text-gray-600"
-                                    dangerouslySetInnerHTML={{ __html:truncateHtml(activity.description, 100)}}
+                                    dangerouslySetInnerHTML={{ __html: truncateHtml(activity.description, 100) }}
                                 />
                                 <a href="#" className="QC_primary-btn m-auto mt-4">
-                                    Read More
+                                    {t('home.readMore')}
                                 </a>
                             </div>
                         </div>

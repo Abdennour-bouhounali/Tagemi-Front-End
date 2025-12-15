@@ -1,10 +1,12 @@
 import { API_BASE_URL } from '../../../config/environment';
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { useTranslation } from 'react-i18next';
 
-const apiUrl = API_BASE_URL; 
+const apiUrl = API_BASE_URL;
 
 const Volunteers = () => {
+  const { t } = useTranslation();
   const [volunteers, setVolunteers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [stateFilter, setStateFilter] = useState('');
@@ -61,12 +63,12 @@ const Volunteers = () => {
     fetch(`${apiUrl}/api/volunteers/${id}`, {
       method: 'DELETE',
     })
-    .then(() => {
-      setVolunteers(volunteers.filter(volunteer => volunteer.id !== id));
-      setFilteredVolunteers(filteredVolunteers.filter(volunteer => volunteer.id !== id));
-      setDeleteConfirm(null);
-    })
-    .catch(error => console.error('Error deleting volunteer:', error));
+      .then(() => {
+        setVolunteers(volunteers.filter(volunteer => volunteer.id !== id));
+        setFilteredVolunteers(filteredVolunteers.filter(volunteer => volunteer.id !== id));
+        setDeleteConfirm(null);
+      })
+      .catch(error => console.error('Error deleting volunteer:', error));
   };
 
   const handleDownloadExcel = () => {
@@ -77,8 +79,8 @@ const Volunteers = () => {
   };
 
   return (
-<div className="w-full max-w-7xl mx-auto py-8 px-4">
-  <div className="w-full">
+    <div className="w-full max-w-7xl mx-auto py-8 px-4">
+      <div className="w-full">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Volunteers Management</h1>
@@ -105,7 +107,7 @@ const Volunteers = () => {
                 </svg>
               </div>
             </div>
-            
+
             <div className="flex-1">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Filter by State
@@ -134,7 +136,7 @@ const Volunteers = () => {
                   Clear
                 </button>
               )}
-              
+
               <button
                 onClick={handleDownloadExcel}
                 className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-md flex items-center gap-2 whitespace-nowrap"
@@ -193,11 +195,10 @@ const Volunteers = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredVolunteers.map((volunteer, index) => (
-                    <tr 
-                      key={volunteer.id} 
-                      className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                      }`}
+                    <tr
+                      key={volunteer.id}
+                      className={`hover:bg-gray-50 transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        }`}
                       onClick={() => setSelectedVolunteer(volunteer)}
                     >
                       <td className="px-6 py-4">

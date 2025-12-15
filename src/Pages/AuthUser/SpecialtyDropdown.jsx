@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ClipboardList, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // Dropdown Component
 const SpecialtyDropdown = ({ eventId, specialties, language = 'ar' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -32,9 +34,9 @@ const SpecialtyDropdown = ({ eventId, specialties, language = 'ar' }) => {
         onClick={() => setIsOpen(!isOpen)}
         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full transition-colors font-droid-arabic-kufi whitespace-nowrap flex items-center gap-2"
       >
-        {language === 'en' ? 'Waiting List' : 'قائمة الانتظار'}
-        <ChevronDown 
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+        {t('admin.waitingList')}
+        <ChevronDown
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -58,7 +60,7 @@ const SpecialtyDropdown = ({ eventId, specialties, language = 'ar' }) => {
                       {specialty.name}
                     </h4>
                     <p className="text-xs text-gray-500 font-droid-arabic-kufi">
-                      قائمة الانتظار
+                      {t('admin.waitingList')}
                     </p>
                   </div>
                 </button>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../../../Context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 
 const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
     const { language } = useLanguage();
+    const { t } = useTranslation();
     const [scrollY, setScrollY] = useState(0);
 
     useEffect(() => {
@@ -16,10 +18,10 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
         <>
             {!homePage ? (
                 <div className="relative w-full h-[40vh] md:h-[50vh] overflow-hidden pt-20 md:pt-24">
-                    <img 
-                        src={bannerImage} 
-                        className="w-full h-full  object-cover object-left md:object-center" 
-                        alt="Banner" 
+                    <img
+                        src={bannerImage}
+                        className="w-full h-full  object-cover object-left md:object-center"
+                        alt="Banner"
                     />
                     <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60"></div>
                     {bannerText && (
@@ -33,23 +35,23 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
             ) : (
                 <div className="relative w-full min-h-[70vh] md:min-h-[85vh] overflow-hidden bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#101E58] pt-16 md:pt-28">
                     {/* Background Image with Parallax Effect */}
-                    <div 
+                    <div
                         className="absolute inset-0 opacity-60"
                         style={{
                             transform: `translateY(${scrollY * 0.5}px)`,
                             transition: 'transform 0.1s ease-out'
                         }}
                     >
-                        <img 
-                            src={bannerImage} 
-                            className="w-full h-full object-cover  object-left md:object-center" 
-                            alt="Hero Background" 
+                        <img
+                            src={bannerImage}
+                            className="w-full h-full object-cover  object-left md:object-center"
+                            alt="Hero Background"
                         />
                     </div>
-                    
+
                     {/* Overlay Pattern */}
                     <div className="absolute inset-0 bg-gradient-to-b -translate-x-3 from-transparent via-[#101E58]/5 to-[#101E58]/30"></div>
-                    
+
                     {/* Content */}
                     <div className="relative z-10 mb-10 container mx-auto px-4 h-full min-h-[70vh] md:min-h-[85vh] flex items-center">
                         <div className="w-full max-w-4xl mx-auto text-center space-y-8 py-20">
@@ -66,7 +68,7 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                     </svg>
                                 </div>
                             </motion.div> */}
-                            
+
                             {/* Main Heading */}
                             <motion.h1
                                 initial={{ y: 50, opacity: 0 }}
@@ -74,11 +76,9 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                 transition={{ duration: 0.8, delay: 0.2 }}
                                 className="text-xl md:text-3xl lg:text-4xl font-bold text-white font-droid-arabic-kufi leading-tight drop-shadow-lg"
                             >
-                                {language === 'en'
-                                    ? "Let's Working together for human development and eternal life"
-                                    : 'لنعمل سويا من أجل حياة أبدية'}
+                                {t('home.heroTagline')}
                             </motion.h1>
-                            
+
                             {/* CTA Buttons */}
                             <motion.div
                                 initial={{ y: 30, opacity: 0 }}
@@ -86,32 +86,32 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                 transition={{ duration: 0.8, delay: 0.6 }}
                                 className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8"
                             >
-                                
-                              <a      href="#donate"
+
+                                <a href="#donate"
                                     className="group relative px-8 py-4 bg-[#E03A6F] text-white rounded-full font-bold text-lg font-droid-arabic-kufi overflow-hidden transition-all duration-300 hover:bg-[#c8102e] hover:shadow-2xl hover:scale-105 w-full sm:w-auto"
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">
-                                        {language === 'en' ? 'Donate Now' : 'تبرع الآن'}
+                                        {t('home.donateNow')}
                                         <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                         </svg>
                                     </span>
                                     <div className="absolute inset-0 bg-gradient-to-r from-[#c8102e] to-[#E03A6F] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
                                 </a>
-                                
-                                
-                                <a    href="/volunteer"
+
+
+                                <a href="/volunteer"
                                     className="group px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 rounded-full font-bold text-lg font-droid-arabic-kufi transition-all duration-300 hover:bg-white hover:text-[#101E58] hover:shadow-2xl hover:scale-105 w-full sm:w-auto"
                                 >
                                     <span className="flex items-center justify-center gap-2">
-                                        {language === 'en' ? 'Volunteer' : 'تطوع معنا'}
+                                        {t('home.volunteerWithUs')}
                                         <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     </span>
                                 </a>
                             </motion.div>
-                            
+
                             {/* Trust Indicators */}
                             <motion.div
                                 initial={{ y: 30, opacity: 0 }}
@@ -122,25 +122,25 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                 <div className="text-center">
                                     <div className="text-3xl md:text-4xl font-bold text-white mb-2">500+</div>
                                     <div className="text-sm md:text-base text-gray-300 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Volunteers' : 'متطوع'}
+                                        {t('home.volunteers')}
                                     </div>
                                 </div>
                                 <div className="text-center border-x border-white/20">
                                     <div className="text-3xl md:text-4xl font-bold text-white mb-2">50+</div>
                                     <div className="text-sm md:text-base text-gray-300 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Programs' : 'برنامج'}
+                                        {t('home.programs')}
                                     </div>
                                 </div>
                                 <div className="text-center">
                                     <div className="text-3xl md:text-4xl font-bold text-white mb-2">15K+</div>
                                     <div className="text-sm md:text-base text-gray-300 font-droid-arabic-kufi">
-                                        {language === 'en' ? 'Beneficiaries' : 'مستفيد'}
+                                        {t('home.beneficiaries')}
                                     </div>
                                 </div>
                             </motion.div>
                         </div>
                     </div>
-                    
+
                     {/* Scroll Indicator */}
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -150,7 +150,7 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                     >
                         <div className="flex flex-col items-center gap-2">
                             <span className="text-white/60 text-sm mt-10 font-droid-arabic-kufi">
-                                {language === 'en' ? 'Scroll Down' : 'للأسفل'}
+                                {t('home.scrollDown')}
                             </span>
                             <motion.div
                                 animate={{ y: [0, 10, 0] }}

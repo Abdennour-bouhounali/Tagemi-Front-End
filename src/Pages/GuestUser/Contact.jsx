@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../../config/environment';
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../../Context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import Footer from './HomePage/Components/Footer';
 import {
     User,
@@ -22,6 +23,7 @@ const apiUrl = API_BASE_URL;
 
 const Contact = ({ project, projectName }) => {
     const { language } = useLanguage();
+    const { t } = useTranslation();
     const [types, setTypes] = useState([]);
     const [selectedState, setSelectedState] = useState('');
     const [selectedCommun, setSelectedCommun] = useState('');
@@ -78,37 +80,37 @@ const Contact = ({ project, projectName }) => {
         switch (fieldName) {
             case 'first_name':
                 if (!value.trim()) {
-                    newErrors.first_name = language === 'en' ? 'First name is required' : 'الإسم مطلوب';
+                    newErrors.first_name = t('validation.required.firstName');
                 } else {
                     delete newErrors.first_name;
                 }
                 break;
             case 'last_name':
                 if (!value.trim()) {
-                    newErrors.last_name = language === 'en' ? 'Last name is required' : 'اللقب مطلوب';
+                    newErrors.last_name = t('validation.required.lastName');
                 } else {
                     delete newErrors.last_name;
                 }
                 break;
             case 'phone':
                 if (!value.trim()) {
-                    newErrors.phone = language === 'en' ? 'Phone number is required' : 'رقم الهاتف مطلوب';
+                    newErrors.phone = t('validation.required.phone');
                 } else if (!/^[0-9]{10}$/.test(value.replace(/\s/g, ''))) {
-                    newErrors.phone = language === 'en' ? 'Please enter a valid phone number' : 'الرجاء إدخال رقم هاتف صحيح';
+                    newErrors.phone = t('validation.invalid.phone');
                 } else {
                     delete newErrors.phone;
                 }
                 break;
             case 'message':
                 if (!project && !value.trim()) {
-                    newErrors.message = language === 'en' ? 'Message is required' : 'الرسالة مطلوبة';
+                    newErrors.message = t('validation.required.message');
                 } else {
                     delete newErrors.message;
                 }
                 break;
             case 'type_message':
                 if (!project && !value) {
-                    newErrors.type_message = language === 'en' ? 'Message type is required' : 'نوع الرسالة مطلوب';
+                    newErrors.type_message = t('validation.required.messageType');
                 } else {
                     delete newErrors.type_message;
                 }
@@ -123,33 +125,33 @@ const Contact = ({ project, projectName }) => {
         const newErrors = {};
 
         if (!formData.first_name.trim()) {
-            newErrors.first_name = language === 'en' ? 'First name is required' : 'الإسم مطلوب';
+            newErrors.first_name = t('validation.required.firstName');
         }
 
         if (!formData.last_name.trim()) {
-            newErrors.last_name = language === 'en' ? 'Last name is required' : 'اللقب مطلوب';
+            newErrors.last_name = t('validation.required.lastName');
         }
 
         if (!formData.phone.trim()) {
-            newErrors.phone = language === 'en' ? 'Phone number is required' : 'رقم الهاتف مطلوب';
+            newErrors.phone = t('validation.required.phone');
         } else if (!/^[0-9]{10}$/.test(formData.phone.replace(/\s/g, ''))) {
-            newErrors.phone = language === 'en' ? 'Please enter a valid phone number' : 'الرجاء إدخال رقم هاتف صحيح';
+            newErrors.phone = t('validation.invalid.phone');
         }
 
         if (!selectedState) {
-            newErrors.state = language === 'en' ? 'State is required' : 'الولاية مطلوبة';
+            newErrors.state = t('validation.required.state');
         }
 
         if (!selectedCommun && communs.length > 0) {
-            newErrors.commun = language === 'en' ? 'Commune is required' : 'البلدية مطلوبة';
+            newErrors.commun = t('validation.required.commune');
         }
 
         if (!project && !formData.message.trim()) {
-            newErrors.message = language === 'en' ? 'Message is required' : 'الرسالة مطلوبة';
+            newErrors.message = t('validation.required.message');
         }
 
         if (!project && !formData.type_message) {
-            newErrors.type_message = language === 'en' ? 'Message type is required' : 'نوع الرسالة مطلوب';
+            newErrors.type_message = t('validation.required.messageType');
         }
 
         setErrors(newErrors);
@@ -183,7 +185,7 @@ const Contact = ({ project, projectName }) => {
             state: selectedState,
             commun: selectedCommun
         };
-        
+
 
         try {
             const response = await fetch(`${apiUrl}/api/contacts`, {
@@ -194,7 +196,7 @@ const Contact = ({ project, projectName }) => {
 
             if (response.ok) {
                 const data = await response.json();
-                setMessage(data['message'] || (language === 'en' ? 'Message sent successfully!' : 'تم إرسال الرسالة بنجاح!'));
+                setMessage(data['message'] || t('messages.sentSuccess'));
                 setMessageType('success');
 
                 setFormData({
@@ -221,12 +223,12 @@ const Contact = ({ project, projectName }) => {
                 const errorData = await response.json();
                 console.error('Server error:', errorData);
                 setMessageType('error');
-                setMessage(language === 'en' ? 'An error occurred. Please try again.' : 'حدث خطأ. يرجى المحاولة مرة أخرى.');
+                setMessage(t('messages.errorOccurred'));
             }
         } catch (error) {
             console.error('Request error:', error);
             setMessageType('error');
-            setMessage(language === 'en' ? 'An error occurred. Please try again.' : 'حدث خطأ. يرجى المحاولة مرة أخرى.');
+            setMessage(t('messages.errorOccurred'));
         } finally {
             setLoading(false);
         }
@@ -236,18 +238,18 @@ const Contact = ({ project, projectName }) => {
         const value = e.target.value;
         setSelectedState(value);
         setSelectedCommun('');
-        
+
         // Find the selected state and get its communes
-        const state = algeriaData.algeria_locations.find(w => 
+        const state = algeriaData.algeria_locations.find(w =>
             language === 'en' ? w.name_en === value : w.name_ar === value
         );
-        
+
         if (state) {
             setCommuns(state.communes);
         } else {
             setCommuns([]);
         }
-        
+
         handleChange(e);
         handleBlur('state');
     };
@@ -273,10 +275,10 @@ const Contact = ({ project, projectName }) => {
 
     // Message type options
     const messageTypeOptions = [
-        { value: 'project_aide', label: language === 'en' ? 'Project Assistance' : 'مساعدة في مشروع' },
-        { value: 'aide', label: language === 'en' ? 'Ask Help' : 'طلب مساعدة' },
-        { value: 'question', label: language === 'en' ? 'Question' : 'استفسار' },
-        { value: 'other', label: language === 'en' ? 'Other' : 'أخرى' }
+        { value: 'project_aide', label: t('contact.messageTypes.projectAide') },
+        { value: 'aide', label: t('contact.messageTypes.aide') },
+        { value: 'question', label: t('contact.messageTypes.question') },
+        { value: 'other', label: t('contact.messageTypes.other') }
     ];
 
     return (
@@ -285,16 +287,14 @@ const Contact = ({ project, projectName }) => {
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 lg:py-20">
                     {/* Success/Error Message */}
                     {message && (
-                        <div className={`mb-8 rounded-2xl shadow-lg overflow-hidden animate-slide-down ${
-                            messageType === 'success'
+                        <div className={`mb-8 rounded-2xl shadow-lg overflow-hidden animate-slide-down ${messageType === 'success'
                                 ? 'bg-green-50 border-r-4 border-green-500'
                                 : 'bg-red-50 border-r-4 border-red-500'
-                        }`}>
+                            }`}>
                             <div className="p-6">
                                 <div className="flex items-start gap-4 flex-row-reverse">
-                                    <div className={`flex-shrink-0 p-3 rounded-full ${
-                                        messageType === 'success' ? 'bg-green-100' : 'bg-red-100'
-                                    }`}>
+                                    <div className={`flex-shrink-0 p-3 rounded-full ${messageType === 'success' ? 'bg-green-100' : 'bg-red-100'
+                                        }`}>
                                         {messageType === 'success' ? (
                                             <CheckCircle className={`w-6 h-6 ${messageType === 'success' ? 'text-green-600' : 'text-red-600'}`} />
                                         ) : (
@@ -302,17 +302,15 @@ const Contact = ({ project, projectName }) => {
                                         )}
                                     </div>
                                     <div className="flex-1 text-right">
-                                        <h3 className={`text-lg font-bold font-droid-arabic-kufi mb-1 ${
-                                            messageType === 'success' ? 'text-green-800' : 'text-red-800'
-                                        }`}>
+                                        <h3 className={`text-lg font-bold font-droid-arabic-kufi mb-1 ${messageType === 'success' ? 'text-green-800' : 'text-red-800'
+                                            }`}>
                                             {messageType === 'success'
-                                                ? (language === 'en' ? 'Success!' : 'نجح!')
-                                                : (language === 'en' ? 'Error!' : 'خطأ!')
+                                                ? t('common.success')
+                                                : t('common.error')
                                             }
                                         </h3>
-                                        <p className={`font-droid-arabic-kufi ${
-                                            messageType === 'success' ? 'text-green-700' : 'text-red-700'
-                                        }`}>
+                                        <p className={`font-droid-arabic-kufi ${messageType === 'success' ? 'text-green-700' : 'text-red-700'
+                                            }`}>
                                             {message}
                                         </p>
                                     </div>
@@ -328,12 +326,12 @@ const Contact = ({ project, projectName }) => {
                         </div>
                         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 gradient-text font-droid-arabic-kufi">
                             {project
-                                ? (language === 'en' ? 'Contribute to this Project' : 'ساهم في تجسيد هذا المشروع')
-                                : (language === 'en' ? 'Contact Us' : 'تواصل معنا')}
+                                ? t('contact.projectTitle')
+                                : t('contact.title')}
                         </h1>
                         <div className="w-20 h-1 bg-[#E03A6F] mx-auto mb-4"></div>
                         <p className="text-xl md:text-2xl text-[#E03A6F] font-semibold font-droid-arabic-kufi">
-                            {language === 'en' ? "Let's work together for an eternal life" : 'لنعمل سويا من أجل حياة أبدية'}
+                            {t('contact.subtitle')}
                         </p>
                     </div>
 
@@ -344,21 +342,21 @@ const Contact = ({ project, projectName }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Input
                                     icon={User}
-                                    label={language === 'en' ? 'First Name' : 'الإسم'}
+                                    label={t('contact.firstName')}
                                     name="first_name"
                                     value={formData.first_name}
                                     onChange={handleChange}
-                                    placeholder={language === 'en' ? 'Enter your first name' : 'أدخل اسمك'}
+                                    placeholder={t('contact.enterFirstName')}
                                     required
                                     error={touchedFields.first_name && errors.first_name}
                                 />
                                 <Input
                                     icon={User}
-                                    label={language === 'en' ? 'Last Name' : 'اللقب'}
+                                    label={t('contact.lastName')}
                                     name="last_name"
                                     value={formData.last_name}
                                     onChange={handleChange}
-                                    placeholder={language === 'en' ? 'Enter your last name' : 'أدخل لقبك'}
+                                    placeholder={t('contact.enterLastName')}
                                     required
                                     error={touchedFields.last_name && errors.last_name}
                                 />
@@ -368,7 +366,7 @@ const Contact = ({ project, projectName }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Input
                                     icon={Phone}
-                                    label={language === 'en' ? 'Phone Number (WhatsApp)' : 'رقم الهاتف (الواتساب)'}
+                                    label={t('contact.phone_whatsapp')}
                                     name="phone"
                                     type="tel"
                                     value={formData.phone}
@@ -379,12 +377,12 @@ const Contact = ({ project, projectName }) => {
                                 />
                                 <Select
                                     icon={MapPin}
-                                    label={language === 'en' ? 'State' : 'الولاية'}
+                                    label={t('contact.state')}
                                     name="state"
                                     value={selectedState}
                                     onChange={handleStateChange}
                                     options={statesOptions}
-                                    placeholder={language === 'en' ? 'Select State' : 'اختر الولاية'}
+                                    placeholder={t('contact.selectState')}
                                     required
                                     error={touchedFields.state && errors.state}
                                 />
@@ -395,12 +393,12 @@ const Contact = ({ project, projectName }) => {
                                 <div className="animate-fade-in">
                                     <Select
                                         icon={Building}
-                                        label={language === 'en' ? 'Commune' : 'البلدية'}
+                                        label={t('contact.commune')}
                                         name="commun"
                                         value={selectedCommun}
                                         onChange={handleCommunChange}
                                         options={communsOptions}
-                                        placeholder={language === 'en' ? 'Select Commune' : 'اختر البلدية'}
+                                        placeholder={t('contact.selectCommune')}
                                         required
                                         error={touchedFields.commun && errors.commun}
                                     />
@@ -411,11 +409,11 @@ const Contact = ({ project, projectName }) => {
                             {!project && (
                                 <Textarea
                                     icon={FileText}
-                                    label={language === 'en' ? 'Message' : 'الرسالة'}
+                                    label={t('contact.message')}
                                     name="message"
                                     value={formData.message}
                                     onChange={handleChange}
-                                    placeholder={language === 'en' ? 'Write your message here...' : 'اكتب رسالتك هنا...'}
+                                    placeholder={t('contact.writeMessage')}
                                     required
                                     rows={5}
                                     error={touchedFields.message && errors.message}
@@ -426,12 +424,12 @@ const Contact = ({ project, projectName }) => {
                             {!project && (
                                 <Select
                                     icon={Mail}
-                                    label={language === 'en' ? 'Message Type' : 'نوع الرسالة'}
+                                    label={t('contact.messageType')}
                                     name="type_message"
                                     value={formData.type_message}
                                     onChange={handleChange}
                                     options={messageTypeOptions}
-                                    placeholder={language === 'en' ? 'Select Message Type' : 'اختر نوع الرسالة'}
+                                    placeholder={t('contact.selectMessageType')}
                                     required
                                     error={touchedFields.type_message && errors.type_message}
                                 />
@@ -450,12 +448,12 @@ const Contact = ({ project, projectName }) => {
                                         {loading ? (
                                             <>
                                                 <Loader className="w-5 h-5 animate-spin" />
-                                                {language === 'en' ? 'Sending...' : 'جاري الإرسال...'}
+                                                {t('common.sending')}
                                             </>
                                         ) : (
                                             <>
                                                 <Send className="w-5 h-5" />
-                                                {language === 'en' ? 'Submit' : 'إرسال'}
+                                                {t('common.submit')}
                                             </>
                                         )}
                                     </span>
@@ -472,7 +470,7 @@ const Contact = ({ project, projectName }) => {
                                     <Phone className="w-6 h-6 text-[#E03A6F]" />
                                 </div>
                                 <h3 className="text-lg font-bold mb-2 font-droid-arabic-kufi text-gray-900">
-                                    {language === 'en' ? 'Phone' : 'الهاتف'}
+                                    {t('contact.phoneLabel')}
                                 </h3>
                                 <p className="text-gray-600 font-droid-arabic-kufi" dir="ltr">029 254 300 / 0549 88 54 59</p>
                             </div>
@@ -482,7 +480,7 @@ const Contact = ({ project, projectName }) => {
                                     <Mail className="w-6 h-6 text-[#E03A6F]" />
                                 </div>
                                 <h3 className="text-lg font-bold mb-2 font-droid-arabic-kufi text-gray-900">
-                                    {language === 'en' ? 'Email' : 'البريد الإلكتروني'}
+                                    {t('contact.emailLabel')}
                                 </h3>
                                 <p className="text-gray-600 font-droid-arabic-kufi" dir="ltr">tagem.ass@gmail.com</p>
                             </div>
@@ -492,10 +490,10 @@ const Contact = ({ project, projectName }) => {
                                     <MapPin className="w-6 h-6 text-[#E03A6F]" />
                                 </div>
                                 <h3 className="text-lg font-bold mb-2 font-droid-arabic-kufi text-gray-900">
-                                    {language === 'en' ? 'Location' : 'الموقع'}
+                                    {t('contact.locationLabel')}
                                 </h3>
                                 <p className="text-gray-600 font-droid-arabic-kufi">
-                                    {language === 'en' ? 'El Atteuf, Ghardaia, Algeria' : 'العطف، غرداية، الجزائر'}
+                                    {t('contact.locationValue')}
                                 </p>
                             </div>
                         </div>
