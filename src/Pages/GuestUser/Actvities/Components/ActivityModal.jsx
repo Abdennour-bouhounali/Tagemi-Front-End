@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { X, Upload, Trash2 , Calendar ,  Video ,MapPin} from 'lucide-react';
 import { useLanguage } from '../../../../Context/LanguageContext';
-import ReactQuill from 'react-quill';
+import ReactQuill from 'react-quill-new';
 import { API_BASE_URL } from '../../../../config/environment';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.snow.css';
 
 const apiUrl = API_BASE_URL;
 

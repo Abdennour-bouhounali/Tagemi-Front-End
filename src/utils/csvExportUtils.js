@@ -485,3 +485,17 @@ export const exportComprehensiveCSV = (event, demographicData, specialtyData, ge
   link.download = `comprehensive_report_${event.name}_${new Date().toISOString().split('T')[0]}.csv`;
   link.click();
 };
+
+// Export a list of objects as a CSV table (keys become the header row).
+// Opens in Excel with Arabic intact thanks to the BOM.
+export const exportRowsCSV = (rows, fileName) => {
+  const headers = rows.length ? Object.keys(rows[0]) : [];
+  const table = [headers, ...rows.map((row) => headers.map((key) => row[key]))];
+  const csvContent = '﻿' + createCSVContent(table);
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+};

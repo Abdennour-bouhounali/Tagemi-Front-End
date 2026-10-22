@@ -23,6 +23,7 @@ import {
     Share2
 } from 'lucide-react';
 import Footer from "../../HomePage/Components/Footer";
+import { sanitizeHtml } from '../../../../utils/safeHtml';
 
 const apiUrl = API_BASE_URL;
 
@@ -523,7 +524,7 @@ export default function ActivityMore() {
                             className="prose prose-sm sm:prose-base lg:prose-lg max-w-none font-droid-arabic-kufi text-gray-700 leading-relaxed"
                             style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}
                             dangerouslySetInnerHTML={{ 
-                                __html: language === 'en' ? activity.description_en : activity.description_ar 
+                                __html: sanitizeHtml(language === 'en' ? activity.description_en : activity.description_ar) 
                             }}
                         />
                     </div>

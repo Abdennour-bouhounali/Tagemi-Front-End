@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import Contact from '../Contact';
 import { useLanguage } from '../../../Context/LanguageContext';
 import { API_BASE_URL } from '../../../config/environment';
+import { sanitizeHtml } from '../../../utils/safeHtml';
 
 const ProjectDetails = () => {
     const { Projectid } = useParams();
@@ -44,7 +45,7 @@ const ProjectDetails = () => {
                         <div
                             className="my-4 pb-4"
                             dangerouslySetInnerHTML={{
-                                __html: language === 'en' ? project.description_en :project.description_ar,
+                                __html: sanitizeHtml(language === 'en' ? project.description_en :project.description_ar),
                             }}
                         />
                     </p>

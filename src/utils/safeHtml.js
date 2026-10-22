@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+
 // Helpers for the print/export popups that build HTML strings by hand.
 // Patient fields come from the public booking form, so every value that is
 // interpolated into such a string MUST go through escapeHtml().
@@ -36,3 +38,7 @@ export const csvSafe = (value) => {
   const str = value === null || value === undefined ? '' : String(value);
   return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
 };
+
+// Rich text written in the content editor (activities, projects) is shown to
+// every visitor, so it is cleaned of scripts, event handlers and the like first.
+export const sanitizeHtml = (html) => DOMPurify.sanitize(html ?? '', { USE_PROFILES: { html: true } });

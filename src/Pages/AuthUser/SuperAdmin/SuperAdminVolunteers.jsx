@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import * as XLSX from 'xlsx';
+import { exportRowsCSV } from '../../../utils/csvExportUtils';
 import { MoreVertical, Download, Phone, Mail, MessageCircle, Trash2, Users, ChevronLeft } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { csvSafe } from '../../../utils/safeHtml';
@@ -99,10 +99,7 @@ const Volunteers = () => {
   const handleDownloadExcel = () => {
     // Same columns as before (every field of the record), cells neutralised against formulas
     const rows = filtered.map((v) => Object.fromEntries(Object.entries(v).map(([k, val]) => [k, typeof val === 'string' ? csvSafe(val) : val])));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Volunteers');
-    XLSX.writeFile(wb, 'volunteers.xlsx');
+    exportRowsCSV(rows, 'volunteers.csv');
     setMenuOpen(false);
   };
 
@@ -169,7 +166,7 @@ const Volunteers = () => {
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="المتطوعون">
         <div className="divide-y divide-line">
           <SheetAction icon={Download} hint={`${filtered.length} متطوع حسب التصفية الحالية`} onClick={handleDownloadExcel} disabled={!filtered.length}>
-            حمّل ملف Excel
+            حمّل ملف Excel (CSV)
           </SheetAction>
         </div>
       </Sheet>

@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import * as XLSX from 'xlsx';
+import { exportRowsCSV } from '../../../utils/csvExportUtils';
 import {
   MoreVertical, Download, Phone, MessageCircle, Check, RotateCcw, Trash2, Inbox, SlidersHorizontal,
 } from 'lucide-react';
@@ -108,10 +108,7 @@ const Messages = () => {
       'الحالة': msg.treated ? 'معالجة' : 'غير معالجة',
       'تاريخ الإرسال': new Date(msg.created_at).toLocaleDateString('ar-DZ'),
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'messages');
-    XLSX.writeFile(wb, 'messages.xlsx');
+    exportRowsCSV(rows, 'messages.csv');
     setMenuOpen(false);
   };
 
@@ -261,7 +258,7 @@ const Messages = () => {
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="الرسائل">
         <div className="divide-y divide-line">
           <SheetAction icon={Download} hint={`${filtered.length} رسالة حسب التصفية الحالية`} onClick={handleDownloadExcel} disabled={!filtered.length}>
-            حمّل ملف Excel
+            حمّل ملف Excel (CSV)
           </SheetAction>
         </div>
       </Sheet>

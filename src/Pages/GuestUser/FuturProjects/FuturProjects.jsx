@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import VideoBanner from "../HomePage/Components/VideoBanner";
 import Footer from "../HomePage/Components/Footer";
 import { useLanguage } from "../../../Context/LanguageContext";
+import { sanitizeHtml } from '../../../utils/safeHtml';
 
 const apiUrl = API_BASE_URL; 
 export default function FuturProjects() {
@@ -106,7 +107,7 @@ const {language} = useLanguage();
                                     {/* <p className="my-4 pb-4 h-7 text-gray-600">{activity.description}</p> */}
                                     <div
                                         className="my-4 pb-4 h-7 text-gray-600"
-                                        dangerouslySetInnerHTML={{ __html: truncateHtml(language === 'en' ? project.description_en :project.description_ar , 100) }}
+                                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(truncateHtml(language === 'en' ? project.description_en :project.description_ar , 100)) }}
                                     />
                                     
                                     <Link to={`/future-prjects/${project.id}`} className="QC_primary-btn m-auto mt-4"> 

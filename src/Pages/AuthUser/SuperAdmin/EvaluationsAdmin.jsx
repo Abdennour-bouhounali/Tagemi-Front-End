@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx';
+import { exportRowsCSV } from '../../../utils/csvExportUtils';
 import {
     MoreVertical, Download, MessageCircle, Trash2, Star, Check, BarChart3, MessageSquareHeart, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
@@ -148,10 +148,7 @@ const EvaluationsAdmin = () => {
             'الهاتف': csvSafe(ev.contact_phone),
             'تاريخ التقييم': ev.submitted_at ? new Date(ev.submitted_at).toLocaleDateString('ar-DZ') : '',
         }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'evaluations');
-        XLSX.writeFile(wb, 'evaluations.xlsx');
+        exportRowsCSV(rows, 'evaluations.csv');
         setMenuOpen(false);
     };
 
@@ -316,7 +313,7 @@ const EvaluationsAdmin = () => {
                         إحصائيات الحدث
                     </SheetAction>
                     <SheetAction icon={Download} hint={`${filtered.length} تقييم حسب التصفية الحالية`} disabled={!filtered.length} onClick={handleDownloadExcel}>
-                        حمّل ملف Excel
+                        حمّل ملف Excel (CSV)
                     </SheetAction>
                 </div>
             </Sheet>

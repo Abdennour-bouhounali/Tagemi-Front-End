@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import { API_BASE_URL } from '../../../../config/environment';
+import { sanitizeHtml } from '../../../../utils/safeHtml';
 
 const AllActivities = ({TypeId}) => {
     const { token } = useContext(AppContext);
@@ -73,7 +74,7 @@ const AllActivities = ({TypeId}) => {
                                 {/* <p className="my-4 pb-4 h-7 text-gray-600">{activity.description}</p> */}
                                 <div
                                     className="my-4 pb-4 h-7 text-gray-600"
-                                    dangerouslySetInnerHTML={{ __html:truncateHtml(activity.description, 100)}}
+                                    dangerouslySetInnerHTML={{ __html:sanitizeHtml(truncateHtml(activity.description, 100))}}
                                 />
                                 <a href="#" className="QC_primary-btn m-auto mt-4">
                                     Read More
