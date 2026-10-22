@@ -82,9 +82,9 @@ const SpecialityTable = ({ specialities, getSpecialites, onAdd }) => {
           أضف التخصصات لتتمكن من اختيارها عند إنشاء حدث.
         </EmptyState>
       ) : (
-        <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
           {filteredSpecialties.map((specialty) => (
-            <li key={specialty.id} className="flex items-center gap-3 ps-4 pe-2 min-h-[3.5rem]">
+            <li key={specialty.id} className="flex items-center gap-3 ps-4 pe-2 min-h-[3.5rem] lg:bg-white lg:border lg:border-line lg:rounded-2xl">
               <p className="flex-1 min-w-0 font-semibold text-ink truncate">{specialty.name}</p>
               <IconButton icon={MoreVertical} label="خيارات" onClick={() => setActionsFor(specialty)} />
             </li>

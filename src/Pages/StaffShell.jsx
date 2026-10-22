@@ -76,7 +76,7 @@ export default function StaffShell() {
       <div className="staff-app min-h-screen lg:ps-24" dir="rtl">
         {/* Top bar */}
         <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-line">
-          <div className="max-w-6xl mx-auto h-14 px-4 flex items-center gap-3">
+          <div className="mx-auto h-14 px-4 lg:px-8 flex items-center gap-3">
             <Link to={staffHome(user)} className="shrink-0" aria-label="الصفحة الرئيسية">
               <img src="/tagemi_logo.png" alt="" className="h-8 w-auto" />
             </Link>
@@ -95,7 +95,7 @@ export default function StaffShell() {
           {tabs.map((tab) => <TabItem key={tab.key} tab={tab} rail />)}
         </nav>
 
-        <main className="max-w-6xl mx-auto px-4 pt-4 pb-28 lg:pb-10">
+        <main className="mx-auto max-w-screen-2xl px-4 lg:px-8 pt-4 lg:pt-6 pb-28 lg:pb-10">
           <Outlet />
         </main>
 

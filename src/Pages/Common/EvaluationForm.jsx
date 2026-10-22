@@ -285,7 +285,7 @@ function EvaluationFormInner() {
   const isLast = step === STEPS.length - 1;
 
   return (
-    <div className="max-w-xl mx-auto px-4 pt-6 pb-32">
+    <div className="max-w-xl lg:max-w-4xl mx-auto px-4 lg:px-8 pt-6 lg:pt-10 pb-32">
       <header className="mb-5">
         <h1 className="font-display text-2xl text-ink leading-snug">قيّم الفحوصات الطبية</h1>
         <p className="mt-1 text-sm text-muted">{event?.name || 'مؤسسة تجمي للتنمية الإنسانية'}</p>
@@ -303,29 +303,31 @@ function EvaluationFormInner() {
         ))}
       </ol>
 
-      <section className="bg-white border border-line rounded-2xl p-4 sm:p-6">
+      <section className="bg-white border border-line rounded-2xl p-4 sm:p-6 lg:p-8">
         {step === 0 && (
           <>
             <h2 className="font-display text-lg text-ink mb-4">معلومات عنك</h2>
-            <Question label="العمر" error={fieldErrors.age_range}>
-              <div role="radiogroup" className="grid grid-cols-2 gap-2">
-                {AGE_RANGES.map((age) => (
-                  <Choice key={age} active={formData.age_range === age} onClick={() => setValue('age_range', age)}>{age}</Choice>
-                ))}
-              </div>
-            </Question>
-            <Question label="الجنس" error={fieldErrors.gender}>
-              <div role="radiogroup" className="grid grid-cols-2 gap-2">
-                {GENDERS.map((gender) => (
-                  <Choice key={gender} active={formData.gender === gender} onClick={() => setValue('gender', gender)}>{gender}</Choice>
-                ))}
-              </div>
-            </Question>
+            <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
+              <Question label="العمر" error={fieldErrors.age_range}>
+                <div role="radiogroup" className="grid grid-cols-2 gap-2">
+                  {AGE_RANGES.map((age) => (
+                    <Choice key={age} active={formData.age_range === age} onClick={() => setValue('age_range', age)}>{age}</Choice>
+                  ))}
+                </div>
+              </Question>
+              <Question label="الجنس" error={fieldErrors.gender}>
+                <div role="radiogroup" className="grid grid-cols-2 gap-2">
+                  {GENDERS.map((gender) => (
+                    <Choice key={gender} active={formData.gender === gender} onClick={() => setValue('gender', gender)}>{gender}</Choice>
+                  ))}
+                </div>
+              </Question>
+            </div>
             <Question label="التخصصات التي زرتها (يمكنك اختيار أكثر من تخصص)" error={fieldErrors.specialties}>
               {specialties.length === 0 ? (
                 <p className="text-sm text-muted">لا توجد تخصصات مسجّلة لهذا الحدث.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {specialties.map((spec, index) => {
                     const checked = formData.specialties.includes(spec);
                     return (
@@ -354,37 +356,41 @@ function EvaluationFormInner() {
           <>
             <h2 className="font-display text-lg text-ink mb-1">قيّم الخدمة</h2>
             <p className="text-sm text-muted mb-5">1 يعني ضعيف و 5 يعني ممتاز.</p>
-            {RATING_QUESTIONS.map((q) => (
-              <RatingRow
-                key={q.field}
-                field={q.field}
-                label={q.label}
-                value={formData[q.field]}
-                onChange={(v) => setValue(q.field, v)}
-                error={fieldErrors[q.field]}
-              />
-            ))}
+            <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
+              {RATING_QUESTIONS.map((q) => (
+                <RatingRow
+                  key={q.field}
+                  field={q.field}
+                  label={q.label}
+                  value={formData[q.field]}
+                  onChange={(v) => setValue(q.field, v)}
+                  error={fieldErrors[q.field]}
+                />
+              ))}
+            </div>
           </>
         )}
 
         {step === 2 && (
           <>
             <h2 className="font-display text-lg text-ink mb-4">ملاحظاتك واقتراحاتك</h2>
-            {TEXT_QUESTIONS.map((q) => (
-              <Field key={q.field} label={q.label} error={fieldErrors[q.field]} className="mb-5">
-                <textarea
-                  name={q.field}
-                  value={formData[q.field]}
-                  onChange={(e) => setValue(q.field, e.target.value)}
-                  rows={3}
-                  className={cx(
-                    'w-full rounded-xl border bg-white p-3 text-base text-ink placeholder:text-muted focus:border-ink focus:outline-none resize-none',
-                    fieldErrors[q.field] ? 'border-red-400' : 'border-line'
-                  )}
-                  placeholder={q.placeholder}
-                />
-              </Field>
-            ))}
+            <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
+              {TEXT_QUESTIONS.map((q) => (
+                <Field key={q.field} label={q.label} error={fieldErrors[q.field]} className="mb-5">
+                  <textarea
+                    name={q.field}
+                    value={formData[q.field]}
+                    onChange={(e) => setValue(q.field, e.target.value)}
+                    rows={3}
+                    className={cx(
+                      'w-full rounded-xl border bg-white p-3 text-base text-ink placeholder:text-muted focus:border-ink focus:outline-none resize-none',
+                      fieldErrors[q.field] ? 'border-red-400' : 'border-line'
+                    )}
+                    placeholder={q.placeholder}
+                  />
+                </Field>
+              ))}
+            </div>
           </>
         )}
 
@@ -404,7 +410,7 @@ function EvaluationFormInner() {
             <div className="rounded-xl bg-paper p-4">
               <h3 className="font-semibold text-ink">معلومات الاتصال (اختياري)</h3>
               <p className="mt-1 mb-3 text-sm text-muted">اتركها إذا كنت ترغب أن نتواصل معك للمتابعة.</p>
-              <div className="space-y-3">
+              <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4">
                 <Field label="الاسم الكامل">
                   <TextInput type="text" name="contact_name" value={formData.contact_name} onChange={(e) => setValue('contact_name', e.target.value)} autoComplete="name" />
                 </Field>
@@ -424,18 +430,18 @@ function EvaluationFormInner() {
 
       {/* Sticky actions within thumb reach */}
       <div className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-line safe-bottom">
-        <div className="max-w-xl mx-auto px-4 py-3 flex gap-2">
+        <div className="max-w-xl lg:max-w-4xl mx-auto px-4 lg:px-8 py-3 flex gap-2">
           {step > 0 && (
             <Button variant="secondary" size="lg" icon={ChevronRight} onClick={goBack} disabled={submitting}>
               السابق
             </Button>
           )}
           {isLast ? (
-            <Button size="lg" icon={Send} className="flex-1" loading={submitting} onClick={handleSubmit}>
+            <Button size="lg" icon={Send} className="flex-1 lg:flex-none lg:w-64 lg:ms-auto" loading={submitting} onClick={handleSubmit}>
               {submitting ? 'جاري الإرسال...' : 'أرسل التقييم'}
             </Button>
           ) : (
-            <Button size="lg" className="flex-1" onClick={goNext}>
+            <Button size="lg" className="flex-1 lg:flex-none lg:w-64 lg:ms-auto" onClick={goNext}>
               التالي
               <ChevronLeft className="w-5 h-5" />
             </Button>

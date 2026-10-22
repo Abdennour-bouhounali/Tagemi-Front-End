@@ -87,7 +87,7 @@ const EvaluationStatistics = () => {
 
   if (!statistics || !statistics.total_evaluations) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-none mx-auto">
         {back}
         <PageHeader title="إحصائيات التقييمات" subtitle={event?.name} />
         <EmptyState icon={BarChart3} title="لا توجد إحصائيات لهذا الحدث">
@@ -110,12 +110,12 @@ const EvaluationStatistics = () => {
     : 0;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       {back}
       <PageHeader title="إحصائيات التقييمات" subtitle={event?.name} />
 
       <StatStrip
-        className="mb-4"
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
           { label: "تقييم", value: statistics.total_evaluations },
           { label: "متوسط من 5", value: avg.overall_average },
@@ -124,7 +124,7 @@ const EvaluationStatistics = () => {
         ]}
       />
 
-      <div className="space-y-4">
+      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
         <Panel title="متوسط التقييم حسب المعيار">
           <ul>
             {ratings.map(([label, value]) => (

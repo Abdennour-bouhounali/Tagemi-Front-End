@@ -311,7 +311,7 @@ const generatePrintDocument = () => {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
         <PageHeader title="إحصائيات الحالات" />
         <ErrorState message={error} onRetry={fetchData} />
@@ -347,7 +347,7 @@ const generatePrintDocument = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
         title="إحصائيات الحالات"
@@ -363,7 +363,7 @@ const generatePrintDocument = () => {
       />
 
       <StatStrip
-        className="mb-4"
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
           { label: "المواعيد", value: totalAppointments },
           ...outcomes.map((o) => ({ label: o.label, value: o.value })),

@@ -37,7 +37,7 @@ export default function ManageSpeciality() {
   const visibleCount = (specialities || []).filter((s) => s.name !== "NoSpeciality").length;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <PageHeader
         title="التخصصات الطبية"
         subtitle={specialities ? `${visibleCount} تخصص متاح لإضافته إلى الأحداث` : undefined}

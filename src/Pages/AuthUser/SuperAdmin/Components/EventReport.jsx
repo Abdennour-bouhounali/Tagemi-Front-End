@@ -583,7 +583,7 @@ export default function EventReport() {
 
   if (loadError) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
         <PageHeader title="تقرير الحدث" />
         <ErrorState message={loadError} onRetry={fetchReport} />
@@ -719,9 +719,13 @@ export default function EventReport() {
               )}
             </div>
           )}
-          {section.fields.map((field) => (
-            <FormField key={field.key} field={field} value={formData[field.key]} onChange={updateField} />
-          ))}
+          {section.fields.length > 0 && (
+            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+              {section.fields.map((field) => (
+                <FormField key={field.key} field={field} value={formData[field.key]} onChange={updateField} />
+              ))}
+            </div>
+          )}
           {section.list && renderList(section.list)}
         </div>
       );
@@ -755,7 +759,7 @@ export default function EventReport() {
           </dl>
         )}
         {shownFields.length > 0 && (
-          <dl className="divide-y divide-line">
+          <dl className="divide-y divide-line lg:divide-y-0 lg:grid lg:grid-cols-2 lg:gap-x-8">
             {shownFields.map((f) => (
               <ReadValue key={f.key} label={f.label} value={formData[f.key]} />
             ))}
@@ -769,7 +773,7 @@ export default function EventReport() {
   const confirmRow = confirm && typeof confirm === "object" ? confirm : null;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
         title={reportExists ? (editing ? "تعديل تقرير الحدث" : "تقرير الحدث") : "تقرير جديد"}

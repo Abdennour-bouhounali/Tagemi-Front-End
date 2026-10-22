@@ -97,7 +97,7 @@ export function Stepper({ step, onStep }) {
 /** Sticky bottom bar of the event form, above the phone tab bar. */
 export function FormActionBar({ children }) {
   return (
-    <div className="sticky bottom-[4.75rem] lg:bottom-4 z-30 mt-6 bg-white border border-line rounded-2xl p-2 flex gap-2">
+    <div className="sticky bottom-[4.75rem] lg:bottom-4 z-30 mt-6 bg-white border border-line rounded-2xl p-2 flex gap-2 lg:max-w-xl lg:ms-auto">
       {children}
     </div>
   );
@@ -140,7 +140,7 @@ const textareaClass =
 export function EventInfoFields({ form, setForm, errors = {}, onStateChange }) {
   const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-x-6 lg:gap-y-4 lg:items-start">
       <Field label="اسم الحدث" error={errors.name}>
         <TextInput value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="مثال: قافلة طبية بأدرار" invalid={!!errors.name} />
       </Field>
@@ -369,7 +369,7 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
           </EmptyState>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
           {value.map((spec, i) => {
             const open = openIndex === i;
             const hoursCount = spec.days.reduce((sum, d) => sum + d.hours.length, 0);
@@ -472,7 +472,7 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
       )}
 
       {value.length > 0 && (
-        <Button variant="secondary" icon={Plus} block className="mt-3" onClick={addSpecialty}>أضف تخصصًا</Button>
+        <Button variant="secondary" icon={Plus} block className="mt-3 lg:w-auto lg:min-w-[16rem]" onClick={addSpecialty}>أضف تخصصًا</Button>
       )}
 
       <ConfirmSheet

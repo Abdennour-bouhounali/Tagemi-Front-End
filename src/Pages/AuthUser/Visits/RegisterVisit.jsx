@@ -517,94 +517,101 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-6 pb-10">
+    <div className="max-w-md lg:max-w-4xl mx-auto px-4 lg:px-8 pt-6 lg:pt-10 pb-10">
       <div className="text-center">
         <CheckCircle2 className="w-12 h-12 mx-auto text-st-queue" />
         <h1 className="mt-2 font-display text-2xl text-ink">تم حجز موعدك</h1>
         <p className="mt-1 text-sm text-muted">{event?.name}</p>
       </div>
 
-      {/* The ticket */}
-      <article className="mt-5 bg-white border border-line rounded-2xl overflow-hidden">
-        <div className="px-5 pt-5 pb-4 text-center">
-          <p className="text-sm text-muted">رقم المريض</p>
-          <p className="font-display text-6xl text-ink leading-tight" dir="ltr">{patientId}</p>
-          <p className="mt-1 text-base font-semibold text-ink">{fullName}</p>
-        </div>
-        <div className="relative border-t-2 border-dashed border-line" aria-hidden="true">
-          <span className="absolute -top-[9px] -start-[9px] w-4 h-4 rounded-full bg-paper border border-line" />
-          <span className="absolute -top-[9px] -end-[9px] w-4 h-4 rounded-full bg-paper border border-line" />
-        </div>
-        {patientId && (
-          <div className="px-5 py-5 flex flex-col items-center">
-            <QRCodeSVG id="patient-qr-code" value={qrValue} size={200} level="H" includeMargin />
-            <p className="mt-2 text-sm text-muted text-center">اعرض هذا الرمز في الاستقبال لتسجيل حضورك بسرعة</p>
-          </div>
-        )}
-        <div className="border-t border-line px-5 py-4">
-          <ul className="space-y-3">
-            {appointments.map((apt, index) => (
-              <li key={index}>
-                <p className="font-semibold text-ink">{apt.specialty}</p>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-                  <span className="inline-flex items-center gap-1"><CalendarDays className="w-4 h-4" />{apt.date}</span>
-                  <span className="inline-flex items-center gap-1"><Clock className="w-4 h-4" /><span dir="ltr">{apt.time}</span></span>
+      {/* Laptop: ticket on one side, what to do on the visit day on the other */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+        <div>
+          {/* The ticket */}
+          <article className="mt-5 bg-white border border-line rounded-2xl overflow-hidden">
+            <div className="px-5 pt-5 pb-4 text-center">
+              <p className="text-sm text-muted">رقم المريض</p>
+              <p className="font-display text-6xl text-ink leading-tight" dir="ltr">{patientId}</p>
+              <p className="mt-1 text-base font-semibold text-ink">{fullName}</p>
+            </div>
+            <div className="relative border-t-2 border-dashed border-line" aria-hidden="true">
+              <span className="absolute -top-[9px] -start-[9px] w-4 h-4 rounded-full bg-paper border border-line" />
+              <span className="absolute -top-[9px] -end-[9px] w-4 h-4 rounded-full bg-paper border border-line" />
+            </div>
+            {patientId && (
+              <div className="px-5 py-5 flex flex-col items-center">
+                <QRCodeSVG id="patient-qr-code" value={qrValue} size={200} level="H" includeMargin />
+                <p className="mt-2 text-sm text-muted text-center">اعرض هذا الرمز في الاستقبال لتسجيل حضورك بسرعة</p>
+              </div>
+            )}
+            <div className="border-t border-line px-5 py-4">
+              <ul className="space-y-3">
+                {appointments.map((apt, index) => (
+                  <li key={index}>
+                    <p className="font-semibold text-ink">{apt.specialty}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                      <span className="inline-flex items-center gap-1"><CalendarDays className="w-4 h-4" />{apt.date}</span>
+                      <span className="inline-flex items-center gap-1"><Clock className="w-4 h-4" /><span dir="ltr">{apt.time}</span></span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              {documentsCount > 0 && (
+                <p className="mt-3 flex items-center gap-2 text-sm text-ink">
+                  <FileText className="w-4 h-4 text-ink-soft" />
+                  أرفقت {documentsCount} {documentsCount === 1 ? 'مستنداً طبياً' : 'مستندات طبية'}
                 </p>
-              </li>
-            ))}
-          </ul>
-          {documentsCount > 0 && (
-            <p className="mt-3 flex items-center gap-2 text-sm text-ink">
-              <FileText className="w-4 h-4 text-ink-soft" />
-              أرفقت {documentsCount} {documentsCount === 1 ? 'مستنداً طبياً' : 'مستندات طبية'}
+              )}
+            </div>
+          </article>
+
+          {waitingMessage && (
+            <p className="mt-4 flex items-start gap-2 rounded-xl bg-st-pushed-bg px-3 py-3 text-sm text-st-pushed">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <span>{waitingMessage}</span>
             </p>
           )}
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Button size="lg" icon={Download} onClick={downloadQRCode}>احفظ الصورة</Button>
+            <Button size="lg" variant="secondary" icon={Printer} onClick={handlePrint}>اطبع</Button>
+          </div>
+          <p className="mt-2 text-xs text-muted text-center">احفظ الصورة في هاتفك أو التقط لقطة شاشة لهذه الصفحة.</p>
         </div>
-      </article>
 
-      {waitingMessage && (
-        <p className="mt-4 flex items-start gap-2 rounded-xl bg-st-pushed-bg px-3 py-3 text-sm text-st-pushed">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span>{waitingMessage}</span>
-        </p>
-      )}
+        <div>
+          <section className="mt-6 lg:mt-5 bg-white border border-line rounded-2xl p-4">
+            <h2 className="font-display text-lg text-ink mb-3">ماذا أفعل يوم الزيارة</h2>
+            <ol className="space-y-3 text-base text-ink">
+              {[
+                'احضر قبل موعدك بـ 15 دقيقة.',
+                `اذهب إلى الاستقبال واعرض رقم المريض ${patientId} أو رمز QR.`,
+                'أحضر معك تقاريرك وتحاليلك السابقة إن وُجدت.',
+                'انتظر في القاعة وتابع دورك على الشاشة أو من هاتفك.',
+              ].map((text, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-ink-faint text-ink font-display text-sm flex items-center justify-center">{i + 1}</span>
+                  <span className="pt-0.5">{text}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-4 text-sm text-muted">
+              إن لم تستطع الحضور، أبلغ المنظمين مسبقاً. سنتواصل معك على الرقم <span dir="ltr" className="font-semibold text-ink">{formData.phone}</span>.
+            </p>
+            <Link
+              to={`/my-turn/${eventID}`}
+              className="mt-4 flex items-center justify-center gap-2 h-12 rounded-xl border border-line bg-white text-base font-semibold text-ink hover:bg-ink-faint"
+            >
+              <TicketIcon className="w-5 h-5" />
+              اعرف دورك يوم الزيارة
+            </Link>
+          </section>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <Button size="lg" icon={Download} onClick={downloadQRCode}>احفظ الصورة</Button>
-        <Button size="lg" variant="secondary" icon={Printer} onClick={handlePrint}>اطبع</Button>
+          <Button variant="ghost" size="lg" block className="mt-4" onClick={onNewBooking}>
+            احجز لشخص آخر
+          </Button>
+        </div>
       </div>
-      <p className="mt-2 text-xs text-muted text-center">احفظ الصورة في هاتفك أو التقط لقطة شاشة لهذه الصفحة.</p>
-
-      <section className="mt-6 bg-white border border-line rounded-2xl p-4">
-        <h2 className="font-display text-lg text-ink mb-3">ماذا أفعل يوم الزيارة</h2>
-        <ol className="space-y-3 text-base text-ink">
-          {[
-            'احضر قبل موعدك بـ 15 دقيقة.',
-            `اذهب إلى الاستقبال واعرض رقم المريض ${patientId} أو رمز QR.`,
-            'أحضر معك تقاريرك وتحاليلك السابقة إن وُجدت.',
-            'انتظر في القاعة وتابع دورك على الشاشة أو من هاتفك.',
-          ].map((text, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span className="shrink-0 w-7 h-7 rounded-full bg-ink-faint text-ink font-display text-sm flex items-center justify-center">{i + 1}</span>
-              <span className="pt-0.5">{text}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-4 text-sm text-muted">
-          إن لم تستطع الحضور، أبلغ المنظمين مسبقاً. سنتواصل معك على الرقم <span dir="ltr" className="font-semibold text-ink">{formData.phone}</span>.
-        </p>
-        <Link
-          to={`/my-turn/${eventID}`}
-          className="mt-4 flex items-center justify-center gap-2 h-12 rounded-xl border border-line bg-white text-base font-semibold text-ink hover:bg-ink-faint"
-        >
-          <TicketIcon className="w-5 h-5" />
-          اعرف دورك يوم الزيارة
-        </Link>
-      </section>
-
-      <Button variant="ghost" size="lg" block className="mt-4" onClick={onNewBooking}>
-        احجز لشخص آخر
-      </Button>
     </div>
   );
 }
@@ -1354,44 +1361,70 @@ const RegisterVisitInner = () => {
 
   const stepContent = [renderPersonalInfo, renderSpecialtySelection, renderRulesAcceptance][currentStep];
   const isLast = currentStep === STEPS.length - 1;
+  const hasName = !!(formData.name || formData.lastName);
+  const chosen = appointmentSummary.filter((_, i) => formData.specialties[i]?.event_specialty_id);
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="max-w-xl mx-auto px-4 pt-5 pb-32">
-      {/* Event */}
-      <header className="mb-5 flex items-start gap-3">
-        <img src={logo} alt="" className="w-14 h-14 shrink-0 rounded-xl border border-line bg-white object-contain" />
+    <form onSubmit={handleSubmit} noValidate className="max-w-xl lg:max-w-5xl mx-auto px-4 lg:px-8 pt-5 lg:pt-8 pb-32">
+      {/* Laptop: event and choices in a side column, the step beside it */}
+      <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:gap-8 lg:items-start">
+        <aside className="lg:sticky lg:top-6">
+          {/* Event */}
+          <header className="mb-5 flex items-start gap-3">
+            <img src={logo} alt="" className="w-14 h-14 shrink-0 rounded-xl border border-line bg-white object-contain" />
+            <div className="min-w-0">
+              <h1 className="font-display text-xl text-ink leading-snug">{event.name}</h1>
+              <p className="mt-1 text-sm text-muted">احجز موعدك للفحص المجاني</p>
+            </div>
+          </header>
+
+          {/* Event details: first step only on phones, kept in the side column on laptops */}
+          <section className={cx('mb-5 bg-white border border-line rounded-2xl p-4 text-sm', currentStep !== 0 && 'hidden lg:block')}>
+            {event.description && <p className="text-ink leading-relaxed mb-3 whitespace-pre-line">{event.description}</p>}
+            <ul className="space-y-1.5 text-ink">
+              {eventDates && (
+                <li className="flex items-start gap-2"><CalendarDays className="w-4 h-4 shrink-0 mt-0.5 text-ink-soft" />{eventDates}</li>
+              )}
+              <li className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-ink-soft" />
+                {event.state || 'سيتم تحديد المكان لاحقاً'}{event.city ? `، ${event.city}` : ''}
+              </li>
+            </ul>
+          </section>
+
+          {/* Laptop only: what was chosen so far (the last step shows the full summary) */}
+          {!isLast && (hasName || chosen.length > 0) && (
+            <section className="hidden lg:block bg-white border border-line rounded-2xl p-4 text-sm">
+              <h3 className="font-display text-base text-ink">ملخص الحجز</h3>
+              {hasName && <p className="mt-1 text-base font-semibold text-ink">{formData.name} {formData.lastName}</p>}
+              {chosen.length > 0 && (
+                <ul className="mt-3 space-y-2 border-t border-line pt-3">
+                  {chosen.map((apt, i) => (
+                    <li key={i}>
+                      <p className="font-semibold text-ink">{apt.specialty}</p>
+                      <p className="text-muted">{apt.date}، الساعة <span dir="ltr">{apt.time}</span></p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </aside>
+
         <div className="min-w-0">
-          <h1 className="font-display text-xl text-ink leading-snug">{event.name}</h1>
-          <p className="mt-1 text-sm text-muted">احجز موعدك للفحص المجاني</p>
+          <StepIndicator current={currentStep} />
+
+          <h2 className="font-display text-lg text-ink mb-4">
+            {currentStep === 0 ? 'بياناتك' : currentStep === 1 ? 'اختر التخصص والموعد' : 'راجع حجزك ووافق على الشروط'}
+          </h2>
+
+          {stepContent()}
         </div>
-      </header>
+      </div>
 
-      {currentStep === 0 && (
-        <section className="mb-5 bg-white border border-line rounded-2xl p-4 text-sm">
-          {event.description && <p className="text-ink leading-relaxed mb-3 whitespace-pre-line">{event.description}</p>}
-          <ul className="space-y-1.5 text-ink">
-            {eventDates && (
-              <li className="flex items-start gap-2"><CalendarDays className="w-4 h-4 shrink-0 mt-0.5 text-ink-soft" />{eventDates}</li>
-            )}
-            <li className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-ink-soft" />
-              {event.state || 'سيتم تحديد المكان لاحقاً'}{event.city ? `، ${event.city}` : ''}
-            </li>
-          </ul>
-        </section>
-      )}
-
-      <StepIndicator current={currentStep} />
-
-      <h2 className="font-display text-lg text-ink mb-4">
-        {currentStep === 0 ? 'بياناتك' : currentStep === 1 ? 'اختر التخصص والموعد' : 'راجع حجزك ووافق على الشروط'}
-      </h2>
-
-      {stepContent()}
-
-      {/* Sticky actions within thumb reach */}
+      {/* Sticky actions within thumb reach; on laptops lined up under the step column */}
       <div className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-line safe-bottom">
-        <div className="max-w-xl mx-auto px-4 py-3 flex gap-2">
+        <div className="max-w-xl lg:max-w-5xl mx-auto px-4 lg:px-8 lg:ps-[24rem] py-3 flex gap-2">
           {currentStep > 0 && (
             <Button variant="secondary" size="lg" icon={ChevronRight} onClick={handleBack} disabled={isSubmitting}>
               السابق

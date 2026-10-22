@@ -201,7 +201,7 @@ export default function CheckPatient() {
     const backTo = user?.role_id === 1 ? `/admin/event-tracking/${eventId}` : `/admin/stations/${eventId}`;
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl lg:max-w-none mx-auto">
             <Link to={backTo} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
                 <ChevronRight className="w-4 h-4" /> كل الطوابير
             </Link>
@@ -235,6 +235,7 @@ export default function CheckPatient() {
             />
 
             {/* Tools: scan, select, export */}
+            <div className="lg:max-w-3xl">
             <div className="flex gap-2 mb-3">
                 {isOfficer && (
                     <Button variant="primary" icon={ScanLine} className="flex-1" onClick={() => setScanAction('complete')}>
@@ -279,6 +280,7 @@ export default function CheckPatient() {
                     { value: '1', label: 'إناث' },
                 ]}
             />
+            </div>
 
             {selecting && (
                 <p className="text-sm text-muted mb-3">اختر المرضى غير الموجودين عند الباب، ثم اضغط «إنزال المحددين».</p>
@@ -289,7 +291,7 @@ export default function CheckPatient() {
                     {appointments.length ? 'جرّب اسماً أو رقماً آخر.' : 'يظهر المرضى هنا عند تسجيل حضورهم في الاستقبال.'}
                 </EmptyState>
             ) : (
-                <ol className="space-y-3">
+                <ol className="space-y-3 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-4 lg:space-y-0">
                     {visible.map((a) => {
                         const queued = inQueue(a);
                         const selected = selectedIds.includes(a.id);
@@ -346,8 +348,8 @@ export default function CheckPatient() {
 
             {/* Bulk bar above the tab bar */}
             {selecting && (
-                <div className="fixed inset-x-0 bottom-[4.75rem] lg:bottom-6 z-40 px-4">
-                    <div className="max-w-2xl mx-auto flex items-center gap-2 bg-ink text-white rounded-2xl p-2 ps-4 shadow-lg">
+                <div className="fixed inset-x-0 lg:start-24 bottom-[4.75rem] lg:bottom-6 z-40 px-4 lg:px-8">
+                    <div className="max-w-2xl lg:max-w-3xl mx-auto flex items-center gap-2 bg-ink text-white rounded-2xl p-2 ps-4 shadow-lg">
                         <span className="flex-1 text-sm font-semibold">تم تحديد {selectedIds.length}</span>
                         <Button variant="warning" icon={ChevronsDown} disabled={!selectedIds.length || busy} onClick={pushDownSelected}>
                             إنزال المحددين

@@ -125,14 +125,14 @@ const Volunteers = () => {
   );
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <PageHeader
         title="المتطوعون"
         subtitle={volunteers ? `${all.length} متطوع سجّلوا عبر موقع المؤسسة` : 'المسجلون عبر موقع المؤسسة'}
         actions={<IconButton icon={MoreVertical} label="خيارات" className="bg-white border border-line" onClick={() => setMenuOpen(true)} />}
       />
 
-      <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم" className="mb-3" />
+      <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم" className="mb-3 lg:max-w-md" />
       {states.length > 0 && (
         <ChipGroup label="الولاية" value={stateFilter} onChange={setStateFilter} options={stateOptions} className="mb-3" />
       )}
@@ -144,9 +144,9 @@ const Volunteers = () => {
           {all.length ? 'جرّب اسماً آخر أو اختر «كل الولايات».' : 'يظهر هنا كل من يملأ استمارة التطوع في موقع المؤسسة.'}
         </EmptyState>
       ) : (
-        <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
           {filtered.map((v) => (
-            <li key={v.id}>
+            <li key={v.id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
               <button
                 type="button"
                 onClick={() => setSelected(v)}

@@ -64,7 +64,7 @@ export default function AppointmentDistribution({ eventId, onClose }) {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-none mx-auto">
         {back}
         <div className="bg-white border border-line rounded-2xl">
           <EmptyState title={error} action={<Button variant="secondary" onClick={fetchDistribution}>أعد المحاولة</Button>}>
@@ -80,7 +80,7 @@ export default function AppointmentDistribution({ eventId, onClose }) {
   const stats = data.statistics || {};
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       {back}
       <PageHeader title="توزيع المواعيد" subtitle={data.event?.name} />
 
@@ -120,7 +120,7 @@ export default function AppointmentDistribution({ eventId, onClose }) {
           <EmptyState title="لا توجد تخصصات في هذا الحدث">أضف التخصصات وأيامها من «عدّل الحدث».</EmptyState>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-4 lg:items-start">
           {data.distribution.map((specialty, specIndex) => {
             const days = specialty.days.filter((d) => day === 'all' || d.formatted_date === day);
             if (days.length === 0) return null;

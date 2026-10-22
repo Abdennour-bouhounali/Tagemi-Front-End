@@ -103,7 +103,7 @@ export default function ManageRules() {
     };
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl lg:max-w-none mx-auto">
             <PageHeader
                 title="ضوابط الفحوصات"
                 subtitle={rules ? `${rules.length} ضابط، تظهر للمرضى قبل الفحص` : 'تظهر للمرضى قبل الفحص'}
@@ -121,9 +121,9 @@ export default function ManageRules() {
                     أضف الضوابط التي يجب أن يعرفها المريض قبل حضوره.
                 </EmptyState>
             ) : (
-                <ol className="bg-white border border-line rounded-2xl divide-y divide-line">
+                <ol className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
                     {rules.map((rule, index) => (
-                        <li key={rule.id} className="flex items-start gap-3 ps-4 pe-2 py-3 min-h-[3.5rem]">
+                        <li key={rule.id} className="flex items-start gap-3 ps-4 pe-2 py-3 min-h-[3.5rem] lg:bg-white lg:border lg:border-line lg:rounded-2xl">
                             <span className="font-display text-sm text-muted w-6 shrink-0 pt-0.5">{index + 1}</span>
                             <p className="flex-1 min-w-0 text-ink leading-relaxed pt-0.5 break-words">{rule.rule}</p>
                             <IconButton icon={MoreVertical} label="خيارات" className="-mt-1.5" onClick={() => setActionsFor(rule)} />

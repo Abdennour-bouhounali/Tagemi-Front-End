@@ -389,7 +389,7 @@ const AddMultipleAppointments = () => {
 
   if (mode === "test" && isSuperAdmin) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-none mx-auto">
         <button type="button" onClick={() => changeMode("same")} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
           <ChevronRight className="w-4 h-4" /> رجوع إلى إضافة المرضى
         </button>
@@ -410,7 +410,7 @@ const AddMultipleAppointments = () => {
             <AlertTriangle className="w-5 h-5" /> منطقة الاختبار
           </h2>
           <p className="text-sm text-muted mb-4">هذه الأدوات تعمل على حدث الاختبار فقط، ولا تستعملها أثناء قافلة حقيقية.</p>
-          <div className="space-y-2">
+          <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:items-center">
             <Button block size="lg" icon={Zap} loading={loading && !confirmTest} disabled={loading || !testEventInfo || testSpecialties.length === 0} onClick={handleCreateTestAppointments}>
               أنشئ المواعيد التجريبية
             </Button>
@@ -449,7 +449,7 @@ const AddMultipleAppointments = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
+    <div className="max-w-2xl lg:max-w-none mx-auto pb-24">
       <PageHeader title="إضافة مواعيد" subtitle="سجّل عدة مرضى دفعة واحدة في حدث نشط" />
 
       <ChipGroup
@@ -463,187 +463,191 @@ const AddMultipleAppointments = () => {
         ]}
       />
 
-      {/* Event + shared slot */}
-      <Panel className="mb-4" title={mode === "same" ? "الحدث والموعد المشترك" : "الحدث"}>
-        <div className="space-y-3">
-          <Field label="الحدث" hint={activeEvents.length === 0 ? "لا يوجد حدث نشط حالياً." : undefined}>
-            <SelectInput
-              value={selectedEvent?.id?.toString() || ""}
-              onChange={(e) => setSelectedEvent(activeEvents.find((ev) => ev.id === parseInt(e.target.value, 10)) || null)}
-            >
-              <option value="">اختر حدثاً نشطاً</option>
-              {activeEvents.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-            </SelectInput>
-          </Field>
-
-          {mode === "same" && (
-            <>
-              <Field label="التخصص">
+      <div className="lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-6 lg:items-start">
+        <div>
+          {/* Event + shared slot */}
+          <Panel className="mb-4" title={mode === "same" ? "الحدث والموعد المشترك" : "الحدث"}>
+            <div className="space-y-3">
+              <Field label="الحدث" hint={activeEvents.length === 0 ? "لا يوجد حدث نشط حالياً." : undefined}>
                 <SelectInput
-                  value={selectedEventSpecialty?.id?.toString() || ""}
-                  disabled={!selectedEvent}
-                  onChange={(e) => setSelectedEventSpecialty(eventSpecialties.find((s) => s.id === parseInt(e.target.value, 10)) || null)}
+                  value={selectedEvent?.id?.toString() || ""}
+                  onChange={(e) => setSelectedEvent(activeEvents.find((ev) => ev.id === parseInt(e.target.value, 10)) || null)}
                 >
-                  <option value="">اختر تخصصاً</option>
-                  {eventSpecialties.map((es) => <option key={es.id} value={es.id}>{specialtyName(es)}</option>)}
+                  <option value="">اختر حدثاً نشطاً</option>
+                  {activeEvents.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
                 </SelectInput>
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="اليوم">
-                  <SelectInput
-                    value={selectedDay?.id?.toString() || ""}
-                    disabled={!selectedEventSpecialty}
-                    onChange={(e) => setSelectedDay(days.find((d) => d.id === parseInt(e.target.value, 10)) || null)}
-                  >
-                    <option value="">اختر</option>
-                    {days.map((d) => <option key={d.id} value={d.id}>{d.name || d.day_date}</option>)}
-                  </SelectInput>
-                </Field>
-                <Field label="الساعة">
-                  <SelectInput
-                    value={selectedHour?.id?.toString() || ""}
-                    disabled={!selectedDay}
-                    onChange={(e) => setSelectedHour(hours.find((h) => h.id === parseInt(e.target.value, 10)) || null)}
-                  >
-                    <option value="">اختر</option>
-                    {hours.map((h) => <option key={h.id} value={h.id}>{h.time || h.hour}</option>)}
-                  </SelectInput>
-                </Field>
-              </div>
-              {availableSlots && (
-                <p className={cx("text-sm rounded-xl px-3 py-2",
-                  availableSlots.available > 0 ? "bg-paper text-ink" : "bg-red-50 text-red-700")}>
-                  الأماكن المتاحة في هذه الساعة:{" "}
-                  <span className="font-display text-base">{availableSlots.available}</span> من {availableSlots.total}
-                  {availableSlots.available === 0 && "، اختر ساعة أخرى."}
-                </p>
+
+              {mode === "same" && (
+                <>
+                  <Field label="التخصص">
+                    <SelectInput
+                      value={selectedEventSpecialty?.id?.toString() || ""}
+                      disabled={!selectedEvent}
+                      onChange={(e) => setSelectedEventSpecialty(eventSpecialties.find((s) => s.id === parseInt(e.target.value, 10)) || null)}
+                    >
+                      <option value="">اختر تخصصاً</option>
+                      {eventSpecialties.map((es) => <option key={es.id} value={es.id}>{specialtyName(es)}</option>)}
+                    </SelectInput>
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="اليوم">
+                      <SelectInput
+                        value={selectedDay?.id?.toString() || ""}
+                        disabled={!selectedEventSpecialty}
+                        onChange={(e) => setSelectedDay(days.find((d) => d.id === parseInt(e.target.value, 10)) || null)}
+                      >
+                        <option value="">اختر</option>
+                        {days.map((d) => <option key={d.id} value={d.id}>{d.name || d.day_date}</option>)}
+                      </SelectInput>
+                    </Field>
+                    <Field label="الساعة">
+                      <SelectInput
+                        value={selectedHour?.id?.toString() || ""}
+                        disabled={!selectedDay}
+                        onChange={(e) => setSelectedHour(hours.find((h) => h.id === parseInt(e.target.value, 10)) || null)}
+                      >
+                        <option value="">اختر</option>
+                        {hours.map((h) => <option key={h.id} value={h.id}>{h.time || h.hour}</option>)}
+                      </SelectInput>
+                    </Field>
+                  </div>
+                  {availableSlots && (
+                    <p className={cx("text-sm rounded-xl px-3 py-2",
+                      availableSlots.available > 0 ? "bg-paper text-ink" : "bg-red-50 text-red-700")}>
+                      الأماكن المتاحة في هذه الساعة:{" "}
+                      <span className="font-display text-base">{availableSlots.available}</span> من {availableSlots.total}
+                      {availableSlots.available === 0 && "، اختر ساعة أخرى."}
+                    </p>
+                  )}
+                </>
               )}
-            </>
+            </div>
+          </Panel>
+
+          {/* Patients already entered */}
+          {appointments.length > 1 && (
+            <ol className="bg-white border border-line rounded-2xl divide-y divide-line mb-3">
+              {appointments.map((p, i) => (
+                <li key={p.key} className={cx("flex items-center gap-2 ps-4 pe-1 min-h-[3rem]", i === current && "bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl")}>
+                  <span className="font-display text-sm text-muted w-5">{i + 1}</span>
+                  <button type="button" className="flex-1 min-w-0 text-start min-h-[3rem]" onClick={() => setCurrent(i)}>
+                    <span className={cx("block truncate", filled(p) ? "text-ink font-semibold" : "text-muted")}>
+                      {filled(p) ? `${p.name} ${p.lastName}`.trim() || p.phone : "مريض بلا بيانات بعد"}
+                    </span>
+                  </button>
+                  {i !== current && <IconButton icon={Pencil} label={`عدّل المريض ${i + 1}`} onClick={() => setCurrent(i)} />}
+                  <IconButton icon={Trash2} label={`احذف المريض ${i + 1}`} className="text-red-700" onClick={() => removePatient(i)} />
+                </li>
+              ))}
+            </ol>
           )}
         </div>
-      </Panel>
 
-      {/* Patients already entered */}
-      {appointments.length > 1 && (
-        <ol className="bg-white border border-line rounded-2xl divide-y divide-line mb-3">
-          {appointments.map((p, i) => (
-            <li key={p.key} className={cx("flex items-center gap-2 ps-4 pe-1 min-h-[3rem]", i === current && "bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl")}>
-              <span className="font-display text-sm text-muted w-5">{i + 1}</span>
-              <button type="button" className="flex-1 min-w-0 text-start min-h-[3rem]" onClick={() => setCurrent(i)}>
-                <span className={cx("block truncate", filled(p) ? "text-ink font-semibold" : "text-muted")}>
-                  {filled(p) ? `${p.name} ${p.lastName}`.trim() || p.phone : "مريض بلا بيانات بعد"}
-                </span>
-              </button>
-              {i !== current && <IconButton icon={Pencil} label={`عدّل المريض ${i + 1}`} onClick={() => setCurrent(i)} />}
-              <IconButton icon={Trash2} label={`احذف المريض ${i + 1}`} className="text-red-700" onClick={() => removePatient(i)} />
-            </li>
-          ))}
-        </ol>
-      )}
+        {/* Current patient */}
+        <Panel
+          title={appointments.length > 1 ? `المريض ${current + 1} من ${appointments.length}` : "بيانات المريض"}
+          actions={appointments.length === 1 && filled(a) ? (
+            <Button variant="ghost" size="sm" icon={RotateCcw} onClick={() => removePatient(0)}>امسح</Button>
+          ) : undefined}
+        >
+          <div className="space-y-3">
+            {mode === "different" && (
+              <div className="space-y-3 pb-3 border-b border-line">
+                <Field label="التخصص" error={err("event_specialty_id")}>
+                  <SelectInput value={a.event_specialty_id} disabled={!selectedEvent} onChange={(e) => changePatientSpecialty(current, e.target.value)}>
+                    <option value="">{selectedEvent ? "اختر تخصصاً" : "اختر الحدث أولاً"}</option>
+                    {eventSpecialties.map((es) => <option key={es.id} value={es.id}>{specialtyName(es)}</option>)}
+                  </SelectInput>
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="اليوم" error={err("day_id")}>
+                    <SelectInput value={a.day_id} disabled={!a.event_specialty_id} onChange={(e) => changePatientDay(current, e.target.value)}>
+                      <option value="">اختر</option>
+                      {a._days.map((d) => <option key={d.id} value={d.id}>{d.name || d.day_date}</option>)}
+                    </SelectInput>
+                  </Field>
+                  <Field label="الساعة" error={err("hour_id")}>
+                    <SelectInput value={a.hour_id} disabled={!a.day_id} onChange={(e) => update(current, { hour_id: e.target.value })}>
+                      <option value="">اختر</option>
+                      {a._hours.map((h) => <option key={h.id} value={h.id}>{h.time || h.hour}</option>)}
+                    </SelectInput>
+                  </Field>
+                </div>
+              </div>
+            )}
 
-      {/* Current patient */}
-      <Panel
-        title={appointments.length > 1 ? `المريض ${current + 1} من ${appointments.length}` : "بيانات المريض"}
-        actions={appointments.length === 1 && filled(a) ? (
-          <Button variant="ghost" size="sm" icon={RotateCcw} onClick={() => removePatient(0)}>امسح</Button>
-        ) : undefined}
-      >
-        <div className="space-y-3">
-          {mode === "different" && (
-            <div className="space-y-3 pb-3 border-b border-line">
-              <Field label="التخصص" error={err("event_specialty_id")}>
-                <SelectInput value={a.event_specialty_id} disabled={!selectedEvent} onChange={(e) => changePatientSpecialty(current, e.target.value)}>
-                  <option value="">{selectedEvent ? "اختر تخصصاً" : "اختر الحدث أولاً"}</option>
-                  {eventSpecialties.map((es) => <option key={es.id} value={es.id}>{specialtyName(es)}</option>)}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="الاسم" error={err("name")}>
+                <TextInput value={a.name} invalid={!!err("name")} onChange={(e) => update(current, { name: e.target.value })} autoComplete="off" />
+              </Field>
+              <Field label="اللقب" error={err("lastName")}>
+                <TextInput value={a.lastName} invalid={!!err("lastName")} onChange={(e) => update(current, { lastName: e.target.value })} autoComplete="off" />
+              </Field>
+            </div>
+
+            <Field label="تاريخ الميلاد" error={err("birthday")}>
+              <TextInput type="date" max={today} value={a.birthday} invalid={!!err("birthday")} onChange={(e) => update(current, { birthday: e.target.value })} />
+            </Field>
+
+            <div>
+              <span className="block mb-1.5 text-sm font-semibold text-ink">الجنس</span>
+              <ChipGroup
+                label="الجنس"
+                value={a.sex}
+                onChange={(v) => update(current, { sex: v })}
+                options={[{ value: "0", label: "ذكر" }, { value: "1", label: "أنثى" }]}
+              />
+              {err("sex") && <span className="block mt-1 text-xs text-red-700">{err("sex")}</span>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="الولاية" error={err("state")}>
+                <SelectInput value={a.state} onChange={(e) => update(current, { state: e.target.value, city: "" })}>
+                  <option value="">اختر</option>
+                  {WILAYAS.map((w) => <option key={w.code} value={w.name_ar}>{w.code} {w.name_ar}</option>)}
                 </SelectInput>
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="اليوم" error={err("day_id")}>
-                  <SelectInput value={a.day_id} disabled={!a.event_specialty_id} onChange={(e) => changePatientDay(current, e.target.value)}>
-                    <option value="">اختر</option>
-                    {a._days.map((d) => <option key={d.id} value={d.id}>{d.name || d.day_date}</option>)}
-                  </SelectInput>
-                </Field>
-                <Field label="الساعة" error={err("hour_id")}>
-                  <SelectInput value={a.hour_id} disabled={!a.day_id} onChange={(e) => update(current, { hour_id: e.target.value })}>
-                    <option value="">اختر</option>
-                    {a._hours.map((h) => <option key={h.id} value={h.id}>{h.time || h.hour}</option>)}
-                  </SelectInput>
-                </Field>
-              </div>
+              <Field label="البلدية" error={err("city")}>
+                <SelectInput value={a.city} disabled={!a.state} onChange={(e) => update(current, { city: e.target.value })}>
+                  <option value="">{a.state ? "اختر" : "الولاية أولاً"}</option>
+                  {communesOf(a.state).map((c) => <option key={c} value={c}>{c}</option>)}
+                </SelectInput>
+              </Field>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="الهاتف" error={err("phone")}>
+                <TextInput type="tel" inputMode="tel" dir="ltr" placeholder="0XXXXXXXXX" value={a.phone} invalid={!!err("phone")} onChange={(e) => update(current, { phone: e.target.value })} />
+              </Field>
+              <Field label="هاتف ثانٍ" hint="اختياري">
+                <TextInput type="tel" inputMode="tel" dir="ltr" placeholder="0XXXXXXXXX" value={a.phone2} onChange={(e) => update(current, { phone2: e.target.value })} />
+              </Field>
+            </div>
+
+            <Field label="الأمراض المزمنة" hint="اختياري">
+              <TextInput value={a.diseases} onChange={(e) => update(current, { diseases: e.target.value })} />
+            </Field>
+          </div>
+
+          <Button
+            variant="secondary"
+            block
+            icon={UserPlus}
+            className="mt-4"
+            disabled={mode === "same" && (!selectedHour || sameSlotFull)}
+            onClick={addPatient}
+          >
+            أضف مريضاً آخر
+          </Button>
+          {mode === "same" && !selectedHour && (
+            <p className="mt-2 text-xs text-muted text-center">اختر التخصص واليوم والساعة أولاً لإضافة أكثر من مريض.</p>
           )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="الاسم" error={err("name")}>
-              <TextInput value={a.name} invalid={!!err("name")} onChange={(e) => update(current, { name: e.target.value })} autoComplete="off" />
-            </Field>
-            <Field label="اللقب" error={err("lastName")}>
-              <TextInput value={a.lastName} invalid={!!err("lastName")} onChange={(e) => update(current, { lastName: e.target.value })} autoComplete="off" />
-            </Field>
-          </div>
-
-          <Field label="تاريخ الميلاد" error={err("birthday")}>
-            <TextInput type="date" max={today} value={a.birthday} invalid={!!err("birthday")} onChange={(e) => update(current, { birthday: e.target.value })} />
-          </Field>
-
-          <div>
-            <span className="block mb-1.5 text-sm font-semibold text-ink">الجنس</span>
-            <ChipGroup
-              label="الجنس"
-              value={a.sex}
-              onChange={(v) => update(current, { sex: v })}
-              options={[{ value: "0", label: "ذكر" }, { value: "1", label: "أنثى" }]}
-            />
-            {err("sex") && <span className="block mt-1 text-xs text-red-700">{err("sex")}</span>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="الولاية" error={err("state")}>
-              <SelectInput value={a.state} onChange={(e) => update(current, { state: e.target.value, city: "" })}>
-                <option value="">اختر</option>
-                {WILAYAS.map((w) => <option key={w.code} value={w.name_ar}>{w.code} {w.name_ar}</option>)}
-              </SelectInput>
-            </Field>
-            <Field label="البلدية" error={err("city")}>
-              <SelectInput value={a.city} disabled={!a.state} onChange={(e) => update(current, { city: e.target.value })}>
-                <option value="">{a.state ? "اختر" : "الولاية أولاً"}</option>
-                {communesOf(a.state).map((c) => <option key={c} value={c}>{c}</option>)}
-              </SelectInput>
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="الهاتف" error={err("phone")}>
-              <TextInput type="tel" inputMode="tel" dir="ltr" placeholder="0XXXXXXXXX" value={a.phone} invalid={!!err("phone")} onChange={(e) => update(current, { phone: e.target.value })} />
-            </Field>
-            <Field label="هاتف ثانٍ" hint="اختياري">
-              <TextInput type="tel" inputMode="tel" dir="ltr" placeholder="0XXXXXXXXX" value={a.phone2} onChange={(e) => update(current, { phone2: e.target.value })} />
-            </Field>
-          </div>
-
-          <Field label="الأمراض المزمنة" hint="اختياري">
-            <TextInput value={a.diseases} onChange={(e) => update(current, { diseases: e.target.value })} />
-          </Field>
-        </div>
-
-        <Button
-          variant="secondary"
-          block
-          icon={UserPlus}
-          className="mt-4"
-          disabled={mode === "same" && (!selectedHour || sameSlotFull)}
-          onClick={addPatient}
-        >
-          أضف مريضاً آخر
-        </Button>
-        {mode === "same" && !selectedHour && (
-          <p className="mt-2 text-xs text-muted text-center">اختر التخصص واليوم والساعة أولاً لإضافة أكثر من مريض.</p>
-        )}
-        {sameSlotFull && (
-          <p className="mt-2 text-xs text-muted text-center">وصلت إلى عدد الأماكن المتاحة في هذه الساعة.</p>
-        )}
-      </Panel>
+          {sameSlotFull && (
+            <p className="mt-2 text-xs text-muted text-center">وصلت إلى عدد الأماكن المتاحة في هذه الساعة.</p>
+          )}
+        </Panel>
+      </div>
 
       {isSuperAdmin && (
         <section className="mt-8 rounded-2xl border border-red-200 bg-white p-4">
@@ -654,8 +658,8 @@ const AddMultipleAppointments = () => {
       )}
 
       {/* Sticky submit bar, above the tab bar on phones */}
-      <div className="fixed inset-x-0 bottom-[4.75rem] lg:bottom-6 lg:ps-24 z-30 px-4 pointer-events-none">
-        <div className="max-w-2xl mx-auto flex items-center gap-2 bg-white border border-line rounded-2xl p-2 ps-4 shadow-lg pointer-events-auto">
+      <div className="fixed inset-x-0 bottom-[4.75rem] lg:bottom-6 lg:ps-24 z-30 px-4 lg:px-8 pointer-events-none">
+        <div className="max-w-2xl lg:max-w-[92rem] mx-auto flex items-center gap-2 bg-white border border-line rounded-2xl p-2 ps-4 shadow-lg pointer-events-auto">
           <span className="flex-1 text-sm text-muted">
             <span className="font-display text-lg text-ink">{appointments.length}</span> {appointments.length === 1 ? "مريض" : "مرضى"}
           </span>

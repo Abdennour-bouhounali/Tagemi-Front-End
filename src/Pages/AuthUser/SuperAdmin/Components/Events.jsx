@@ -191,7 +191,7 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
 
   if (screen?.type === 'admins') {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-4xl mx-auto">
         <button type="button" onClick={() => setScreen(null)} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
           <ChevronRight className="w-4 h-4" /> الأحداث
         </button>
@@ -204,7 +204,7 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
   const m = menuEvent;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <PageHeader
         title="الأحداث"
         subtitle="اضغط على حدث لمتابعته"
@@ -212,7 +212,7 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
       />
 
       {events.length > 6 && (
-        <SearchField value={query} onChange={setQuery} placeholder="ابحث باسم الحدث أو الولاية" className="mb-3" />
+        <SearchField value={query} onChange={setQuery} placeholder="ابحث باسم الحدث أو الولاية" className="mb-3 lg:max-w-md" />
       )}
       {events.length > 0 && (
         <ChipGroup
@@ -242,11 +242,11 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
           <EmptyState title="لا يوجد حدث بهذا البحث">غيّر كلمة البحث أو اختر «الكل».</EmptyState>
         </div>
       ) : (
-        <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
           {visible.map((event) => {
             const place = [event.city, event.state].filter(Boolean).join('، ');
             return (
-              <li key={event.id} className="flex items-center gap-1 pe-1">
+              <li key={event.id} className="flex items-center gap-1 pe-1 lg:bg-white lg:border lg:border-line lg:rounded-2xl">
                 <Link
                   to={`/admin/event-tracking/${event.id}`}
                   className="flex-1 min-w-0 flex items-center gap-3 ps-4 py-3 min-h-[4.5rem] hover:bg-ink-faint rounded-2xl"

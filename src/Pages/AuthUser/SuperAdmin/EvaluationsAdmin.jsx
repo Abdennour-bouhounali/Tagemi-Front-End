@@ -222,14 +222,14 @@ const EvaluationsAdmin = () => {
     ) : null);
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl lg:max-w-none mx-auto">
             <PageHeader
                 title="التقييمات"
                 subtitle="آراء المرضى بعد الحملات الطبية"
                 actions={<IconButton icon={MoreVertical} label="خيارات" className="bg-white border border-line" onClick={() => setMenuOpen(true)} />}
             />
 
-            <Field label="الحدث" className="mb-3">
+            <Field label="الحدث" className="mb-3 lg:max-w-md">
                 <SelectInput value={selectedEvent} onChange={(e) => setSelectedEvent(e.target.value)}>
                     <option value="">كل الأحداث</option>
                     {events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}
@@ -265,11 +265,11 @@ const EvaluationsAdmin = () => {
                     {all.length ? 'اختر حدثاً آخر أو «الكل» لعرض تقييمات أخرى.' : 'تظهر هنا التقييمات التي يرسلها المرضى بعد زيارتهم.'}
                 </EmptyState>
             ) : (
-                <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+                <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
                     {filtered.map((ev) => {
                         const avg = averageOf(ev);
                         return (
-                            <li key={ev.id}>
+                            <li key={ev.id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
                                 <button
                                     type="button"
                                     onClick={() => openDetails(ev)}

@@ -145,7 +145,7 @@ export default function AddEvent({ getEvents, onClose }) {
   if (credentials) {
     const list = [credentials.special_admin, credentials.recipient_admin, credentials.check_admin].filter(Boolean);
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-none mx-auto">
         <PageHeader title="أُنشئ الحدث" subtitle={form.name || undefined} />
         <section className="bg-white border border-line rounded-2xl p-4">
           <div className="flex items-start gap-3 mb-2">
@@ -154,11 +154,11 @@ export default function AddEvent({ getEvents, onClose }) {
               هذه حسابات فريق الحدث. لن تظهر كلمات المرور مرة أخرى، فحمّل الملف أو انسخها الآن.
             </p>
           </div>
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-line lg:grid lg:grid-cols-3 lg:gap-6 lg:divide-y-0">
             {list.map((c) => <CredentialRow key={c.type} credential={c} />)}
           </ul>
         </section>
-        <div className="mt-4 flex flex-col sm:flex-row gap-2">
+        <div className="mt-4 flex flex-col sm:flex-row gap-2 lg:max-w-2xl lg:ms-auto">
           <Button icon={Download} size="lg" className="flex-1" onClick={() => downloadCredentialsCsv(list, `${form.name || 'event'}_credentials.csv`)}>
             حمّل الحسابات (CSV)
           </Button>
@@ -169,7 +169,7 @@ export default function AddEvent({ getEvents, onClose }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
         <ChevronRight className="w-4 h-4" /> الأحداث
       </button>
@@ -203,7 +203,7 @@ export default function AddEvent({ getEvents, onClose }) {
           )}
 
           {step === 2 && (
-            <div className="space-y-5">
+            <div className="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6 lg:items-start">
               <section>
                 <h2 className="font-display text-lg text-ink mb-1">ضوابط الحدث</h2>
                 <p className="text-sm text-muted mb-3">يقرأ المريض هذه الضوابط قبل الحجز.</p>

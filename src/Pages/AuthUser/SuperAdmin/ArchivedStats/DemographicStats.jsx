@@ -457,7 +457,7 @@ const DemographicStats = () => {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
         <PageHeader title="إحصائيات ديموغرافية" />
         <ErrorState message={error} onRetry={fetchData} />
@@ -483,7 +483,7 @@ const DemographicStats = () => {
   const topAge = ageChartData.reduce((best, item) => (!best || item.value > best.value ? item : best), null);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
         title="إحصائيات ديموغرافية"
@@ -499,7 +499,7 @@ const DemographicStats = () => {
       />
 
       <StatStrip
-        className="mb-4"
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
           { label: "المرضى", value: totalPatients },
           ...genderParts.map((g) => ({ label: g.label, value: g.value })),

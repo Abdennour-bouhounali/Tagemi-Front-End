@@ -375,7 +375,7 @@ const generatePrintDocument = () => {
 
   if (error && appointments.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
         <PageHeader title="قائمة المرضى" subtitle={event?.name} />
         <ErrorState message={error} onRetry={() => { setError(""); fetchPatients(); }} />
@@ -384,7 +384,7 @@ const generatePrintDocument = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
         title="قائمة المرضى"
@@ -400,8 +400,8 @@ const generatePrintDocument = () => {
       />
 
       {/* Filters */}
-      <div className="space-y-3 mb-4">
-        <div className="flex gap-2">
+      <div className="space-y-3 mb-4 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-3">
+        <div className="flex gap-2 lg:flex-1 lg:min-w-[22rem]">
           <SearchField
             className="flex-1"
             value={searchInput}
@@ -425,6 +425,7 @@ const generatePrintDocument = () => {
           value={statusFilter}
           onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}
           options={STATUS_OPTIONS}
+          className="lg:mx-0 lg:px-0"
         />
         {(specialtyName || hasFilters) && (
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted">

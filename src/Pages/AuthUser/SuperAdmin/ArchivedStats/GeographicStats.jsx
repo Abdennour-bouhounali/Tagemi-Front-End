@@ -187,7 +187,7 @@ const generatePrintDocument = () => {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
         <PageHeader title="إحصائيات جغرافية" />
         <ErrorState message={error} onRetry={fetchData} />
@@ -209,7 +209,7 @@ const generatePrintDocument = () => {
   const average = (count) => (count > 0 ? Math.round(totalPatients / count) : 0);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
         title="إحصائيات جغرافية"
@@ -225,7 +225,7 @@ const generatePrintDocument = () => {
       />
 
       <StatStrip
-        className="mb-4"
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
           { label: "المرضى", value: totalPatients },
           { label: "الولايات", value: stateStats.length },
@@ -253,9 +253,9 @@ const generatePrintDocument = () => {
             </Panel>
           </div>
 
-          <Panel title="أعلى المدن">
+          <Panel title="أعلى المدن" bodyClassName="xl:grid xl:grid-cols-2 xl:gap-6 xl:items-start">
             <HBarChart data={cityChartData} bars={[{ key: "value", name: "المرضى", color: CHART.inkSoft }]} />
-            <div className="mt-4">
+            <div className="mt-4 xl:mt-0">
               <ResponsiveTable
                 columns={cityColumns}
                 rows={cityStats.map((stat, index) => ({ ...stat, rank: index + 1 }))}

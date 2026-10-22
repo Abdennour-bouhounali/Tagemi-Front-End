@@ -126,7 +126,7 @@ export default function AllUsers() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <PageHeader
         title="المستخدمون"
         subtitle="الأدوار والأحداث المعيّنة لكل عضو في الطاقم"
@@ -143,7 +143,7 @@ export default function AllUsers() {
         ]}
       />
 
-      <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم أو البريد أو الهاتف" className="mb-3" />
+      <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم أو البريد أو الهاتف" className="mb-3 lg:max-w-md" />
       <ChipGroup label="الدور" value={filterRole} onChange={setFilterRole} options={roleOptions} className="mb-2" />
       <ChipGroup label="الحدث" value={filterEvent} onChange={setFilterEvent} options={eventOptions} className="mb-3" />
       <p className="text-xs text-muted mb-3">{filteredUsers.length} من {all.length} مستخدم</p>
@@ -155,9 +155,9 @@ export default function AllUsers() {
           {all.length ? "غيّر الدور أو الحدث، أو امسح البحث." : "انسخ رابط التسجيل من القائمة ⋮ وأرسله إلى أعضاء الطاقم."}
         </EmptyState>
       ) : (
-        <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
           {filteredUsers.map((user) => (
-            <li key={user.id}>
+            <li key={user.id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
               <button
                 type="button"
                 onClick={() => setSelected(user)}

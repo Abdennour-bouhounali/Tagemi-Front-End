@@ -277,7 +277,7 @@ const generatePrintDocument = () => {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
         <PageHeader title="إحصائيات التخصصات" />
         <ErrorState message={error} onRetry={fetchData} />
@@ -295,7 +295,7 @@ const generatePrintDocument = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
         title="إحصائيات التخصصات"
@@ -311,7 +311,7 @@ const generatePrintDocument = () => {
       />
 
       <StatStrip
-        className="mb-4"
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
           { label: "المواعيد", value: totalAppointments },
           { label: "التخصصات", value: statistics.length },
@@ -326,7 +326,7 @@ const generatePrintDocument = () => {
           <p className="py-6 text-center text-sm text-muted">لا توجد مواعيد مؤرشفة لهذا الحدث.</p>
         </Panel>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 2xl:space-y-0 2xl:grid 2xl:grid-cols-2 2xl:gap-4 2xl:items-start">
           <Panel title="المواعيد حسب التخصص">
             <ChartLegend className="mb-2" items={OUTCOME_BARS.map((b) => ({ label: b.name, color: b.color }))} />
             <HBarChart

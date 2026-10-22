@@ -542,7 +542,7 @@ const ComprehensiveReport = () => {
 
   if (error || !report) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
         <PageHeader title="التقرير الشامل" />
         <ErrorState message={error} onRetry={fetchReport} />
@@ -580,7 +580,7 @@ const ComprehensiveReport = () => {
   const oneBar = [{ key: "value", name: "العدد", color: CHART.inkSoft }];
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
         title="التقرير الشامل"
@@ -596,7 +596,7 @@ const ComprehensiveReport = () => {
       />
 
       <StatStrip
-        className="mb-4"
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
           { label: "المواعيد", value: total },
           ...outcomes.map((o) => ({ label: o.label, value: o.value })),
@@ -646,9 +646,9 @@ const ComprehensiveReport = () => {
           </Panel>
         </div>
 
-        <Panel title="حسب التخصص">
+        <Panel title="حسب التخصص" bodyClassName="xl:grid xl:grid-cols-2 xl:gap-6 xl:items-start">
           <HBarChart data={specialtyData} bars={oneBar} />
-          <div className="mt-4">
+          <div className="mt-4 xl:mt-0">
             <ResponsiveTable
               columns={[
                 { key: "name", label: "التخصص", primary: true },

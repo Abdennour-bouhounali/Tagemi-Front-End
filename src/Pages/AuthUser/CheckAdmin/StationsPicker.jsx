@@ -36,16 +36,16 @@ export default function StationsPicker() {
   const rooms = data.stations.filter((s) => s.has_dilatation);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <PageHeader title="اختر الطابور" subtitle={`طوابير اليوم في ${data.event.name}`} />
 
       {data.stations.length === 0 ? (
         <EmptyState title="لا توجد تخصصات في هذا الحدث" />
       ) : (
-        <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
           {data.stations.map((s) => (
-            <li key={s.event_specialty_id}>
-              <Link to={`/admin/event-waiting-lists/${eventId}/${s.specialty_id}`} className="flex items-center gap-3 px-4 min-h-[4.5rem] hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl">
+            <li key={s.event_specialty_id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
+              <Link to={`/admin/event-waiting-lists/${eventId}/${s.specialty_id}`} className="flex items-center gap-3 px-4 min-h-[4.5rem] hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl lg:rounded-2xl">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-ink truncate flex items-center gap-2">
                     {s.name}
@@ -67,10 +67,10 @@ export default function StationsPicker() {
       {rooms.length > 0 && (
         <>
           <h2 className="font-display text-lg text-ink mt-6 mb-2">قاعات التمدد</h2>
-          <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+          <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
             {rooms.map((s) => (
-              <li key={s.event_specialty_id}>
-                <Link to={`/admin/dilatation/${eventId}/${s.event_specialty_id}`} className="flex items-center gap-3 px-4 min-h-[4.5rem] hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl">
+              <li key={s.event_specialty_id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
+                <Link to={`/admin/dilatation/${eventId}/${s.event_specialty_id}`} className="flex items-center gap-3 px-4 min-h-[4.5rem] hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl lg:rounded-2xl">
                   <Droplets className="w-6 h-6 text-st-dil shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-ink truncate">قاعة تمدد {s.name}</p>

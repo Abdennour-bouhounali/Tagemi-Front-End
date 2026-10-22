@@ -180,7 +180,7 @@ const Messages = () => {
   const typeOptions = [{ value: '', label: 'كل الأنواع' }, ...Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }))];
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <PageHeader
         title="الرسائل"
         subtitle="رسائل نموذج التواصل في موقع المؤسسة"
@@ -196,7 +196,7 @@ const Messages = () => {
         ]}
       />
 
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-3 lg:max-w-xl">
         <SearchField value={cityFilter} onChange={setCityFilter} placeholder="ابحث بالولاية أو الاسم أو الهاتف" className="flex-1" />
         <IconButton
           icon={SlidersHorizontal}
@@ -231,9 +231,9 @@ const Messages = () => {
           {all.length ? 'غيّر حالة المعالجة أو امسح البحث لعرض رسائل أخرى.' : 'تظهر هنا الرسائل التي يرسلها الزوار من صفحة التواصل.'}
         </EmptyState>
       ) : (
-        <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
           {filtered.map((m) => (
-            <li key={m.id}>
+            <li key={m.id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
               <button
                 type="button"
                 onClick={() => setOpenMsg(m)}

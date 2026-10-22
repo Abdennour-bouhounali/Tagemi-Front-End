@@ -1823,7 +1823,7 @@ ${appointmentsList}
   });
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       {isAdmin && (
         <Link to={`/admin/event-tracking/${eventId}`} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
           <ChevronRight className="w-4 h-4" /> متابعة الحدث
@@ -1838,6 +1838,9 @@ ${appointmentsList}
         )}
       />
 
+      {/* Laptop: check-in panel in a sticky side column, patients in the rest */}
+      <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] lg:gap-6 lg:items-start">
+      <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
       {/* Check-in: the main job of this screen */}
       {canCheckIn && (
         <form onSubmit={handleManualCheckIn} className="bg-white border border-line rounded-2xl p-4 mb-3">
@@ -1883,7 +1886,7 @@ ${appointmentsList}
       </div>
 
       <StatStrip
-        className="mb-4"
+        className="mb-4 lg:mb-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0 lg:pb-0"
         items={[
           { label: `مريض (${stats.totalAppointments} موعد)`, value: stats.total },
           { label: 'حضروا', value: stats.arrived, tone: 'text-st-queue' },
@@ -1895,7 +1898,9 @@ ${appointmentsList}
           { label: `رابط التقييم من ${evaluatedStats.total || 0}`, value: evaluatedStats.evaluated || 0 },
         ]}
       />
+      </aside>
 
+      <div className="min-w-0">
       {/* Filters */}
       <div className="flex gap-2 mb-3">
         <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم أو الرقم أو الهاتف" className="flex-1 min-w-0" />
@@ -1933,7 +1938,7 @@ ${appointmentsList}
         </EmptyState>
       ) : (
         <>
-          <ul className="space-y-2">
+          <ul className="space-y-2 2xl:grid 2xl:grid-cols-2 2xl:gap-3 2xl:space-y-0">
             {shownPatients.map((p) => {
               const special = isSpecialPatient(p);
               const docs = patientDocuments(p);
@@ -1988,6 +1993,8 @@ ${appointmentsList}
           )}
         </>
       )}
+      </div>
+      </div>
 
       {/* ⋮ per patient */}
       <Sheet open={!!actionsFor} onClose={closeActions} title={actionsFor ? `#${actionsFor.patient_id} ${actionsFor.full_name || ''}` : ''}>

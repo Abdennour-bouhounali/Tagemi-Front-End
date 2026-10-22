@@ -17,10 +17,10 @@ function LinkList({ title, items }) {
   return (
     <section className="mb-6">
       <h2 className="font-display text-lg text-ink mb-2">{title}</h2>
-      <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+      <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
         {items.map((item) => (
-          <li key={item.path}>
-            <Link to={item.path} className="flex items-center gap-3 px-4 min-h-[4rem] py-2 hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl">
+          <li key={item.path} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
+            <Link to={item.path} className="flex items-center gap-3 px-4 min-h-[4rem] py-2 hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl lg:rounded-2xl lg:h-full">
               <item.icon className={`w-5 h-5 shrink-0 ${item.tone || 'text-muted'}`} />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-ink truncate">{item.title}</p>
@@ -157,7 +157,7 @@ const EventTracking = () => {
   const place = [event?.city, event?.state].filter(Boolean).join('، ');
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       {back}
       <PageHeader
         title={event?.name}
@@ -177,7 +177,7 @@ const EventTracking = () => {
 
       {archived ? (
         <>
-          <p className="flex items-start gap-2 text-sm text-muted bg-white border border-line rounded-2xl px-4 py-3 mb-5">
+          <p className="flex items-start gap-2 text-sm text-muted bg-white border border-line rounded-2xl px-4 py-3 mb-5 lg:max-w-3xl">
             <Archive className="w-5 h-5 shrink-0" />
             هذا الحدث مؤرشف: يمكنك عرض الإحصائيات والتقارير فقط. لاستعادته افتح قائمة الأحداث.
           </p>
@@ -202,7 +202,7 @@ const EventTracking = () => {
       )}
 
       {event?.description && (
-        <section className="mb-6">
+        <section className="mb-6 lg:max-w-3xl">
           <h2 className="font-display text-lg text-ink mb-2">عن الحدث</h2>
           <p className="text-sm text-ink bg-white border border-line rounded-2xl px-4 py-3 whitespace-pre-line">{event.description}</p>
         </section>

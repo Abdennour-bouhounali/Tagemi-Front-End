@@ -13,6 +13,9 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString("ar-DZ", { weekday: "long", day: "numeric", month: "long" });
 };
 
+// 9 digits or more is a phone number (0555 12 34 56, +213...); fewer is a patient number
+const isPhone = (value) => value.replace(/\D/g, "").length >= 9;
+
 const formatTime = (timeStr) => (timeStr ? String(timeStr).slice(0, 5) : "");
 
 const peopleBeforeText = (n) => {
@@ -123,11 +126,56 @@ function StateCard({ appt, showDate }) {
   );
 }
 
+function PatientTurn({ patient, single }) {
+  const appointments = patient.appointments || [];
+  const todayAppts = appointments.filter((a) => a.is_today);
+  const otherAppts = appointments
+    .filter((a) => !a.is_today)
+    .sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`));
+  const inQueue = todayAppts.filter((a) => a.state === "in_queue");
+  const todayRest = todayAppts.filter((a) => a.state !== "in_queue");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-baseline justify-between gap-2 border-b border-line pb-2">
+        {!single && <h2 className="font-display text-xl text-ink">{patient.first_name}</h2>}
+        <p className="text-sm text-muted">رقم المريض <span className="font-semibold text-ink" dir="ltr">{patient.patient_id}</span></p>
+      </div>
+
+      <section className="space-y-3">
+        <h3 className="font-display text-base text-ink">مواعيد اليوم</h3>
+        {todayAppts.length === 0 ? (
+          <div className="bg-white border border-line rounded-2xl">
+            <EmptyState icon={CalendarDays} title="لا توجد مواعيد اليوم">المواعيد القادمة تظهر أسفل هذا القسم.</EmptyState>
+          </div>
+        ) : (
+          <>
+            {inQueue.map((a, i) => (
+              <InQueueCard key={`q-${a.specialty}-${i}`} appt={a} />
+            ))}
+            {todayRest.map((a, i) => (
+              <StateCard key={`t-${a.specialty}-${i}`} appt={a} showDate={false} />
+            ))}
+          </>
+        )}
+      </section>
+
+      {otherAppts.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="font-display text-base text-ink">مواعيد أخرى</h3>
+          {otherAppts.map((a, i) => (
+            <StateCard key={`o-${a.specialty}-${a.date}-${i}`} appt={a} showDate />
+          ))}
+        </section>
+      )}
+    </div>
+  );
+}
+
 export default function MyTurn() {
   const { eventId } = useParams();
 
-  const [patientId, setPatientId] = useState("");
-  const [phone, setPhone] = useState("");
+  const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -156,11 +204,7 @@ export default function MyTurn() {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            event_id: eventId,
-            patient_id: creds.patientId,
-            phone: creds.phone,
-          }),
+          body: JSON.stringify({ event_id: eventId, ...creds }),
         });
 
         let data = {};
@@ -224,73 +268,50 @@ export default function MyTurn() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const pid = patientId.trim();
-    const ph = phone.trim();
-    if (!pid || !ph) {
-      setError("يرجى إدخال رقم المريض ورقم الهاتف");
+    const value = query.trim();
+    if (!value.replace(/\D/g, "")) {
+      setError("يرجى إدخال رقم المريض أو رقم الهاتف");
       return;
     }
-    lookup({ patientId: pid, phone: ph });
+    lookup(isPhone(value) ? { phone: value } : { patient_id: value.replace(/\D/g, "") });
   };
 
   const handleChangePatient = () => {
     credsRef.current = null;
     setResult(null);
-    setPatientId("");
-    setPhone("");
+    setQuery("");
     setError("");
     setFieldErrors({});
   };
 
-  const appointments = result?.appointments || [];
-  const todayAppts = appointments.filter((a) => a.is_today);
-  const otherAppts = appointments
-    .filter((a) => !a.is_today)
-    .sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`));
-  const inQueue = todayAppts.filter((a) => a.state === "in_queue");
-  const todayRest = todayAppts.filter((a) => a.state !== "in_queue");
-
+  const patients = result?.patients || [];
   const firstError = (key) => {
     const v = fieldErrors[key];
     return Array.isArray(v) ? v[0] : v;
   };
+  const queryError = firstError("patient_id") || firstError("phone");
 
   return (
     <div dir="rtl" className="staff-app min-h-screen">
-      <div className="mx-auto w-full max-w-md px-4 py-6">
+      <div className={cx("mx-auto w-full px-4 py-6 lg:py-10", result ? (patients.length > 1 ? "max-w-6xl" : "max-w-2xl") : "max-w-md")}>
         {!result ? (
-          <div className="bg-white border border-line rounded-2xl p-5">
+          <div className="bg-white border border-line rounded-2xl p-5 lg:p-8">
             <div className="mb-5 text-center">
               <TicketIcon className="w-10 h-10 mx-auto mb-2 text-ink" />
               <h1 className="font-display text-2xl text-ink">اعرف دورك</h1>
-              <p className="mt-1 text-sm text-muted">أدخل رقم المريض المكتوب على وصل الحجز، ورقم الهاتف الذي سجّلت به.</p>
+              <p className="mt-1 text-sm text-muted">أدخل رقم المريض المكتوب على وصل الحجز، أو رقم الهاتف الذي حجزت به.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              <Field label="رقم المريض" error={firstError("patient_id")}>
+              <Field label="رقم المريض أو رقم الهاتف" error={queryError} hint="رقم الهاتف يعرض كل المرضى الذين حُجز لهم بهذا الرقم">
                 <TextInput
-                  id="patient_id"
+                  id="query"
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="off"
-                  value={patientId}
-                  onChange={(e) => setPatientId(e.target.value.replace(/\D/g, ""))}
-                  invalid={!!firstError("patient_id")}
-                  className="h-14 text-xl text-center"
-                  dir="ltr"
-                />
-              </Field>
-
-              <Field label="رقم الهاتف" error={firstError("phone")}>
-                <TextInput
-                  id="phone"
-                  type="tel"
                   inputMode="tel"
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  invalid={!!firstError("phone")}
+                  autoComplete="off"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value.replace(/[^\d+\s]/g, ""))}
+                  invalid={!!queryError}
                   className="h-14 text-xl text-center"
                   dir="ltr"
                 />
@@ -311,9 +332,10 @@ export default function MyTurn() {
         ) : (
           <div className="space-y-5">
             <div>
-              <h1 className="font-display text-2xl text-ink">مرحبًا {result.first_name}</h1>
+              <h1 className="font-display text-2xl text-ink">
+                {patients.length === 1 ? `مرحبًا ${patients[0].first_name}` : `${patients.length} مرضى بهذا الرقم`}
+              </h1>
               {result.event?.name && <p className="mt-1 text-sm text-muted">{result.event.name}</p>}
-              <p className="mt-1 text-sm text-muted">رقم المريض <span className="font-semibold text-ink" dir="ltr">{result.patient_id}</span></p>
             </div>
 
             {error && (
@@ -323,38 +345,17 @@ export default function MyTurn() {
               </p>
             )}
 
-            <section className="space-y-3">
-              <h2 className="font-display text-base text-ink">مواعيد اليوم</h2>
-              {todayAppts.length === 0 ? (
-                <div className="bg-white border border-line rounded-2xl">
-                  <EmptyState icon={CalendarDays} title="لا توجد مواعيد لك اليوم">مواعيدك القادمة تظهر أسفل هذه الصفحة.</EmptyState>
-                </div>
-              ) : (
-                <>
-                  {inQueue.map((a, i) => (
-                    <InQueueCard key={`q-${a.specialty}-${i}`} appt={a} />
-                  ))}
-                  {todayRest.map((a, i) => (
-                    <StateCard key={`t-${a.specialty}-${i}`} appt={a} showDate={false} />
-                  ))}
-                </>
-              )}
-            </section>
-
-            {otherAppts.length > 0 && (
-              <section className="space-y-3">
-                <h2 className="font-display text-base text-ink">مواعيد أخرى</h2>
-                {otherAppts.map((a, i) => (
-                  <StateCard key={`o-${a.specialty}-${a.date}-${i}`} appt={a} showDate />
-                ))}
-              </section>
-            )}
+            <div className={cx("grid gap-8", patients.length > 1 && "md:grid-cols-2 xl:grid-cols-3")}>
+              {patients.map((p) => (
+                <PatientTurn key={p.patient_id} patient={p} single={patients.length === 1} />
+              ))}
+            </div>
 
             <p className="text-center text-xs text-muted">
               آخر تحديث <span dir="ltr">{result.checked_at}</span>. تتحدّث الصفحة وحدها كل 30 ثانية.
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
               <Button
                 size="lg"
                 icon={RefreshCw}

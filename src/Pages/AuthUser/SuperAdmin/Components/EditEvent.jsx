@@ -203,7 +203,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
         <ChevronRight className="w-4 h-4" /> الأحداث
       </button>
@@ -241,7 +241,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
           )}
 
           {step === 2 && (
-            <div className="space-y-5">
+            <div className="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6 lg:items-start">
               <section>
                 <h2 className="font-display text-lg text-ink mb-1">ضوابط الحدث</h2>
                 <p className="text-sm text-muted mb-3">يقرأ المريض هذه الضوابط قبل الحجز.</p>

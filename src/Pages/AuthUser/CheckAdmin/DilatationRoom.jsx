@@ -81,7 +81,7 @@ export default function DilatationRoom() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto">
       <Link to={backTo} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
         <ChevronRight className="w-4 h-4" /> كل الطوابير
       </Link>
@@ -95,13 +95,15 @@ export default function DilatationRoom() {
         ]}
       />
 
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+      <section>
       <h2 className="flex items-center gap-2 font-display text-lg text-ink mb-2">
         <Footprints className="w-5 h-5 text-st-pushed" /> في الطريق إلى القاعة
       </h2>
       {data.coming.length === 0 ? (
-        <p className="text-sm text-muted bg-white border border-line rounded-2xl px-4 py-5 mb-6 text-center">لا أحد في الطريق الآن.</p>
+        <p className="text-sm text-muted bg-white border border-line rounded-2xl px-4 py-5 mb-6 lg:mb-0 text-center">لا أحد في الطريق الآن.</p>
       ) : (
-        <ol className="space-y-3 mb-6">
+        <ol className="space-y-3 mb-6 lg:mb-0 2xl:grid 2xl:grid-cols-2 2xl:gap-3 2xl:space-y-0">
           {data.coming.map((p) => (
             <li key={p.id}>
               <Ticket position={minutesSince(p.dilatation_sent_at)} stubCaption="دقيقة">
@@ -115,14 +117,16 @@ export default function DilatationRoom() {
           ))}
         </ol>
       )}
+      </section>
 
+      <section>
       <h2 className="flex items-center gap-2 font-display text-lg text-ink mb-2">
         <Timer className="w-5 h-5 text-st-dil" /> في التمدد
       </h2>
       {data.in_room.length === 0 ? (
         <EmptyState title="القاعة فارغة">يظهر المرضى هنا بعد تسجيل وصولهم.</EmptyState>
       ) : (
-        <ol className="space-y-3">
+        <ol className="space-y-3 2xl:grid 2xl:grid-cols-2 2xl:gap-3 2xl:space-y-0">
           {data.in_room.map((p) => (
             <li key={p.id}>
               <Ticket position={minutesSince(p.dilatation_started_at)} stubCaption="دقيقة">
@@ -136,6 +140,8 @@ export default function DilatationRoom() {
           ))}
         </ol>
       )}
+      </section>
+      </div>
     </div>
   );
 }

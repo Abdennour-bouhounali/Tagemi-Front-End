@@ -197,7 +197,7 @@ const VisitsStatistics = () => {
     // The /admin/statistics route has no event: nothing to load
     if (!eventId) {
         return (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl lg:max-w-none mx-auto">
                 <PageHeader title="إحصائيات الحدث" />
                 <EmptyState title="لم يُحدَّد حدث">افتح متابعة الحدث ثم اختر الإحصائيات لعرض أرقامه.</EmptyState>
             </div>
@@ -208,7 +208,7 @@ const VisitsStatistics = () => {
 
     if (error) {
         return (
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl lg:max-w-none mx-auto">
                 <BackLink to={backTo} />
                 <PageHeader title="إحصائيات الحدث" subtitle={event?.name} />
                 <ErrorState message={error} onRetry={() => fetchStatistics()} />
@@ -231,7 +231,7 @@ const VisitsStatistics = () => {
     ];
 
     return (
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl lg:max-w-none mx-auto">
             <BackLink to={backTo} />
             <PageHeader
                 title="إحصائيات الحدث"
@@ -254,7 +254,7 @@ const VisitsStatistics = () => {
             />
 
             <StatStrip
-                className="mb-4"
+                className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
                 items={[
                     { label: 'عدد المرضى', value: totals.patients_total || 0 },
                     { label: 'حضروا', value: totals.patients_arrived || 0, tone: 'text-st-queue' },
@@ -263,7 +263,7 @@ const VisitsStatistics = () => {
                 ]}
             />
 
-            <div className="space-y-4">
+            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-start">
                 <Panel title={`المواعيد حسب الحالة (${totals.total || 0})`}>
                     <ShareBar
                         total={totals.total || 0}
@@ -271,7 +271,7 @@ const VisitsStatistics = () => {
                     />
                 </Panel>
 
-                <Panel title="المواعيد حسب التخصص">
+                <Panel title="المواعيد حسب التخصص" className="lg:col-span-2">
                     {statistics.length === 0 ? (
                         <p className="py-6 text-center text-sm text-muted">لا توجد مواعيد في هذا الحدث بعد.</p>
                     ) : (
@@ -296,7 +296,7 @@ const VisitsStatistics = () => {
                     )}
                 </Panel>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 lg:col-span-3 gap-4">
                     <Panel title="المرضى">
                         <dl className="divide-y divide-line">
                             {[
