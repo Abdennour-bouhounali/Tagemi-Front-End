@@ -410,6 +410,15 @@ const MobileNavLink = ({ to, children, onClick }) => (
     </Link>
 );
 
+// Specialties of the officer's event that have a hidden dilatation room
+const dilatationStations = (user) =>
+    (user?.event?.event_specialties || []).filter((es) => es.has_dilatation);
+
+// "dil:<event specialty id>" opens a dilatation room, a plain id a specialty queue
+const specialtyRoute = (user, value) => value.startsWith('dil:')
+    ? `/admin/dilatation/${user.event_id}/${value.slice(4)}`
+    : `/admin/event-waiting-lists/${user.event_id}/${value}`;
+
 // Desktop User Menu Component
 const UserMenu = ({ user, language, handleLogout }) => {
     const navigate = useNavigate();
@@ -418,7 +427,7 @@ const UserMenu = ({ user, language, handleLogout }) => {
     const handleSpecialtyChange = (e) => {
         const specialtyId = e.target.value;
         if (specialtyId) {
-            navigate(`/admin/event-waiting-lists/${user.event_id}/${specialtyId}`);
+            navigate(specialtyRoute(user, specialtyId));
         }
     };
 
@@ -461,6 +470,11 @@ const UserMenu = ({ user, language, handleLogout }) => {
                                     {specialty.name}
                                 </option>
                             ))}
+                        {dilatationStations(user).map((es) => (
+                            <option key={`dil-${es.id}`} value={`dil:${es.id}`} className="bg-white text-gray-900 py-2">
+                                {`التمدد — ${es.specialty?.name || ''}`}
+                            </option>
+                        ))}
                     </select>
                     <div className="absolute right-2 xl:right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <ChevronDown className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-white" />
@@ -491,7 +505,7 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
     const handleSpecialtyChange = (e) => {
         const specialtyId = e.target.value;
         if (specialtyId) {
-            navigate(`/admin/event-waiting-lists/${user.event_id}/${specialtyId}`);
+            navigate(specialtyRoute(user, specialtyId));
             onClick();
         }
     };
@@ -533,6 +547,11 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
                                     {specialty.name}
                                 </option>
                             ))}
+                        {dilatationStations(user).map((es) => (
+                            <option key={`dil-${es.id}`} value={`dil:${es.id}`} className="bg-white text-gray-900 py-2">
+                                {`التمدد — ${es.specialty?.name || ''}`}
+                            </option>
+                        ))}
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                         <ChevronDown className="w-5 h-5 text-white" />

@@ -1,241 +1,144 @@
 import React, { useContext, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
-import { Edit, Trash2, X, Save, Loader2 } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Stethoscope, Plus } from "lucide-react";
+import {
+  Button, IconButton, EmptyState, Sheet, SheetAction, Field, TextInput, useToast,
+} from "../../../../Components/ui";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const SpecialityTable = ({ specialities, getSpecialites }) => {
+/** List of specialties with a ⋮ menu per row (edit, delete). */
+const SpecialityTable = ({ specialities, getSpecialites, onAdd }) => {
   const { token } = useContext(AppContext);
-  const [editingId, setEditingId] = useState(null);
+  const toast = useToast();
+  const [actionsFor, setActionsFor] = useState(null);
+  const [editing, setEditing] = useState(null);
   const [editName, setEditName] = useState("");
-  const [loading, setLoading] = useState({});
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
+  const [editError, setEditError] = useState("");
+  const [deleteFor, setDeleteFor] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  // Start editing
-  const handleEdit = (specialty) => {
-    setEditingId(specialty.id);
-    setEditName(specialty.name);
-  };
-
-  // Cancel editing
-  const handleCancel = () => {
-    setEditingId(null);
-    setEditName("");
-  };
-
-  // Save edit
-  const handleSave = async (specialtyId) => {
+  const handleSave = async (e) => {
+    e?.preventDefault();
     if (!editName.trim()) {
-      setMessage("الرجاء إدخال اسم التخصص");
-      setMessageType("error");
-      setTimeout(() => setMessage(""), 3000);
+      setEditError("اكتب اسم التخصص أولاً");
       return;
     }
-
-    setLoading((prev) => ({ ...prev, [specialtyId]: true }));
-
+    setBusy(true);
     try {
-      const res = await fetch(`${apiUrl}/api/specialty/${specialtyId}`, {
+      const res = await fetch(`${apiUrl}/api/specialty/${editing.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: editName.trim() }),
       });
-
-      const data = await res.json();
-
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setMessage(data.message);
-        setMessageType("success");
-        setEditingId(null);
-        setEditName("");
+        toast(data.message || "تم حفظ التعديل");
+        setEditing(null);
         getSpecialites();
-        setTimeout(() => setMessage(""), 3000);
       } else {
-        setMessage(data.message || "حدث خطأ أثناء التعديل");
-        setMessageType("error");
-        setTimeout(() => setMessage(""), 3000);
+        setEditError(data.errors ? Object.values(data.errors)[0][0] : data.message || "تعذر حفظ التعديل، أعد المحاولة");
       }
-    } catch (error) {
-      console.error("Error updating specialty:", error);
-      setMessage("خطأ في الاتصال بالخادم");
-      setMessageType("error");
-      setTimeout(() => setMessage(""), 3000);
+    } catch {
+      toast("تعذر الاتصال بالخادم، تحقق من الشبكة ثم أعد المحاولة", "error");
     } finally {
-      setLoading((prev) => ({ ...prev, [specialtyId]: false }));
+      setBusy(false);
     }
   };
 
-  // Delete specialty
-  const handleDelete = async (specialtyId, specialtyName) => {
-    if (
-      !window.confirm(
-        `هل أنت متأكد من حذف تخصص "${specialtyName}"؟\n\nتنبيه: سيتم حذف جميع البيانات المرتبطة بهذا التخصص.`
-      )
-    ) {
-      return;
-    }
-
-    setLoading((prev) => ({ ...prev, [specialtyId]: true }));
-
+  const handleDelete = async () => {
+    setBusy(true);
     try {
-      const res = await fetch(`${apiUrl}/api/specialty/${specialtyId}`, {
+      const res = await fetch(`${apiUrl}/api/specialty/${deleteFor.id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      const data = await res.json();
-
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setMessage(data.message);
-        setMessageType("success");
+        toast(data.message || "تم حذف التخصص");
+        setDeleteFor(null);
         getSpecialites();
-        setTimeout(() => setMessage(""), 3000);
       } else {
-        setMessage(data.message || "حدث خطأ أثناء الحذف");
-        setMessageType("error");
-        setTimeout(() => setMessage(""), 3000);
+        toast(data.message || "تعذر حذف التخصص", "error");
       }
-    } catch (error) {
-      console.error("Error deleting specialty:", error);
-      setMessage("خطأ في الاتصال بالخادم");
-      setMessageType("error");
-      setTimeout(() => setMessage(""), 3000);
+    } catch {
+      toast("تعذر الاتصال بالخادم، تحقق من الشبكة ثم أعد المحاولة", "error");
     } finally {
-      setLoading((prev) => ({ ...prev, [specialtyId]: false }));
+      setBusy(false);
     }
   };
 
-  const filteredSpecialties = specialities.filter(
-    (s) => s.name !== "NoSpeciality"
-  );
+  const filteredSpecialties = specialities.filter((s) => s.name !== "NoSpeciality");
 
   return (
-    <div className="p-6">
-      {message && (
-        <div
-          className={`mb-4 p-4 rounded-lg font-droid-arabic-kufi font-semibold animate-slide-in ${
-            messageType === "success"
-              ? "bg-green-50 text-green-800 border border-green-200"
-              : "bg-red-50 text-red-800 border border-red-200"
-          }`}
-        >
-          {message}
-        </div>
-      )}
-
+    <>
       {filteredSpecialties.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 font-droid-arabic-kufi text-lg">
-            لا توجد تخصصات حالياً
-          </p>
-        </div>
+        <EmptyState
+          icon={Stethoscope}
+          title="لا توجد تخصصات بعد"
+          action={onAdd && <Button icon={Plus} onClick={onAdd}>أضف أول تخصص</Button>}
+        >
+          أضف التخصصات لتتمكن من اختيارها عند إنشاء حدث.
+        </EmptyState>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gradient-to-r from-gray-100 to-gray-200">
-                <th className="px-6 py-4 text-right font-bold text-gray-800 font-droid-arabic-kufi">
-                  #
-                </th>
-                <th className="px-6 py-4 text-right font-bold text-gray-800 font-droid-arabic-kufi">
-                  اسم التخصص
-                </th>
-                <th className="px-6 py-4 text-center font-bold text-gray-800 font-droid-arabic-kufi">
-                  الإجراءات
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSpecialties.map((specialty, index) => (
-                <tr
-                  key={specialty.id}
-                  className="border-b hover:bg-gray-50 transition"
-                >
-                  <td className="px-6 py-4 font-droid-arabic-kufi text-gray-700">
-                    {index + 1}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === specialty.id ? (
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="w-full p-2 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-droid-arabic-kufi"
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="font-droid-arabic-kufi font-semibold text-gray-800">
-                        {specialty.name}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      {editingId === specialty.id ? (
-                        <>
-                          <button
-                            onClick={() => handleSave(specialty.id)}
-                            disabled={loading[specialty.id]}
-                            className="flex items-center gap-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-droid-arabic-kufi transition disabled:opacity-50"
-                          >
-                            {loading[specialty.id] ? (
-                              <Loader2 className="animate-spin" size={16} />
-                            ) : (
-                              <Save size={16} />
-                            )}
-                            حفظ
-                          </button>
-                          <button
-                            onClick={handleCancel}
-                            className="flex items-center gap-1 px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-droid-arabic-kufi transition"
-                          >
-                            <X size={16} />
-                            إلغاء
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleEdit(specialty)}
-                            disabled={loading[specialty.id]}
-                            className="flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-droid-arabic-kufi transition disabled:opacity-50"
-                          >
-                            <Edit size={16} />
-                            تعديل
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line">
+          {filteredSpecialties.map((specialty) => (
+            <li key={specialty.id} className="flex items-center gap-3 ps-4 pe-2 min-h-[3.5rem]">
+              <p className="flex-1 min-w-0 font-semibold text-ink truncate">{specialty.name}</p>
+              <IconButton icon={MoreVertical} label="خيارات" onClick={() => setActionsFor(specialty)} />
+            </li>
+          ))}
+        </ul>
       )}
 
-      <style>{`
-        @keyframes slide-in {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-      `}</style>
-    </div>
+      <Sheet open={!!actionsFor} onClose={() => setActionsFor(null)} title={actionsFor?.name || ""}>
+        {actionsFor && (
+          <div className="divide-y divide-line">
+            <SheetAction
+              icon={Pencil}
+              onClick={() => { setEditing(actionsFor); setEditName(actionsFor.name); setEditError(""); setActionsFor(null); }}
+            >
+              غيّر الاسم
+            </SheetAction>
+            <SheetAction
+              icon={Trash2}
+              tone="text-red-700"
+              hint="يحذف معه كل البيانات المرتبطة به"
+              onClick={() => { setDeleteFor(actionsFor); setActionsFor(null); }}
+            >
+              احذف التخصص
+            </SheetAction>
+          </div>
+        )}
+      </Sheet>
+
+      <Sheet
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title="تعديل التخصص"
+        footer={<Button block size="lg" loading={busy} onClick={handleSave}>احفظ التغييرات</Button>}
+      >
+        <form onSubmit={handleSave}>
+          <Field label="اسم التخصص" error={editError}>
+            <TextInput value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus invalid={!!editError} />
+          </Field>
+        </form>
+      </Sheet>
+
+      <Sheet
+        open={!!deleteFor}
+        onClose={() => setDeleteFor(null)}
+        title={`حذف تخصص ${deleteFor?.name || ""}`}
+        footer={(
+          <>
+            <Button variant="secondary" className="flex-1" onClick={() => setDeleteFor(null)}>تراجع</Button>
+            <Button variant="danger" icon={Trash2} className="flex-1" loading={busy} onClick={handleDelete}>احذف</Button>
+          </>
+        )}
+      >
+        <p className="text-sm text-ink">سيتم حذف جميع البيانات المرتبطة بهذا التخصص، ولا يمكن التراجع عن الحذف.</p>
+      </Sheet>
+    </>
   );
 };
 

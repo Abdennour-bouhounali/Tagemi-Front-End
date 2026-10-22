@@ -1,44 +1,28 @@
-// src/pages/Admin/ArchivedStats/DemographicStats.jsx
-
+// Archived event: patients by gender and age group.
 import React, { useState, useEffect, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
+import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
+import { useParams } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
+import { Download, Printer } from "lucide-react";
+import { PageHeader, StatStrip, LoadingState, Panel, useToast } from "../../../../Components/ui";
 import {
-  ArrowLeft,
-  AlertCircle,
-  Users,
-  Download,
-  Printer,
-  User,
-  UserCheck,
-} from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+  ActionsMenu, BackLink, CHART, ErrorState, HBarChart, POPUP_BLOCKED, ShareBar, printHtml,
+} from "../../../../Components/ui/StatsKit";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+// Same convention as the queue screens: women in rose, men in ink
 const GENDER_COLORS = {
-  'ذكر': '#3b82f6',
-  'أنثى': '#ec4899',
-  '0': '#3b82f6',
-  '1': '#ec4899',
+  'ذكر': CHART.inkSoft,
+  'أنثى': CHART.rose,
 };
+
+const genderName = (sex) => (sex === '0' || sex === 0 || sex === 'ذكر' ? 'ذكر' : 'أنثى');
 
 const DemographicStats = () => {
   const { eventId } = useParams();
   const { token } = useContext(AppContext);
+  const toast = useToast();
   
   const [event, setEvent] = useState(null);
   const [genderStats, setGenderStats] = useState([]);
@@ -74,15 +58,7 @@ const DemographicStats = () => {
   };
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    const printContent = generatePrintDocument();
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+    if (!printHtml(generatePrintDocument())) toast(POPUP_BLOCKED, "error");
   };
 
   const generatePrintDocument = () => {
@@ -104,6 +80,8 @@ const DemographicStats = () => {
       name: stat.age_group,
       value: parseInt(stat.count)
     }));
+    // Age group with the most patients (the API order is by age, not by count)
+    const topAge = ageChartData.reduce((best, item) => (!best || item.value > best.value ? item : best), null);
 
     return `
       <!DOCTYPE html>
@@ -111,7 +89,7 @@ const DemographicStats = () => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>إحصائيات ديموغرافية - ${event?.name}</title>
+        <title>إحصائيات ديموغرافية - ${escapeHtml(event?.name)}</title>
         <style>
           @page {
             size: A4;
@@ -333,8 +311,8 @@ const DemographicStats = () => {
           <div class="header">
             <img src="/tagemi_logo.png" alt="Logo" class="logo" />
             <h1>تقرير الإحصائيات الديموغرافية</h1>
-            <p class="event-name">${event?.name || 'الحملة الطبية'}</p>
-            <p class="date">تاريخ الإصدار: ${currentDate}</p>
+            <p class="event-name">${escapeHtml(event?.name || 'الحملة الطبية')}</p>
+            <p class="date">تاريخ الإصدار: ${escapeHtml(currentDate)}</p>
           </div>
 
           <!-- Summary Section -->
@@ -347,7 +325,7 @@ const DemographicStats = () => {
               </div>
               ${genderChartData.map(stat => `
                 <div class="summary-card">
-                  <div class="label">${stat.name}</div>
+                  <div class="label">${escapeHtml(stat.name)}</div>
                   <div class="value">${stat.value}</div>
                   <div class="percentage">${stat.percentage}%</div>
                 </div>
@@ -369,7 +347,7 @@ const DemographicStats = () => {
               <tbody>
                 ${genderChartData.map(stat => `
                   <tr>
-                    <td><strong>${stat.name}</strong></td>
+                    <td><strong>${escapeHtml(stat.name)}</strong></td>
                     <td>${stat.value}</td>
                     <td>${stat.percentage}%</td>
                   </tr>
@@ -399,7 +377,7 @@ const DemographicStats = () => {
                   const percentage = ((stat.value / totalPatients) * 100).toFixed(1);
                   return `
                     <tr>
-                      <td><strong>${stat.name} سنة</strong></td>
+                      <td><strong>${escapeHtml(stat.name)} سنة</strong></td>
                       <td>${stat.value}</td>
                       <td>${percentage}%</td>
                     </tr>
@@ -421,8 +399,8 @@ const DemographicStats = () => {
               <h3>الملاحظات الرئيسية:</h3>
               <ul>
                 <li>إجمالي عدد المرضى المسجلين في الحملة: <strong>${totalPatients}</strong> مريض</li>
-                <li>الفئة العمرية الأكثر حضوراً: <strong>${ageChartData[0]?.name} سنة</strong> بعدد <strong>${ageChartData[0]?.value}</strong> مريض</li>
-                <li>التوزيع بين الجنسين: ${genderChartData.map(s => `${s.name} (${s.percentage}%)`).join(' و ')}</li>
+                <li>الفئة العمرية الأكثر حضوراً: <strong>${escapeHtml(topAge?.name)} سنة</strong> بعدد <strong>${escapeHtml(topAge?.value)}</strong> مريض</li>
+                <li>التوزيع بين الجنسين: ${genderChartData.map(s => `${escapeHtml(s.name)} (${escapeHtml(s.percentage)}%)`).join(' و ')}</li>
                 <li>عدد الفئات العمرية المشمولة: <strong>${ageStats.length}</strong> فئات عمرية</li>
               </ul>
             </div>
@@ -430,16 +408,12 @@ const DemographicStats = () => {
             <div style="margin-top: 30px;">
               <h3 style="color: #7c3aed; font-size: 18px; margin-bottom: 15px;">إحصائيات تفصيلية:</h3>
               <div class="stats-row">
-                <span class="label">متوسط الفئة العمرية الأكثر انتشاراً</span>
-                <span class="value">31-45 سنة</span>
+                <span class="label">الفئة العمرية الأكثر حضوراً</span>
+                <span class="value">${escapeHtml(topAge?.name || '-')} سنة</span>
               </div>
               <div class="stats-row">
                 <span class="label">عدد الفئات العمرية المسجلة</span>
                 <span class="value">${ageStats.length}</span>
-              </div>
-              <div class="stats-row">
-                <span class="label">نسبة التغطية الديموغرافية</span>
-                <span class="value">ممتازة</span>
               </div>
             </div>
           </div>
@@ -467,7 +441,7 @@ const DemographicStats = () => {
       ["=== إحصائيات الفئات العمرية ==="],
       ["الفئة العمرية", "العدد"],
       ...ageStats.map(stat => [stat.age_group, stat.count])
-    ].map(row => row.join(",")).join("\n");
+    ].map(row => row.map(cell => `"${csvSafe(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
 
     const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -476,253 +450,81 @@ const DemographicStats = () => {
     link.click();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-droid-arabic-kufi">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
+  const backTo = `/admin/event-tracking/${eventId}`;
+
+  if (loading) return <LoadingState />;
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle className="w-6 h-6 text-red-600" />
-            <h3 className="text-lg font-bold text-red-800 font-droid-arabic-kufi">خطأ</h3>
-          </div>
-          <p className="text-red-700 font-droid-arabic-kufi">{error}</p>
-        </div>
+      <div className="max-w-6xl mx-auto">
+        <BackLink to={backTo} />
+        <PageHeader title="إحصائيات ديموغرافية" />
+        <ErrorState message={error} onRetry={fetchData} />
       </div>
     );
   }
 
-  const totalPatients = genderStats.reduce((sum, stat) => sum + parseInt(stat.count), 0);
+  const totalPatients = genderStats.reduce((sum, stat) => sum + (parseInt(stat.count) || 0), 0);
 
-  const genderChartData = genderStats.map(stat => ({
-    name: stat.sex === '0' || stat.sex === 'ذكر' ? 'ذكر' : 'أنثى',
-    value: parseInt(stat.count),
-    percentage: ((parseInt(stat.count) / totalPatients) * 100).toFixed(1)
-  }));
+  // Several raw values can mean the same gender ('0' and 'ذكر'): add them up
+  const genderParts = [];
+  genderStats.forEach((stat) => {
+    const name = genderName(stat.sex);
+    const found = genderParts.find((g) => g.label === name);
+    if (found) found.value += parseInt(stat.count) || 0;
+    else genderParts.push({ label: name, value: parseInt(stat.count) || 0, color: GENDER_COLORS[name] });
+  });
 
-  const ageChartData = ageStats.map(stat => ({
-    name: stat.age_group,
-    value: parseInt(stat.count)
+  const ageChartData = ageStats.map((stat) => ({
+    name: `${stat.age_group} سنة`,
+    value: parseInt(stat.count) || 0,
   }));
+  const topAge = ageChartData.reduce((best, item) => (!best || item.value > best.value ? item : best), null);
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-b from-purple-50 to-white p-6 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-7xl mb-4">
-        {/* Header */}
-        <div className="mb-6 no-print">
-          <Link
-            to={`/admin/event-tracking/${eventId}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-droid-arabic-kufi transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            العودة إلى صفحة المتابعة
-          </Link>
+    <div className="max-w-6xl mx-auto">
+      <BackLink to={backTo} />
+      <PageHeader
+        title="إحصائيات ديموغرافية"
+        subtitle={event?.name}
+        actions={
+          <ActionsMenu
+            actions={[
+              { icon: Printer, label: "اطبع التقرير", onClick: handlePrint },
+              { icon: Download, label: "نزّل ملف CSV", onClick: handleExport },
+            ]}
+          />
+        }
+      />
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="bg-purple-100 w-16 h-16 rounded-xl flex items-center justify-center">
-                  <Users className="w-8 h-8 text-purple-600" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">
-                    إحصائيات ديموغرافية
-                  </h1>
-                  <p className="text-gray-600 font-droid-arabic-kufi">{event?.name}</p>
-                </div>
-              </div>
+      <StatStrip
+        className="mb-4"
+        items={[
+          { label: "المرضى", value: totalPatients },
+          ...genderParts.map((g) => ({ label: g.label, value: g.value })),
+          topAge && { label: "الفئة الأكثر حضوراً", value: topAge.name.replace(" سنة", "") },
+        ]}
+      />
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير CSV
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Printer className="w-4 h-4" />
-                  طباعة
-                </button>
-              </div>
-            </div>
-          </div>
+      {totalPatients === 0 && ageChartData.length === 0 ? (
+        <Panel>
+          <p className="py-6 text-center text-sm text-muted">لا توجد بيانات مرضى مؤرشفة لهذا الحدث.</p>
+        </Panel>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Panel title="حسب الجنس">
+            <ShareBar total={totalPatients} parts={genderParts} />
+          </Panel>
+
+          <Panel title="حسب الفئة العمرية">
+            <HBarChart data={ageChartData} bars={[{ key: "value", name: "المرضى", color: CHART.inkSoft }]} labelWidth={84} />
+            <p className="mt-3 text-sm text-muted">
+              {ageStats.length} فئات عمرية
+              {topAge && <>، أكثرها حضوراً {topAge.name} بعدد {topAge.value} مريض</>}.
+            </p>
+          </Panel>
         </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 font-droid-arabic-kufi text-sm">إجمالي المرضى</span>
-              <Users className="w-5 h-5 text-purple-600" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">{totalPatients}</p>
-          </div>
-
-          {genderChartData.map((stat, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 font-droid-arabic-kufi text-sm">{stat.name}</span>
-                <User className="w-5 h-5" style={{ color: GENDER_COLORS[stat.name] }} />
-              </div>
-              <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi mb-1">
-                {stat.value}
-              </p>
-              <p className="text-sm text-gray-500 font-droid-arabic-kufi">
-                {stat.percentage}% من الإجمالي
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Gender Statistics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Gender Pie Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-              توزيع المرضى حسب الجنس
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={genderChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={(entry) => `${entry.name}: ${entry.percentage}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {genderChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={GENDER_COLORS[entry.name]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-
-            {/* Gender Table */}
-            <div className="mt-6 space-y-3">
-              {genderChartData.map((stat, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: GENDER_COLORS[stat.name] }}
-                    ></div>
-                    <span className="font-droid-arabic-kufi font-semibold text-gray-900">
-                      {stat.name}
-                    </span>
-                  </div>
-                  <div className="text-left">
-                    <p className="font-droid-arabic-kufi font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-xs text-gray-500 font-droid-arabic-kufi">{stat.percentage}%</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Age Bar Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-              توزيع المرضى حسب الفئة العمرية
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={ageChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" style={{ fontSize: '12px' }} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" name="العدد">
-                  {ageChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-
-            {/* Age Table */}
-            <div className="mt-6 space-y-2">
-              {ageChartData.map((stat, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    ></div>
-                    <span className="font-droid-arabic-kufi font-semibold text-gray-900">
-                      {stat.name} سنة
-                    </span>
-                  </div>
-                  <span className="font-droid-arabic-kufi font-bold text-gray-900">
-                    {stat.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Combined Analysis */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-            التحليل الديموغرافي
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h4 className="font-bold text-gray-800 font-droid-arabic-kufi">الملاحظات الرئيسية:</h4>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">•</span>
-                  <span className="text-gray-700 font-droid-arabic-kufi">
-                    إجمالي عدد المرضى المسجلين: <strong>{totalPatients}</strong>
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">•</span>
-                  <span className="text-gray-700 font-droid-arabic-kufi">
-                    النسبة الأكبر من المرضى من الفئة العمرية: <strong>{ageChartData[0]?.name}</strong>
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">•</span>
-                  <span className="text-gray-700 font-droid-arabic-kufi">
-                    توزيع متوازن بين الجنسين
-                  </span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-4">
-              <h4 className="font-bold text-gray-800 font-droid-arabic-kufi mb-3">إحصائيات سريعة:</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-droid-arabic-kufi">متوسط العمر المتوقع:</span>
-                  <span className="font-bold text-purple-600 font-droid-arabic-kufi">31-45 سنة</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-droid-arabic-kufi">عدد الفئات العمرية:</span>
-                  <span className="font-bold text-purple-600 font-droid-arabic-kufi">{ageStats.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

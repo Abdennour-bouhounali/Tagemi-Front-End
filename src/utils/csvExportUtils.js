@@ -1,9 +1,11 @@
+import { csvSafe } from './safeHtml';
+
 // Professional CSV Export Utilities
 
 // Helper function to escape CSV fields
 const escapeCSVField = (field) => {
   if (field === null || field === undefined) return '';
-  const stringField = String(field);
+  const stringField = csvSafe(field);
   // Escape fields containing comma, quote, or newline
   if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
     return `"${stringField.replace(/"/g, '""')}"`;

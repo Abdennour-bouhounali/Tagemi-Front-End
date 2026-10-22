@@ -1,61 +1,36 @@
-// src/pages/Admin/ArchivedStats/StatusStats.jsx
-
+// Archived event: final outcome of every appointment.
 import React, { useState, useEffect, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
+import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
+import { useParams } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
+import { Download, Printer } from "lucide-react";
+import { PageHeader, StatStrip, LoadingState, Panel, useToast } from "../../../../Components/ui";
 import {
-  ArrowLeft,
-  AlertCircle,
-  PieChart as PieChartIcon,
-  Download,
-  Printer,
-  CheckCircle,
-  Clock,
-  Users,
-  TrendingUp,
-} from "lucide-react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+  ActionsMenu, ARCHIVED_OUTCOMES, BackLink, ErrorState, POPUP_BLOCKED, ResponsiveTable, ShareBar, printHtml,
+} from "../../../../Components/ui/StatsKit";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-// Map all possible backend statuses to our 3 display categories
+// Map all possible backend statuses to the 3 archived outcomes
 const STATUS_CONFIG = {
-  // Completed category
-  Completed: { label: "أنهى الفحص", color: "#10b981", icon: CheckCircle },
-  
-  // Pending category (Absent)
-  Pending: { label: "غائب", color: "#ef4444", icon: AlertCircle },
-  
-  // Waiting category (all others: Cancelled, NoShow, Confirmed, etc.)
-  Waiting: { label: "في الإنتظار", color: "#f59e0b", icon: Clock },
-  
-  // Backwards compatibility - map old status names
-  "مكتمل": { label: "أنهى الفحص", color: "#10b981", icon: CheckCircle },
-  "معلق": { label: "في الإنتظار", color: "#f59e0b", icon: Clock },
-  "ملغي": { label: "في الإنتظار", color: "#f59e0b", icon: Clock },
-  "غائب": { label: "غائب", color: "#ef4444", icon: AlertCircle },
+  Completed: ARCHIVED_OUTCOMES.Completed,
+  // Pending: booked but never came
+  Pending: ARCHIVED_OUTCOMES.Pending,
+  // Waiting: came to the visit but was not examined
+  Waiting: ARCHIVED_OUTCOMES.Waiting,
+  // Backwards compatibility - old status names
+  "مكتمل": ARCHIVED_OUTCOMES.Completed,
+  "معلق": ARCHIVED_OUTCOMES.Pending,
+  "ملغي": ARCHIVED_OUTCOMES.Pending,
+  "غائب": ARCHIVED_OUTCOMES.Pending,
 };
 
-// Function to get status config with fallback
-const getStatusConfig = (status) => {
-  return STATUS_CONFIG[status] || { label: "في الإنتظار", color: "#f59e0b", icon: Clock };
-};
+const getStatusConfig = (status) => STATUS_CONFIG[status] || ARCHIVED_OUTCOMES.Waiting;
 
 const StatusStats = () => {
   const { eventId } = useParams();
   const { token } = useContext(AppContext);
+  const toast = useToast();
   
   const [event, setEvent] = useState(null);
   const [statistics, setStatistics] = useState([]);
@@ -91,15 +66,7 @@ const StatusStats = () => {
   };
 
 const handlePrint = () => {
-  const printWindow = window.open('', '_blank');
-  const printContent = generatePrintDocument();
-  printWindow.document.write(printContent);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 250);
+  if (!printHtml(generatePrintDocument())) toast(POPUP_BLOCKED, "error");
 };
 
 const generatePrintDocument = () => {
@@ -113,8 +80,8 @@ const generatePrintDocument = () => {
 
   const getStatusLabel = (status) => {
     if (status === 'Completed') return 'أنهى الفحص';
-    if (status === 'Pending') return 'غائب';
-    if (status === 'Waiting') return 'في الإنتظار';
+    if (status === 'Pending') return 'لم يحضر';
+    if (status === 'Waiting') return 'حضر ولم يُفحص';
     return status;
   };
 
@@ -123,7 +90,7 @@ const generatePrintDocument = () => {
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="UTF-8">
-      <title>إحصائيات الحالات - ${event?.name}</title>
+      <title>إحصائيات الحالات - ${escapeHtml(event?.name)}</title>
       <style>
         @page { size: A4; margin: 2cm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -232,14 +199,14 @@ const generatePrintDocument = () => {
       <div class="header">
         <img src="/tagemi_logo.png" alt="Logo" class="logo" />
         <h1>تقرير إحصائيات الحالات</h1>
-        <p class="event-name">${event?.name}</p>
-        <p class="date">تاريخ الإصدار: ${currentDate}</p>
+        <p class="event-name">${escapeHtml(event?.name)}</p>
+        <p class="date">تاريخ الإصدار: ${escapeHtml(currentDate)}</p>
       </div>
 
       <div class="summary-grid">
         <div class="summary-card">
           <div class="label">إجمالي المواعيد</div>
-          <div class="value">${totalAppointments}</div>
+          <div class="value">${escapeHtml(totalAppointments)}</div>
         </div>
         ${statistics.map(stat => {
           const percentage = totalAppointments > 0 
@@ -247,8 +214,8 @@ const generatePrintDocument = () => {
             : 0;
           return `
             <div class="summary-card">
-              <div class="label">${getStatusLabel(stat.status)}</div>
-              <div class="value">${stat.count}</div>
+              <div class="label">${escapeHtml(getStatusLabel(stat.status))}</div>
+              <div class="value">${escapeHtml(stat.count)}</div>
               <div class="label" style="font-size: 11px; margin-top: 5px;">${percentage}%</div>
             </div>
           `;
@@ -288,9 +255,9 @@ const generatePrintDocument = () => {
               
               return `
                 <tr>
-                  <td><strong>${getStatusLabel(stat.status)}</strong></td>
-                  <td><strong>${stat.count}</strong></td>
-                  <td>${stat.special_count > 0 ? `${stat.special_count} (${specialPercentage}%)` : '-'}</td>
+                  <td><strong>${escapeHtml(getStatusLabel(stat.status))}</strong></td>
+                  <td><strong>${escapeHtml(stat.count)}</strong></td>
+                  <td>${stat.special_count > 0 ? `${escapeHtml(stat.special_count)} (${specialPercentage}%)` : '-'}</td>
                   <td><strong>${percentage}%</strong></td>
                   <td>
                     <div class="progress-bar">
@@ -328,7 +295,7 @@ const generatePrintDocument = () => {
           percentage + "%"
         ];
       })
-    ].map(row => row.join(",")).join("\n");
+    ].map(row => row.map(cell => `"${csvSafe(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
 
     const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -337,326 +304,95 @@ const generatePrintDocument = () => {
     link.click();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-droid-arabic-kufi">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
+  const backTo = `/admin/event-tracking/${eventId}`;
+
+  if (loading) return <LoadingState />;
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle className="w-6 h-6 text-red-600" />
-            <h3 className="text-lg font-bold text-red-800 font-droid-arabic-kufi">خطأ</h3>
-          </div>
-          <p className="text-red-700 font-droid-arabic-kufi">{error}</p>
-        </div>
+      <div className="max-w-6xl mx-auto">
+        <BackLink to={backTo} />
+        <PageHeader title="إحصائيات الحالات" />
+        <ErrorState message={error} onRetry={fetchData} />
       </div>
     );
   }
 
-  const chartData = statistics.map(stat => {
-    const percentage = totalAppointments > 0 
-      ? ((parseInt(stat.count) / totalAppointments) * 100).toFixed(1) 
-      : 0;
-    
-    return {
-      name: getStatusConfig(stat.status).label,
-      value: parseInt(stat.count),
-      percentage: parseFloat(percentage),
-      special_count: parseInt(stat.special_count || 0),
-    };
+  const share = (part, whole) => (parseInt(whole) > 0 ? ((parseInt(part || 0) / parseInt(whole)) * 100).toFixed(1) : "0.0");
+  const totalSpecialCases = statistics.reduce((sum, stat) => sum + parseInt(stat.special_count || 0), 0);
+  const eventDate = event?.date
+    ? new Date(event.date).toLocaleDateString("ar-DZ", { year: "numeric", month: "long", day: "numeric" })
+    : null;
+
+  // Several backend statuses can share one outcome: add them up for the summary
+  const outcomes = [];
+  statistics.forEach((stat) => {
+    const config = getStatusConfig(stat.status);
+    const found = outcomes.find((o) => o.label === config.label);
+    if (found) found.value += parseInt(stat.count) || 0;
+    else outcomes.push({ label: config.label, color: config.color, value: parseInt(stat.count) || 0 });
   });
 
-  const totalSpecialCases = statistics.reduce((sum, stat) => sum + parseInt(stat.special_count || 0), 0);
+  const columns = [
+    { key: "status", label: "الحالة", primary: true, render: (row) => getStatusConfig(row.status).label },
+    { key: "count", label: "العدد", align: "center", render: (row) => parseInt(row.count) || 0 },
+    { key: "share", label: "من المواعيد", align: "center", render: (row) => `${share(row.count, totalAppointments)}%` },
+    {
+      key: "special_count",
+      label: "حالات خاصة",
+      align: "center",
+      render: (row) => (row.special_count > 0 ? `${row.special_count} (${share(row.special_count, row.count)}%)` : "—"),
+    },
+  ];
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-b from-green-50 to-white p-6 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-7xl mb-4">
-        {/* Header */}
-        <div className="mb-6 no-print">
-          <Link
-            to={`/admin/event-tracking/${eventId}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-droid-arabic-kufi transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            العودة إلى صفحة المتابعة
-          </Link>
-
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="bg-green-100 w-16 h-16 rounded-xl flex items-center justify-center">
-                  <PieChartIcon className="w-8 h-8 text-green-600" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">
-                    إحصائيات الحالات
-                  </h1>
-                  <p className="text-gray-600 font-droid-arabic-kufi">
-                    {event?.name} - {event?.date && new Date(event.date).toLocaleDateString('ar-DZ', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير CSV
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Printer className="w-4 h-4" />
-                  طباعة
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {/* Total Appointments */}
-          <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-600 font-droid-arabic-kufi text-sm">
-                إجمالي المواعيد
-              </span>
-              <TrendingUp className="w-6 h-6 text-blue-600" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi mb-1">
-              {totalAppointments}
-            </p>
-          </div>
-
-          {/* Status Cards */}
-          {statistics.map((stat, index) => {
-            const config = getStatusConfig(stat.status);
-            const Icon = config.icon;
-            const percentage = totalAppointments > 0 
-              ? ((parseInt(stat.count) / totalAppointments) * 100).toFixed(1) 
-              : 0;
-            
-            return (
-              <div key={index} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-gray-600 font-droid-arabic-kufi text-sm">
-                    {config.label}
-                  </span>
-                  <Icon className="w-6 h-6" style={{ color: config.color }} />
-                </div>
-                <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi mb-1">
-                  {stat.count}
-                </p>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500 font-droid-arabic-kufi">
-                    {percentage}% من الإجمالي
-                  </p>
-                  {stat.special_count > 0 && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-droid-arabic-kufi font-semibold">
-                      خاص: {stat.special_count}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Special Cases Summary */}
-        {totalSpecialCases > 0 && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md p-6 border border-blue-200 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 font-droid-arabic-kufi mb-1">
-                  إجمالي الحالات الخاصة
-                </h3>
-                <p className="text-gray-600 font-droid-arabic-kufi text-sm">
-                  عدد المواعيد المصنفة كحالات خاصة في هذا الحدث
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-4xl font-bold text-blue-600 font-droid-arabic-kufi">
-                  {totalSpecialCases}
-                </p>
-                <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                  {((totalSpecialCases / totalAppointments) * 100).toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Pie Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-              توزيع الحالات
-            </h3>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={(entry) => `${entry.name}: ${entry.percentage}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {chartData.map((entry, index) => {
-                    const status = statistics[index].status;
-                    const config = getStatusConfig(status);
-                    return (
-                      <Cell key={`cell-${index}`} fill={config.color} />
-                    );
-                  })}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Bar Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-              مقارنة الأعداد
-            </h3>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" style={{ fontSize: '12px' }} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" name="العدد">
-                  {chartData.map((entry, index) => {
-                    const status = statistics[index].status;
-                    const config = getStatusConfig(status);
-                    return (
-                      <Cell key={`cell-${index}`} fill={config.color} />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Detailed Table */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-              تفاصيل الحالات
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-right text-sm font-bold text-gray-700 font-droid-arabic-kufi">الحالة</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 font-droid-arabic-kufi">العدد</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 font-droid-arabic-kufi">حالات خاصة</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 font-droid-arabic-kufi">النسبة المئوية</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 font-droid-arabic-kufi">الرسم البياني</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {statistics.map((stat, index) => {
-                  const config = getStatusConfig(stat.status);
-                  const Icon = config.icon;
-                  const percentage = totalAppointments > 0 
-                    ? ((parseInt(stat.count) / totalAppointments) * 100).toFixed(1) 
-                    : 0;
-                  
-                  return (
-                    <tr key={index} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5" style={{ color: config.color }} />
-                          <span className="font-droid-arabic-kufi font-semibold text-gray-900">
-                            {config.label}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="px-4 py-2 rounded-full text-sm font-semibold font-droid-arabic-kufi"
-                          style={{ 
-                            backgroundColor: config.color + '20',
-                            color: config.color
-                          }}>
-                          {stat.count}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {stat.special_count > 0 ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold font-droid-arabic-kufi">
-                              {stat.special_count}
-                            </span>
-                            <span className="text-xs text-gray-500 font-droid-arabic-kufi">
-                              {((parseInt(stat.special_count) / parseInt(stat.count)) * 100).toFixed(1)}%
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm font-droid-arabic-kufi">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-center font-droid-arabic-kufi font-bold text-gray-900">
-                        {percentage}%
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div
-                            className="h-3 rounded-full transition-all"
-                            style={{
-                              width: `${percentage}%`,
-                              backgroundColor: config.color
-                            }}
-                          ></div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
+    <div className="max-w-6xl mx-auto">
+      <BackLink to={backTo} />
+      <PageHeader
+        title="إحصائيات الحالات"
+        subtitle={[event?.name, eventDate].filter(Boolean).join("، ")}
+        actions={
+          <ActionsMenu
+            actions={[
+              { icon: Printer, label: "اطبع التقرير", onClick: handlePrint },
+              { icon: Download, label: "نزّل ملف CSV", onClick: handleExport },
+            ]}
+          />
         }
-      `}</style>
+      />
+
+      <StatStrip
+        className="mb-4"
+        items={[
+          { label: "المواعيد", value: totalAppointments },
+          ...outcomes.map((o) => ({ label: o.label, value: o.value })),
+          totalSpecialCases > 0 && { label: "حالات خاصة", value: totalSpecialCases, tone: "text-rose" },
+        ]}
+      />
+
+      {statistics.length === 0 ? (
+        <Panel>
+          <p className="py-6 text-center text-sm text-muted">لا توجد مواعيد مؤرشفة لهذا الحدث.</p>
+        </Panel>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Panel title="توزيع الحالات">
+            <ShareBar
+              total={parseInt(totalAppointments) || 0}
+              parts={outcomes}
+            />
+            {totalSpecialCases > 0 && (
+              <p className="mt-3 text-sm text-muted">
+                منها <span className="font-semibold text-rose">{totalSpecialCases}</span> حالة خاصة، أي {share(totalSpecialCases, totalAppointments)}% من المواعيد.
+              </p>
+            )}
+          </Panel>
+
+          <Panel title="تفاصيل الحالات">
+            <ResponsiveTable columns={columns} rows={statistics} rowKey={(row, i) => `${row.status}-${i}`} />
+          </Panel>
+        </div>
+      )}
     </div>
   );
 };

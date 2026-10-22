@@ -1,87 +1,47 @@
-import React from 'react';
-import { FileText, Download, Eye, AlertCircle } from 'lucide-react';
+import React, { useContext } from 'react';
+import { AppContext } from '../../../Context/AppContext';
+import { downloadProtectedFile, openProtectedFile } from '../../../utils/protectedFile';
+import { FileText, Download, Eye } from 'lucide-react';
+import { IconButton } from '../../../Components/ui';
 
-const AppointmentDocuments = ({ appointment }) => {
+/**
+ * Medical documents attached to an appointment. Files are served by an
+ * authenticated endpoint, so they are opened/downloaded with the token.
+ * allowDownload (optional, default true) hides the download button.
+ */
+const AppointmentDocuments = ({ appointment, allowDownload = true }) => {
+  const { token } = useContext(AppContext);
   const documents = appointment?.medical_document_urls || [];
 
   if (!documents || documents.length === 0) {
     return (
-      <div className="bg-gray-50 rounded-lg p-4 text-center">
-        <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-sm text-gray-500 font-droid-arabic-kufi">
-          لا توجد مستندات طبية مرفقة
-        </p>
-      </div>
+      <p className="flex items-center gap-2 rounded-xl bg-paper px-3 py-3 text-sm text-muted">
+        <FileText className="w-4 h-4 shrink-0" />
+        لم يرفق المريض أي مستند طبي.
+      </p>
     );
   }
 
-  // ✅ FIXED: Better download handler
   const handleDownload = (url, index) => {
-    try {
-      // Create a temporary anchor element
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Extract filename from URL or create a default one
-      const filename = url.split('/').pop() || `medical_document_${appointment.patient_id}_${index + 1}.pdf`;
-      link.download = filename;
-      
-      // Set attributes to force download
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      
-      // Append to body, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Download error:', error);
-      // Fallback: open in new tab
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    downloadProtectedFile(url, token, `medical_document_${appointment.patient_id}_${index + 1}`);
   };
 
   return (
-    <div className="space-y-3">
-      <h4 className="font-bold text-gray-800 font-droid-arabic-kufi flex items-center gap-2">
-        <FileText className="w-5 h-5 text-blue-500" />
-        المستندات الطبية ({documents.length})
-      </h4>
-      
-      <div className="grid gap-2">
+    <section>
+      <h3 className="font-semibold text-ink mb-2">المستندات الطبية ({documents.length})</h3>
+      <ul className="divide-y divide-line rounded-xl border border-line bg-white">
         {documents.map((doc, index) => (
-          <div 
-            key={index}
-            className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800 font-droid-arabic-kufi">
-                  مستند طبي {index + 1}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {doc.split('.').pop().toUpperCase()}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              
-              <button
-                onClick={() => handleDownload(doc, index)}
-                className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
-                title="تحميل"
-              >
-                <Download className="w-5 h-5 text-blue-600" />
-              </button>
-            </div>
-          </div>
+          <li key={index} className="flex items-center gap-2 ps-3 pe-1 py-1">
+            <FileText className="w-5 h-5 shrink-0 text-ink-soft" />
+            <span className="flex-1 text-sm font-medium text-ink">مستند طبي {index + 1}</span>
+            <IconButton icon={Eye} label={`عرض المستند ${index + 1}`} onClick={() => openProtectedFile(doc, token)} />
+            {allowDownload && (
+              <IconButton icon={Download} label={`تحميل المستند ${index + 1}`} onClick={() => handleDownload(doc, index)} />
+            )}
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 };
 
