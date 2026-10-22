@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import { useContext, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
 import { Button, Sheet, Field, TextInput, useToast } from "../../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 /** Sheet form that adds a specialty to the catalogue. */
 export default function AddSpecialty({ open, onClose, getSpecialites }) {

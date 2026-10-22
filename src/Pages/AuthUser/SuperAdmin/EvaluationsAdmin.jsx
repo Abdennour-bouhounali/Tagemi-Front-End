@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
@@ -11,7 +12,7 @@ import {
     Field, SelectInput, useToast, cx,
 } from '../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const CRITERIA = [
     ['overall_organization', 'التنظيم العام'],

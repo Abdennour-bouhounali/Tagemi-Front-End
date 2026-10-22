@@ -1,9 +1,5 @@
-import React from 'react';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import { CheckCircle2, Sparkles } from 'lucide-react';
-
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
 
 const AboutActvity = ({ TypeDescription }) => {
     const { language } = useLanguage();

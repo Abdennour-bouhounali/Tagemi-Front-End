@@ -1,10 +1,11 @@
+import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../Context/AppContext';
 import { useToast } from '../../../Components/ui';
 import Events from './Components/Events';
 import AddEvent from './Components/AddEvent';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Super admin home (first tab "الأحداث"): the events list, or the new-event form.
 // The appointment distribution has its own route (/admin/appointment-distribution/:eventId).

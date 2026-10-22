@@ -1,4 +1,5 @@
 import { useEffect, useState, useContext } from "react";
+import { API_BASE_URL } from '../../../../config/environment';
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "../../../../Context/LanguageContext";
 import { AppContext } from "../../../../Context/AppContext";
@@ -19,12 +20,11 @@ import {
     ChevronRight,
     X,
     Play,
-    Share2,
-    Download
+    Share2
 } from 'lucide-react';
 import Footer from "../../HomePage/Components/Footer";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function ActivityMore() {
     const { Actvityid } = useParams();

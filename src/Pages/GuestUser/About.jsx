@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../Context/LanguageContext';
 import Footer from './HomePage/Components/Footer';
+import { API_BASE_URL } from '../../config/environment';
 import {
     Target,
     Award,
@@ -15,14 +16,12 @@ import {
     Globe
 } from 'lucide-react';
 
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
-
 const About = () => {
     const { language } = useLanguage();
     const [types, setTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [videoPlaying, setVideoPlaying] = useState(false);
+    const apiUrl = API_BASE_URL;
 
     async function getTypes() {
         try {

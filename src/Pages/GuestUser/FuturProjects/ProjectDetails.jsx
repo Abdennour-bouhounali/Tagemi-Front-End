@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import Footer from '../HomePage/Components/Footer';
 import Contact from '../Contact';
 import { useLanguage } from '../../../Context/LanguageContext';
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+import { API_BASE_URL } from '../../../config/environment';
+
 const ProjectDetails = () => {
     const { Projectid } = useParams();
     const [project, setProject] = useState({});
     const [types, setTypes] = useState([]);
     const {language} = useLanguage();
+    const apiUrl = API_BASE_URL;
 
     async function getTypes() {
         const res = await fetch(`${apiUrl}/api/types`);

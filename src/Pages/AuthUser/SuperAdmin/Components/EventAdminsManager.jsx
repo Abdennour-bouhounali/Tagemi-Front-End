@@ -1,10 +1,11 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import { useContext, useEffect, useState, useCallback } from 'react';
 import { Download, KeyRound, Trash2, Users } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import { Button, Panel, Sheet, Field, TextInput, LoadingState, EmptyState, useToast } from '../../../../Components/ui';
 import { ConfirmSheet, CredentialRow, downloadCredentialsCsv } from './EventFormParts';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const ORDER = ['Special Admin', 'Recipient Admin', 'Check Admin'];
 

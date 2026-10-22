@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
@@ -36,7 +37,7 @@ import {
   LoadingState, Sheet, SheetAction, useToast, Field, TextInput, SelectInput, cx,
 } from "../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 const PAGE_SIZE = 60;
 
 // Small dot in the status colour, for the per-specialty chips

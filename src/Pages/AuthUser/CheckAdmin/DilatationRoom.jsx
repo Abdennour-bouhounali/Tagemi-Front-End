@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronRight, Footprints, Timer, Undo2, Star, User } from 'lucide-react';
@@ -5,7 +6,7 @@ import { AppContext } from '../../../Context/AppContext';
 import useLiveRefresh from '../../../utils/useLiveRefresh';
 import { Button, PageHeader, StatStrip, EmptyState, LoadingState, Ticket, useToast, cx } from '../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Hidden dilatation station of a specialty (e.g. تصحيح النظر). The specialty
 // officer sends patients here; this screen receives them and sends them back,

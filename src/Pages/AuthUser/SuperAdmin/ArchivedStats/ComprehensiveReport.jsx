@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 // Archived event: one page with every statistic (outcomes, specialties, demographics, wilayas).
 import React, { useState, useEffect, useContext } from "react";
 import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
@@ -9,7 +10,7 @@ import {
   ActionsMenu, ARCHIVED_OUTCOMES, BackLink, CHART, ErrorState, HBarChart, POPUP_BLOCKED, ResponsiveTable, ShareBar, pct, printHtml,
 } from "../../../../Components/ui/StatsKit";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const GENDER_COLORS = { 'ذكر': CHART.inkSoft, 'أنثى': CHART.rose };
 const outcomeOf = (status) => ARCHIVED_OUTCOMES[status] || { label: status, color: CHART.hold };

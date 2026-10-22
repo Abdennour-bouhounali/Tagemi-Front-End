@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import { useState, useContext, useEffect } from 'react';
 import { ChevronRight, Download, CheckCircle2 } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
@@ -7,7 +8,7 @@ import {
   SpecialtiesEditor, RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv, toTime,
 } from './EventFormParts';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const EMPTY_FORM = {
   name: '',

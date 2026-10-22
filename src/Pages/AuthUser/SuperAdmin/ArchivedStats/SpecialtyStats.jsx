@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 // Archived event: appointments per specialty and their final outcome.
 import React, { useState, useEffect, useContext } from "react";
 import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
@@ -9,7 +10,7 @@ import {
   ActionsMenu, ARCHIVED_OUTCOMES, BackLink, ChartLegend, ErrorState, HBarChart, POPUP_BLOCKED, ResponsiveTable, printHtml,
 } from "../../../../Components/ui/StatsKit";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Outcome of each archived appointment.
 const OUTCOME_LABELS = {

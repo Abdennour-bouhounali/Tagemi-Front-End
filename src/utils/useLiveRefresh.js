@@ -1,6 +1,7 @@
+import { API_BASE_URL } from '../config/environment';
 import { useEffect, useRef } from 'react';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Keeps staff screens in sync: polls the event's cheap "live version" and calls
 // onChange() only when appointments changed (someone else checked in, passed,

@@ -1,9 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
+import { API_BASE_URL } from '../../../../config/environment';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../../../Context/LanguageContext';
 
-const apiUrl = import.meta.env.VITE_API_URL; 
+const apiUrl = API_BASE_URL; 
 
 const FeaturedActivities = () => {
     const { token } = useContext(AppContext);

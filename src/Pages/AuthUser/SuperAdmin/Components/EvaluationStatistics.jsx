@@ -1,10 +1,11 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ChevronRight, BarChart3 } from "lucide-react";
 import { AppContext } from "../../../../Context/AppContext";
 import { PageHeader, StatStrip, EmptyState, LoadingState, Panel, useToast } from "../../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 /** One labelled horizontal bar. `max` is the full-width value. */
 function BarRow({ label, value, max, display }) {

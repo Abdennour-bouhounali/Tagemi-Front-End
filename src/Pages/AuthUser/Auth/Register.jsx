@@ -1,9 +1,12 @@
 import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
-import { Eye, EyeOff, User, Phone, Mail, Lock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-const apiUrl = import.meta.env.VITE_API_URL; 
+import { API_BASE_URL } from '../../../config/environment';
+import { Eye, EyeOff, User, Phone, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+
 import logo from '/tagemi_logo.png';
+
+const apiUrl = API_BASE_URL;
 
 export default function Register() {
   const { token, setToken } = useContext(AppContext);
@@ -30,10 +33,6 @@ export default function Register() {
     let headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
-    headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
-    headers.append('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
-    headers.append('Access-Control-Allow-Headers' ,'Origin, Content-Type, X-Auth-Token , Cookie');
-    headers.append('Access-Control-Allow-Credentials', 'true');
 
     try {
       const res = await fetch(`${apiUrl}/api/register`, {
@@ -43,7 +42,7 @@ export default function Register() {
       });
 
       const data = await res.json();
-      
+
       if (data.errors) {
         setErrors(data.errors);
         setIsLoading(false);
@@ -51,7 +50,7 @@ export default function Register() {
         setSuccess(true);
         localStorage.setItem('token', data.token);
         setToken(data.token);
-        
+
         // Navigate after showing success state
         setTimeout(() => {
           navigate("/home", { state: { loggedIn: true } });
@@ -72,10 +71,9 @@ export default function Register() {
 
       <div className="flex items-center justify-center w-full min-h-screen p-4 py-12">
         <div className="w-full max-w-md">
-          <div className={`bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${
-            success ? 'scale-105' : 'scale-100'
-          }`}>
-            
+          <div className={`bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${success ? 'scale-105' : 'scale-100'
+            }`}>
+
             {/* Header Section */}
             <div className="bg-gradient-to-br from-[#131842] to-[#2F3645] p-8 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
@@ -320,8 +318,8 @@ export default function Register() {
                 <div className="text-center pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-600 font-droid-arabic-kufi">
                     لديك حساب بالفعل؟{' '}
-                    <Link 
-                      to="/login" 
+                    <Link
+                      to="/login"
                       className="text-[#131842] font-bold hover:text-[#2F3645] transition-colors hover:underline"
                     >
                       تسجيل الدخول

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   MoreVertical, Users, Pencil, Trash2, UserX, UserCheck, Copy, RefreshCw, CalendarCheck, ChevronLeft, Phone, Mail,
@@ -8,7 +9,7 @@ import {
   Sheet, SheetAction, Field, TextInput, SelectInput, useToast, cx,
 } from "../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Static roles definition (roles are fixed in the system); replaced by /api/role when available
 const ROLES = [

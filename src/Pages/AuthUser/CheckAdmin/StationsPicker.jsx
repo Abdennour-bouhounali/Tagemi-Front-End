@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Droplets, Lock } from 'lucide-react';
@@ -5,7 +6,7 @@ import { AppContext } from '../../../Context/AppContext';
 import useLiveRefresh from '../../../utils/useLiveRefresh';
 import { PageHeader, LoadingState, EmptyState, useToast } from '../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Specialty officer / doctor home: pick the queue to run, with today's live counts.
 export default function StationsPicker() {

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { MoreVertical, Download, Phone, Mail, MessageCircle, Trash2, Users, ChevronLeft } from 'lucide-react';
@@ -7,7 +8,7 @@ import {
   Button, IconButton, PageHeader, SearchField, ChipGroup, EmptyState, LoadingState, Sheet, SheetAction, useToast,
 } from '../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Algerian numbers: 0XXXXXXXXX or XXXXXXXXX become 213XXXXXXXXX (wa.me wants digits only)
 const toWhatsApp = (phone) => {

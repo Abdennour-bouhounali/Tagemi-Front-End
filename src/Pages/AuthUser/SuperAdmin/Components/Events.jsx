@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import { useContext, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -13,7 +14,7 @@ import EditEvent from './EditEvent';
 import EventDetails from './EventDetails';
 import { ConfirmSheet } from './EventFormParts';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export const eventStatus = (event) => (event.is_archived ? 'archived' : event.is_active ? 'active' : 'inactive');
 

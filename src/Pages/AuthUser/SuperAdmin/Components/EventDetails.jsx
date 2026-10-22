@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import { useState, useContext, useEffect } from 'react';
 import { Copy, Printer, Link as LinkIcon, Monitor, Ticket, Droplets } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -6,7 +7,7 @@ import { AppContext } from '../../../../Context/AppContext';
 import { escapeHtml, writePrintDocument } from '../../../../utils/safeHtml';
 import { Sheet, StatStrip, LoadingState, IconButton, Button, useToast } from '../../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const formatDate = (value) => {
   if (!value) return '—';

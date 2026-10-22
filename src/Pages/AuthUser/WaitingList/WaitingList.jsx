@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle } from 'lucide-react';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Hall screen: up to 5 specialty columns at once, otherwise two halves in turn
 const MAX_COLUMNS = 5;

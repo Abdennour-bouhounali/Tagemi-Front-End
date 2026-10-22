@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Plus, MoreVertical, Pencil, Trash2, ScrollText } from "lucide-react";
 import { AppContext } from "../../../Context/AppContext";
@@ -5,7 +6,7 @@ import {
     Button, IconButton, PageHeader, EmptyState, LoadingState, Sheet, SheetAction, Field, useToast,
 } from "../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Rules shown to patients before their check-ups (ضوابط الفحوصات).
 export default function ManageRules() {

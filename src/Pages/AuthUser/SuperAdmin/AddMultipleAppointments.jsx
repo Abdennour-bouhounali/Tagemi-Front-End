@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   UserPlus, Trash2, RotateCcw, Zap, ChevronRight, Pencil, AlertTriangle, CheckCircle2, TestTube2,
@@ -8,7 +9,7 @@ import {
   Button, IconButton, PageHeader, StatStrip, ChipGroup, Panel, Sheet, Field, TextInput, SelectInput, useToast, cx,
 } from "../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 // Backend works on this fixed event for test data
 const TEST_EVENT_ID = 2;
 const TEST_PATIENTS_PER_SPECIALTY = 15;

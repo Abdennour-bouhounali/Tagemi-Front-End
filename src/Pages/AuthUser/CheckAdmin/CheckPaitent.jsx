@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -15,7 +16,7 @@ import {
     ChipGroup, EmptyState, LoadingState, Sheet, SheetAction, useToast, cx,
 } from '../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 const QUEUED = ['Present', 'Commingsoon'];
 const AWAY = ['DilatationSent', 'Dilatation'];
 const inQueue = (a) => QUEUED.includes(a.status);

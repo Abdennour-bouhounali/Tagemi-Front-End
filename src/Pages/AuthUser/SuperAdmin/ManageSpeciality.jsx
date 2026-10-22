@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { AppContext } from "../../../Context/AppContext";
@@ -5,7 +6,7 @@ import SpecialityTable from "./Components/SpecialityTable";
 import AddSpeciality from "./Components/AddSpeciality";
 import { Button, PageHeader, LoadingState, useToast } from "../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Catalogue of medical specialties that events can offer.
 export default function ManageSpeciality() {

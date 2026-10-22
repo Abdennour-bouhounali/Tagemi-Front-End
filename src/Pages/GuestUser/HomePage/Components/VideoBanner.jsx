@@ -132,7 +132,7 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-3xl md:text-4xl font-bold text-white mb-2">10K+</div>
+                                    <div className="text-3xl md:text-4xl font-bold text-white mb-2">15K+</div>
                                     <div className="text-sm md:text-base text-gray-300 font-droid-arabic-kufi">
                                         {language === 'en' ? 'Beneficiaries' : 'مستفيد'}
                                     </div>

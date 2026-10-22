@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -13,7 +14,7 @@ import {
   Button, IconButton, Field, TextInput, SelectInput, EmptyState, LoadingState, ToastProvider, useToast, cx,
 } from '../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const STEPS = ['بياناتك', 'التخصصات والمواعيد', 'الموافقة والتأكيد'];
 const MAX_DOCUMENTS = 5;

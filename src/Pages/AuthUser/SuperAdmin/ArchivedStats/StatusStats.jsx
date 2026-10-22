@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 // Archived event: final outcome of every appointment.
 import React, { useState, useEffect, useContext } from "react";
 import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
@@ -9,7 +10,7 @@ import {
   ActionsMenu, ARCHIVED_OUTCOMES, BackLink, ErrorState, POPUP_BLOCKED, ResponsiveTable, ShareBar, printHtml,
 } from "../../../../Components/ui/StatsKit";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Map all possible backend statuses to the 3 archived outcomes
 const STATUS_CONFIG = {

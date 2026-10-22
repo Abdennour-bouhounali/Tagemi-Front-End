@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config/environment';
 import React, { useContext, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Globe, ChevronLeft } from 'lucide-react';
@@ -5,7 +6,7 @@ import { AppContext } from '../Context/AppContext';
 import { ToastProvider, Sheet, SheetAction, Button, cx } from '../Components/ui';
 import { ROLE_NAMES, staffHome, staffMoreLinks, staffTabs } from '../utils/staffNav';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const STAFF_RULES = [
   'الالتزام بالمواعيد والحضور الفعّال طوال فترة الحملة.',

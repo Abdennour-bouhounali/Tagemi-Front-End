@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -8,7 +9,7 @@ import { AppContext } from '../../../Context/AppContext';
 import { PageHeader, StatStrip, LoadingState, EmptyState, useToast } from '../../../Components/ui';
 import { EventStatusChip } from './Components/Events';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 /** A group of navigation rows: icon, title, one-line hint, chevron. */
 function LinkList({ title, items }) {

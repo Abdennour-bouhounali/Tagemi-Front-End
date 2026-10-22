@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 // Archived event: every appointment, server-paginated, with filters.
 import React, { useState, useEffect, useContext } from "react";
 import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
@@ -9,7 +10,7 @@ import {
 } from "../../../../Components/ui";
 import { ActionsMenu, ARCHIVED_OUTCOMES, BackLink, ErrorState, POPUP_BLOCKED, printHtml } from "../../../../Components/ui/StatsKit";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Final outcome of an archived appointment (same as StatusStats / VisitStatistics::outcomeOf)
 const OUTCOMES = {

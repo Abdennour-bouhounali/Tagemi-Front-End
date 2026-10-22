@@ -1,9 +1,10 @@
+import { API_BASE_URL } from '../../config/environment';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Check, CheckCircle2, ChevronRight, ChevronLeft, Send, AlertTriangle } from 'lucide-react';
 import { Button, Field, TextInput, LoadingState, EmptyState, ToastProvider, useToast, cx } from '../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const AGE_RANGES = ['أقل من 18 سنة', '18-35 سنة', '36-50 سنة', 'أكثر من 50 سنة'];
 const GENDERS = ['ذكر', 'أنثى'];

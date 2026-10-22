@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import React, { useContext, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
 import { MoreVertical, Pencil, Trash2, Stethoscope, Plus } from "lucide-react";
@@ -5,7 +6,7 @@ import {
   Button, IconButton, EmptyState, Sheet, SheetAction, Field, TextInput, useToast,
 } from "../../../../Components/ui";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 /** List of specialties with a ⋮ menu per row (edit, delete). */
 const SpecialityTable = ({ specialities, getSpecialites, onAdd }) => {

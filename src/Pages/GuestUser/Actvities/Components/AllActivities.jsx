@@ -1,14 +1,16 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../../../../Context/AppContext';
 import { useLanguage } from '../../../../Context/LanguageContext';
-const env = import.meta.env;
-export const apiUrl = env.VITE_API_URL;
+import { API_BASE_URL } from '../../../../config/environment';
+
 const AllActivities = ({TypeId}) => {
     const { token } = useContext(AppContext);
     const [activities, setActivities] = useState([]);
-const {language}=useLanguage();
+    const {language}=useLanguage();
+    const apiUrl = API_BASE_URL;
+
     async function getAllActivities() {
-        const res = await fetch(`api/activities/showByActivitiesType/${TypeId}`);
+        const res = await fetch(`${apiUrl}/api/activities/showByActivitiesType/${TypeId}`);
         const data = await res.json();
         setActivities(data);
         // console.log("activities  : ");

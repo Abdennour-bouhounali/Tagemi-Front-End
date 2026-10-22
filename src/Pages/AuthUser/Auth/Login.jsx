@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import { staffHome } from '../../../utils/staffNav';
 import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,7 +7,7 @@ import { Eye, EyeOff, AlertTriangle, CheckCircle2, LogIn } from 'lucide-react';
 import { Button, Field, TextInput } from '../../../Components/ui';
 import logo from '/tagemi_logo.png';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 /** Staff login: one centered card on the paper background. */
 export default function Login() {

@@ -1,12 +1,13 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { AppContext } from "../Context/AppContext";
+import { API_BASE_URL } from "../config/environment";
 import GuestNavBar from "./Headers/GuestNavBar";
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { useLanguage } from "../Context/LanguageContext";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 export default function GuestLayout() {
     const { setUser, token, setToken, user } = useContext(AppContext);
@@ -22,8 +23,6 @@ export default function GuestLayout() {
             const headers = new Headers();
             headers.append('Content-Type', 'application/json');
             headers.append('Accept', 'application/json');
-            headers.append('Access-Control-Allow-Origin', apiUrl);
-            headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
 
             const res = await fetch(`${apiUrl}/api/types`, { headers });
             const data = await res.json();
@@ -38,8 +37,6 @@ export default function GuestLayout() {
             const headers = new Headers();
             headers.append('Content-Type', 'application/json');
             headers.append('Accept', 'application/json');
-            headers.append('Access-Control-Allow-Origin', apiUrl);
-            headers.append('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
 
             const res = await fetch(`${apiUrl}/api/specialty`, { headers });
             const data = await res.json();
@@ -121,17 +118,17 @@ const ScrollToTopButton = () => {
                     className="fixed bottom-8 right-8 z-50 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     aria-label="Scroll to top"
                 >
-                    <svg 
-                        className="w-6 h-6" 
-                        fill="none" 
-                        stroke="currentColor" 
+                    <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                     >
-                        <path 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth="2" 
-                            d="M5 10l7-7m0 0l7 7m-7-7v18" 
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M5 10l7-7m0 0l7 7m-7-7v18"
                         />
                     </svg>
                 </button>

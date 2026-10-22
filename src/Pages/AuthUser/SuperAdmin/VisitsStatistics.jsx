@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Download, RefreshCw } from 'lucide-react';
@@ -8,7 +9,7 @@ import {
     ActionsMenu, BackLink, CHART, ChartLegend, ErrorState, HBarChart, RankList, ResponsiveTable, ShareBar, downloadCsv,
 } from '../../../Components/ui/StatsKit';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const GROUP_KEYS = Object.keys(STATUS_GROUPS);
 

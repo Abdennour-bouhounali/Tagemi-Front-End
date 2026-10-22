@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 // Archived event: patients by gender and age group.
 import React, { useState, useEffect, useContext } from "react";
 import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
@@ -9,7 +10,7 @@ import {
   ActionsMenu, BackLink, CHART, ErrorState, HBarChart, POPUP_BLOCKED, ShareBar, printHtml,
 } from "../../../../Components/ui/StatsKit";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Same convention as the queue screens: women in rose, men in ink
 const GENDER_COLORS = {

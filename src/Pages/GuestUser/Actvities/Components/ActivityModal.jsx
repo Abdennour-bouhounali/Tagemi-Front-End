@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { X, Upload, Trash2, Image , Calendar ,  Video, MapPin } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Upload, Trash2 , Calendar ,  Video ,MapPin} from 'lucide-react';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import ReactQuill from 'react-quill';
+import { API_BASE_URL } from '../../../../config/environment';
 import 'react-quill/dist/quill.snow.css';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) => {
     const { language } = useLanguage();
@@ -412,7 +413,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
                                        {/* Location Field - NEW */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi flex items-center gap-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-droid-arabic-kufi items-center gap-2">
                             <MapPin className="w-4 h-4" />
                             {language === 'en' ? 'Location' : 'الموقع'}
                         </label>

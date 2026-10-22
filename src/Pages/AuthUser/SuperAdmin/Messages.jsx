@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
@@ -10,7 +11,7 @@ import {
   Sheet, SheetAction, Field, useToast, cx,
 } from '../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const TYPE_LABELS = {
   help: 'مساعدة',

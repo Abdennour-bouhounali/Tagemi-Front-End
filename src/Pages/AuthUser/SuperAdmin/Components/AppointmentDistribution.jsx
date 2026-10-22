@@ -1,9 +1,10 @@
+import { API_BASE_URL } from '../../../../config/environment';
 import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import { PageHeader, StatStrip, ChipGroup, Panel, LoadingState, EmptyState, Button, cx } from '../../../../Components/ui';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 // Hour fill status from the API → st-* colours
 const STATUS = {

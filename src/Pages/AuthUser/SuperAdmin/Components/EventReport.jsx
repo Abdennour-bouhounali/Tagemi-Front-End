@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 // Post-event report of a caravan (super admin). A long form split into
 // collapsible sections; read-only once approved. Printed via PrintableReport.
 import { useState, useEffect, useContext } from "react";
@@ -14,7 +15,7 @@ import { ActionsMenu, BackLink, ErrorState, POPUP_BLOCKED } from "../../../../Co
 import { ConfirmSheet, FormActionBar } from "./EventFormParts";
 import { generatePrintableHTML } from "./PrintableReport";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const EMPTY_REPORT = {
   // Executive Summary

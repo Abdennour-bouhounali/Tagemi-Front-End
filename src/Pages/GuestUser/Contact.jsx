@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../../config/environment';
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../../Context/LanguageContext';
 import Footer from './HomePage/Components/Footer';
 import {
@@ -17,7 +18,7 @@ import {
 import { Input, Select, Textarea } from '../Common/FormInputs';
 import algeriaData from '../../data/algeria_locations.json';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const Contact = ({ project, projectName }) => {
     const { language } = useLanguage();

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../../../config/environment';
 // Archived event: patients by wilaya and city.
 import React, { useState, useEffect, useContext } from "react";
 import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
@@ -9,7 +10,7 @@ import {
   ActionsMenu, BackLink, CHART, ErrorState, HBarChart, POPUP_BLOCKED, RankList, ResponsiveTable, pct, printHtml,
 } from "../../../../Components/ui/StatsKit";
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = API_BASE_URL;
 
 const GeographicStats = () => {
   const { eventId } = useParams();
