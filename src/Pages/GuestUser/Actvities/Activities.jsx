@@ -371,7 +371,7 @@ export default function Activities() {
                             {t('About this category', 'عن هذه الفئة')}
                         </h2>
                         <div
-                            className="prose max-w-none text-[#2A3A7A] leading-relaxed font-droid-arabic-kufi"
+                            className="rich-content"
                             dangerouslySetInnerHTML={{ __html: sanitizeHtml(lang === 'en' ? type.description_en : type.description_ar) }}
                         />
                     </div>

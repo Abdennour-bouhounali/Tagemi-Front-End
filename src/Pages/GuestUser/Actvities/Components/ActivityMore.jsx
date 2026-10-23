@@ -521,7 +521,7 @@ export default function ActivityMore() {
                         </h2>
                         
                         <div 
-                            className="prose prose-sm sm:prose-base lg:prose-lg max-w-none font-droid-arabic-kufi text-gray-700 leading-relaxed"
+                            className="rich-content max-w-3xl mx-auto"
                             style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}
                             dangerouslySetInnerHTML={{ 
                                 __html: sanitizeHtml(language === 'en' ? activity.description_en : activity.description_ar) 

@@ -693,3 +693,33 @@ html {
 
 /* Headings use Cairo everywhere; beats per-element font utilities on purpose */
 h1, h2, h3, h4, h5, h6 { font-family: "Cairo", "Tajawal", Tahoma, sans-serif !important; }
+
+/* Long-form text written in the editor (activity and category descriptions).
+   Pasted Word/web content brings its own fonts, sizes and colours: normalise them. */
+.rich-content { font-size: 1.0625rem; line-height: 2; color: #2b3552; overflow-wrap: anywhere; }
+.rich-content, .rich-content * { font-family: "Tajawal", "Cairo", Tahoma, sans-serif; }
+.rich-content :is(p, span, li, div, strong, em, a, u) { font-size: inherit !important; line-height: inherit !important; background: transparent !important; }
+.rich-content :is(p, span, li, div):not(a) { color: inherit !important; }
+.rich-content p { margin: 0 0 1.25rem; text-align: start; }
+.rich-content p:empty, .rich-content p:has(> br:only-child) { display: none; }
+.rich-content > p:first-of-type { font-size: 1.2rem !important; font-weight: 500; color: #101E58 !important; }
+.rich-content strong, .rich-content b { font-weight: 700; color: #101E58; }
+.rich-content :is(h1, h2, h3, h4) { color: #101E58; font-weight: 700; margin: 2rem 0 .75rem; line-height: 1.5; }
+.rich-content h1, .rich-content h2 { font-size: 1.5rem; }
+.rich-content h3, .rich-content h4 { font-size: 1.25rem; }
+.rich-content :is(ul, ol) { margin: 0 0 1.25rem; padding-inline-start: 1.5rem; }
+.rich-content ul { list-style: disc; }
+.rich-content ol { list-style: decimal; }
+.rich-content li { margin-bottom: .5rem; }
+.rich-content li::marker { color: #E03A6F; }
+.rich-content a { color: #E03A6F; text-decoration: underline; text-underline-offset: 3px; }
+.rich-content blockquote { margin: 1.5rem 0; padding: .75rem 1.25rem; border-inline-start: 4px solid #E03A6F; background: #F2F4F9; border-radius: .5rem; }
+.rich-content img { max-width: 100%; height: auto; border-radius: .75rem; margin: 1rem auto; }
+.rich-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: .95em; display: block; overflow-x: auto; }
+.rich-content :is(th, td) { padding: .6rem .9rem; border: 1px solid #DCE1EC; text-align: start; }
+.rich-content th { background: #E7EAF4; color: #101E58; }
+.rich-content .ql-align-center { text-align: center; }
+.rich-content .ql-align-justify { text-align: justify; }
+.rich-content .ql-align-left { text-align: left; }
+.rich-content .ql-align-right { text-align: right; }
+@media (max-width: 640px) { .rich-content { font-size: 1rem; line-height: 1.9; } .rich-content > p:first-of-type { font-size: 1.1rem !important; } }
