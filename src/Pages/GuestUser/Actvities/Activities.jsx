@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../../../config/environment';
 import { useLanguage } from "../../../Context/LanguageContext";
 import { AppContext } from "../../../Context/AppContext";
 import { fetchTypes, typeImageUrl } from "../../../utils/publicApi";
-import { sanitizeHtml } from '../../../utils/safeHtml';
+import RichContent from '../../../Components/RichContent';
 import Footer from "../HomePage/Components/Footer";
 import ActivityCard, { activityExcerpt, activityTitle } from "./Components/ActivityCard";
 
@@ -370,10 +370,7 @@ export default function Activities() {
                         <h2 className="text-xl md:text-2xl font-bold text-[#101E58] mb-4 font-droid-arabic-kufi">
                             {t('About this category', 'عن هذه الفئة')}
                         </h2>
-                        <div
-                            className="rich-content"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(lang === 'en' ? type.description_en : type.description_ar) }}
-                        />
+                        <RichContent html={lang === 'en' ? type.description_en : type.description_ar} />
                     </div>
                 </section>
             )}

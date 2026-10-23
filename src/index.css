@@ -723,3 +723,21 @@ h1, h2, h3, h4, h5, h6 { font-family: "Cairo", "Tajawal", Tahoma, sans-serif !im
 .rich-content .ql-align-left { text-align: left; }
 .rich-content .ql-align-right { text-align: right; }
 @media (max-width: 640px) { .rich-content { font-size: 1rem; line-height: 1.9; } .rich-content > p:first-of-type { font-size: 1.1rem !important; } }
+
+/* Rich content, round 2: highlighted figures, centred call-outs, sub-sections */
+.rich-content .num { color: #E03A6F !important; font-weight: 700; direction: ltr; unicode-bidi: isolate; display: inline-block; font-variant-numeric: tabular-nums; }
+.rich-content :is(.callout, p.ql-align-center) {
+  text-align: center; margin: 2rem 0; padding: 1.25rem 1.5rem; background: #F2F4F9;
+  border: 1px solid #DCE1EC; border-radius: 1rem; color: #101E58 !important; font-weight: 600;
+  font-size: 1.15rem !important; line-height: 1.9 !important;
+}
+.rich-content :is(.callout, p.ql-align-center) :is(span, strong) { color: #101E58 !important; }
+.rich-content :is(.callout, p.ql-align-center) .num { color: #E03A6F !important; }
+.rich-content > p:first-of-type.callout { font-size: 1.25rem !important; background: #101E58; border-color: #101E58; color: #fff !important; }
+.rich-content > p:first-of-type.callout :is(span, strong) { color: #fff !important; }
+.rich-content > p:first-of-type.callout .num { color: #FF9DBB !important; }
+/* sub-sections */
+.rich-content h3 { display: flex; align-items: center; gap: .6rem; padding-top: 1.25rem; margin-top: 2.25rem; border-top: 1px solid #DCE1EC; font-size: 1.3rem; }
+.rich-content h3::before { content: ""; width: .35rem; height: 1.4rem; border-radius: 9999px; background: #E03A6F; flex-shrink: 0; }
+.rich-content h3:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+.rich-content blockquote { font-weight: 500; color: #101E58; }

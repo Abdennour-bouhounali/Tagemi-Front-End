@@ -4,6 +4,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "../../../../Context/LanguageContext";
 import { AppContext } from "../../../../Context/AppContext";
 
+import RichContent from "../../../../Components/RichContent";
 import ActivityCard from "./ActivityCard";
 import { fetchTypes, mediaUrl } from "../../../../utils/publicApi";
 
@@ -520,12 +521,9 @@ export default function ActivityMore() {
                             {language === 'en' ? 'About This Activity' : 'عن هذا النشاط'}
                         </h2>
                         
-                        <div 
-                            className="rich-content max-w-3xl mx-auto"
-                            style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}
-                            dangerouslySetInnerHTML={{ 
-                                __html: sanitizeHtml(language === 'en' ? activity.description_en : activity.description_ar) 
-                            }}
+                        <RichContent
+                            className="max-w-3xl mx-auto"
+                            html={language === 'en' ? activity.description_en : activity.description_ar}
                         />
                     </div>
                 </div>
