@@ -80,6 +80,7 @@ const CheckPresence = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [checkingInId, setCheckingInId] = useState(null); // patient whose row check-in button is pending
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -1789,6 +1790,11 @@ ${appointmentsList}
             سجّله حالة خاصة
           </SheetAction>
         )}
+        {canCheckIn && !checkedIn && (
+          <SheetAction icon={Check} hint="يدخل طوابير مواعيد اليوم" disabled={updating} onClick={run(() => checkInPatient(p.patient_id))}>
+            سجّل الحضور
+          </SheetAction>
+        )}
         <SheetAction icon={QrCode} onClick={run(() => setQrFor(p))}>اعرض رمز QR</SheetAction>
         <SheetAction
           icon={Printer}
@@ -1980,7 +1986,25 @@ ${appointmentsList}
                         ))}
                       </div>
                     </button>
-                    <IconButton icon={MoreVertical} label={`خيارات المريض ${p.patient_id}`} onClick={() => setActionsFor(p)} />
+                    <div className="shrink-0 flex items-center gap-1 self-center">
+                      {canCheckIn && !hasCheckedIn(p) && (
+                        <Button
+                          size="sm"
+                          icon={Check}
+                          loading={checkingInId === p.patient_id}
+                          disabled={updating}
+                          aria-label={`سجّل حضور المريض ${p.patient_id}`}
+                          onClick={async () => {
+                            setCheckingInId(p.patient_id);
+                            await checkInPatient(p.patient_id);
+                            setCheckingInId(null);
+                          }}
+                        >
+                          حاضر
+                        </Button>
+                      )}
+                      <IconButton icon={MoreVertical} label={`خيارات المريض ${p.patient_id}`} onClick={() => setActionsFor(p)} />
+                    </div>
                   </div>
                 </li>
               );

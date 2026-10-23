@@ -7,7 +7,7 @@ const apiUrl = API_BASE_URL;
 
 // Hall screen: up to 5 specialty columns at once, otherwise two halves in turn
 const MAX_COLUMNS = 5;
-const ROTATION_MS = 7000;
+const ROTATION_MS = 10000;
 import { AppContext } from "../../../Context/AppContext";
 
 const WaitingList = () => {
@@ -23,7 +23,7 @@ const WaitingList = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [sexFilter, setSexFilter] = useState('all'); // 'all', 'male', 'female'
   // More than 5 specialties don't fit on the hall screen: show them in two
-  // halves that take turns every 7 seconds.
+  // halves that take turns every 10 seconds.
   const [groupIndex, setGroupIndex] = useState(0);
 
   // Helper function to determine patient sex
@@ -343,7 +343,7 @@ const WaitingList = () => {
           <div className="flex items-center gap-2 border-r pr-6 mr-2">
             <RefreshCw className="w-4 h-4 text-indigo-500" />
             <span className="text-gray-700">
-              التخصصات {groupIndex % 2 + 1} / 2 (تتبدل كل 7 ثوانٍ)
+              التخصصات {groupIndex % 2 + 1} / 2 (تتبدل كل 10 ثوانٍ)
             </span>
           </div>
         )}

@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../config/environment';
-import React, { useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -409,6 +409,15 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
+  // The QR code is needed at reception, so save it as soon as the booking is confirmed
+  const autoDownloaded = useRef(false);
+  useEffect(() => {
+    if (!patientId || autoDownloaded.current) return;
+    autoDownloaded.current = true;
+    downloadQRCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
+
   // Printable confirmation (popup, scripts blocked, every value escaped)
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -475,6 +484,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
         </div>
 
         <div class="note">احتفظ بهذه الورقة وأحضرها يوم الفحص</div>
+        <div class="note" style="border:2px solid #DC2626;background:#FEF2F2;color:#B91C1C;">رمز QR ضروري لتسجيل حضورك يوم الفحص</div>
 
         ${qrCodeBase64 ? `
         <div class="qr">
@@ -540,8 +550,14 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
             </div>
             {patientId && (
               <div className="px-5 py-5 flex flex-col items-center">
-                <QRCodeSVG id="patient-qr-code" value={qrValue} size={200} level="H" includeMargin />
-                <p className="mt-2 text-sm text-muted text-center">اعرض هذا الرمز في الاستقبال لتسجيل حضورك بسرعة</p>
+                <p className="mb-3 w-full flex items-start gap-2 rounded-xl border-2 border-red-600 bg-red-50 px-3 py-2.5 text-sm font-bold text-red-700 glow-red">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  <span>رمز QR ضروري: لن يُسجَّل حضورك يوم الفحص بدونه. احتفظ بالصورة في هاتفك.</span>
+                </p>
+                <div className="rounded-2xl border-2 border-red-600 p-1 glow-red">
+                  <QRCodeSVG id="patient-qr-code" value={qrValue} size={200} level="H" includeMargin />
+                </div>
+                <p className="mt-3 text-sm text-red-700 font-semibold text-center">حُمّلت صورة الرمز تلقائياً. إن لم تجدها في هاتفك اضغط «احفظ الصورة».</p>
               </div>
             )}
             <div className="border-t border-line px-5 py-4">
@@ -576,7 +592,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
             <Button size="lg" icon={Download} onClick={downloadQRCode}>احفظ الصورة</Button>
             <Button size="lg" variant="secondary" icon={Printer} onClick={handlePrint}>اطبع</Button>
           </div>
-          <p className="mt-2 text-xs text-muted text-center">احفظ الصورة في هاتفك أو التقط لقطة شاشة لهذه الصفحة.</p>
+          <p className="mt-2 text-xs font-semibold text-red-700 text-center">رمز QR ضروري للدخول: احفظ الصورة في هاتفك أو التقط لقطة شاشة لهذه الصفحة.</p>
         </div>
 
         <div>
