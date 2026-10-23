@@ -1,16 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useLanguage } from '../../../../Context/LanguageContext';
 import { motion } from 'framer-motion';
 
 const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
     const { language } = useLanguage();
-    const [scrollY, setScrollY] = useState(0);
+    const parallaxRef = useRef(null);
 
+    // Parallax moves the layer directly (no React re-render per scroll event)
     useEffect(() => {
-        const handleScroll = () => setScrollY(window.scrollY);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+        if (!homePage) return;
+        let frame = 0;
+        const handleScroll = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                if (parallaxRef.current) parallaxRef.current.style.transform = `translateY(${window.scrollY * 0.3}px)`;
+            });
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            cancelAnimationFrame(frame);
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [homePage]);
 
     return (
         <>
@@ -18,6 +29,7 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                 <div className="relative w-full h-[40vh] md:h-[50vh] overflow-hidden pt-20 md:pt-24">
                     <img 
                         src={bannerImage} 
+                        decoding="async"
                         className="w-full h-full  object-cover object-left md:object-center" 
                         alt="Banner" 
                     />
@@ -34,14 +46,15 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                 <div className="relative w-full min-h-[70vh] md:min-h-[85vh] overflow-hidden bg-gradient-to-br from-[#101E58] via-[#1a2d78] to-[#101E58] pt-16 md:pt-28">
                     {/* Background Image with Parallax Effect */}
                     <div 
-                        className="absolute inset-0 opacity-60"
-                        style={{
-                            transform: `translateY(${scrollY * 0.5}px)`,
-                            transition: 'transform 0.1s ease-out'
-                        }}
+                        ref={parallaxRef}
+                        className="absolute inset-0 opacity-60 will-change-transform"
                     >
                         <img 
                             src={bannerImage} 
+                            fetchPriority="high"
+                            decoding="async"
+                            width="1600"
+                            height="841"
                             className="w-full h-full object-cover  object-left md:object-center" 
                             alt="Hero Background" 
                         />

@@ -2,7 +2,6 @@ import { useContext, useEffect, useState, useRef } from "react";
 import { API_BASE_URL } from '../../config/environment';
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../Context/AppContext";
-import 'flag-icons/css/flag-icons.min.css';
 import LanguageSelector from "../../LanguageSelector";
 import { useLanguage } from "../../Context/LanguageContext";
 import { 
@@ -157,7 +156,7 @@ const GuestNavBar = ({ user, types }) => {
                         </NavLink>
 
                         {/* Activity Types Dropdown */}
-                        {user && (user.role_id === 1 || user.role_id === 7) && types && types.length > 0 && (
+                        {types && types.length > 0 && (
                             <div ref={dropdownRef} className="relative">
                                 <button
                                     onClick={toggleActivitiesDropdown}
@@ -169,7 +168,7 @@ const GuestNavBar = ({ user, types }) => {
                                 </button>
 
                                 {isActivitiesDropdownOpen && (
-                                    <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                    <div className={`absolute top-full ${language === 'ar' ? 'right-0' : 'left-0'} mt-2 w-72 max-h-[70vh] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-1.5`}>
                                         {/* ... inside the mobile menu loop ... */}
                                             {types.map((type) => (
                                                 <MobileNavLink
@@ -279,7 +278,7 @@ const GuestNavBar = ({ user, types }) => {
                                     <Info className="w-5 h-5" />
                                     <span>{language === 'en' ? 'About' : 'من نحن'}</span>
                                 </MobileNavLink>
-                                {user && (user.role_id === 1 || user.role_id === 7) && types && types.length > 0 && (
+                                {types && types.length > 0 && (
                                     <div>
                                         <button
                                             onClick={toggleActivitiesDropdown2}

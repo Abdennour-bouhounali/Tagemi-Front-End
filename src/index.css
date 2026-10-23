@@ -1,6 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&family=Palanquin:wght@100;200;300;400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Palanquin:wght@100;200;300;400;500;600;700&display=swap");
-@import url(https://fonts.googleapis.com/earlyaccess/droidarabickufi.css);
 
 @tailwind base;
 @tailwind components;
@@ -690,3 +687,6 @@ html {
 .whitespace-pre-line {
   white-space: pre-line;
 }
+/* Horizontal chip rows: scroll without a visible bar */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

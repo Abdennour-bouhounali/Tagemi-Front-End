@@ -9,7 +9,7 @@ import { sanitizeHtml } from '../../../utils/safeHtml';
 const apiUrl = API_BASE_URL; 
 export default function FuturProjects() {
     // const { TypeId } = useParams();
-    // const [type, setType] = useState({ image_url: '/tagemi_consept.jpg', description: '' });
+    // const [type, setType] = useState({ image_url: '/tagemi_consept.webp', description: '' });
 
     const [projects, setProjects] = useState([]);
     const [types, setTypes] = useState([]);
@@ -83,7 +83,7 @@ const {language} = useLanguage();
 
     return (
         <>
-            <VideoBanner bannerImage='/tagemi_consept.jpg' bannerText={''} />
+            <VideoBanner bannerImage='/tagemi_consept.webp' bannerText={''} />
             {/* <AboutActvity TypeDescription={type.description} ImageUrl={`http://127.0.0.1:8000/${project.image1}`} /> */}
             <section className="py-12 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

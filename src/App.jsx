@@ -1,52 +1,54 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import StaffShell from './Pages/StaffShell';
-import StationsPicker from './Pages/AuthUser/CheckAdmin/StationsPicker';
-import NoEvent from './Pages/AuthUser/NoEvent';
 import { LoadingState } from './Components/ui';
 import GuestLayout from './Pages/GuestLayout';
-import Home from './Pages/GuestUser/HomePage/Home';
-import Login from './Pages/AuthUser/Auth/Login';
-import Register from './Pages/AuthUser/Auth/Register';
-import AllUsers from './Pages/AuthUser/SuperAdmin/AllUsers';
-import { useContext, useEffect, useState } from 'react';
+import { lazy, Suspense, useContext, useEffect, useState } from 'react';
 import { AppContext } from './Context/AppContext';
-import ManageSpeciality from './Pages/AuthUser/SuperAdmin/ManageSpeciality';
-import RegisterVisit from './Pages/AuthUser/Visits/RegisterVisit';
-import CheckPresence from './Pages/AuthUser/RecipientAdmin/CheckPresence';
-import CheckPaitent from './Pages/AuthUser/CheckAdmin/CheckPaitent';
-import DilatationRoom from './Pages/AuthUser/CheckAdmin/DilatationRoom';
 import './i18n';
-import VisitsStatistics from './Pages/AuthUser/SuperAdmin/VisitsStatistics';
-import About from './Pages/GuestUser/About';
-import Contact from './Pages/GuestUser/Contact';
-import ManageRules from './Pages/AuthUser/SuperAdmin/ManageRules';
-import Activities from './Pages/GuestUser/Actvities/Activities';
-import Messages from './Pages/AuthUser/SuperAdmin/Messages';
-import VolunteerForm from './Pages/GuestUser/VolunteerForm';
-import FuturProjects from './Pages/GuestUser/FuturProjects/FuturProjects';
-import ProjectDetails from './Pages/GuestUser/FuturProjects/ProjectDetails';
-import SuperAdminVolunteers from './Pages/AuthUser/SuperAdmin/SuperAdminVolunteers';
-import WaitingList from './Pages/AuthUser/WaitingList/WaitingList';
 import { LanguageProvider } from './Context/LanguageContext';
 import RedirectToAppointment from './RedirectToAppointment';
-import NotFound from './Pages/NotFound';
-import NotAuthenticated from './Pages/NotAuthenticated';
-import EventsManagement from './Pages/AuthUser/SuperAdmin/EventsManagement';
-import AddMultipleAppointments from './Pages/AuthUser/SuperAdmin/AddMultipleAppointments';
-import EventTracking from './Pages/AuthUser/SuperAdmin/EventTracking';
-import EventAppointmentDistribution from './Pages/AuthUser/SuperAdmin/Components/EventAppointmentDistribution';
-import SpecialtyStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/SpecialtyStats';
-import StatusStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/StatusStats';
-import DemographicStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/DemographicStats';
-import GeographicStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/GeographicStats';
-import PatientsList from './Pages/AuthUser/SuperAdmin/ArchivedStats/PatientsList';
-import ComprehensiveReport from './Pages/AuthUser/SuperAdmin/ArchivedStats/ComprehensiveReport';
-import EventReport from './Pages/AuthUser/SuperAdmin/Components/EventReport';
-import ActivityMore from './Pages/GuestUser/Actvities/Components/ActivityMore';
-import EvaluationForm from './Pages/Common/EvaluationForm';
-import EvaluationsAdmin from './Pages/AuthUser/SuperAdmin/EvaluationsAdmin';
-import EvaluationStatistics from './Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics';
-import MyTurn from './Pages/GuestUser/MyTurn';
+
+// Every page is its own chunk: visitors only download the screens they open
+const StaffShell = lazy(() => import('./Pages/StaffShell'));
+const StationsPicker = lazy(() => import('./Pages/AuthUser/CheckAdmin/StationsPicker'));
+const NoEvent = lazy(() => import('./Pages/AuthUser/NoEvent'));
+const Home = lazy(() => import('./Pages/GuestUser/HomePage/Home'));
+const Login = lazy(() => import('./Pages/AuthUser/Auth/Login'));
+const Register = lazy(() => import('./Pages/AuthUser/Auth/Register'));
+const AllUsers = lazy(() => import('./Pages/AuthUser/SuperAdmin/AllUsers'));
+const ManageSpeciality = lazy(() => import('./Pages/AuthUser/SuperAdmin/ManageSpeciality'));
+const RegisterVisit = lazy(() => import('./Pages/AuthUser/Visits/RegisterVisit'));
+const CheckPresence = lazy(() => import('./Pages/AuthUser/RecipientAdmin/CheckPresence'));
+const CheckPaitent = lazy(() => import('./Pages/AuthUser/CheckAdmin/CheckPaitent'));
+const DilatationRoom = lazy(() => import('./Pages/AuthUser/CheckAdmin/DilatationRoom'));
+const VisitsStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/VisitsStatistics'));
+const About = lazy(() => import('./Pages/GuestUser/About'));
+const Contact = lazy(() => import('./Pages/GuestUser/Contact'));
+const ManageRules = lazy(() => import('./Pages/AuthUser/SuperAdmin/ManageRules'));
+const Activities = lazy(() => import('./Pages/GuestUser/Actvities/Activities'));
+const Messages = lazy(() => import('./Pages/AuthUser/SuperAdmin/Messages'));
+const VolunteerForm = lazy(() => import('./Pages/GuestUser/VolunteerForm'));
+const FuturProjects = lazy(() => import('./Pages/GuestUser/FuturProjects/FuturProjects'));
+const ProjectDetails = lazy(() => import('./Pages/GuestUser/FuturProjects/ProjectDetails'));
+const SuperAdminVolunteers = lazy(() => import('./Pages/AuthUser/SuperAdmin/SuperAdminVolunteers'));
+const WaitingList = lazy(() => import('./Pages/AuthUser/WaitingList/WaitingList'));
+const NotFound = lazy(() => import('./Pages/NotFound'));
+const NotAuthenticated = lazy(() => import('./Pages/NotAuthenticated'));
+const EventsManagement = lazy(() => import('./Pages/AuthUser/SuperAdmin/EventsManagement'));
+const AddMultipleAppointments = lazy(() => import('./Pages/AuthUser/SuperAdmin/AddMultipleAppointments'));
+const EventTracking = lazy(() => import('./Pages/AuthUser/SuperAdmin/EventTracking'));
+const EventAppointmentDistribution = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EventAppointmentDistribution'));
+const SpecialtyStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/SpecialtyStats'));
+const StatusStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/StatusStats'));
+const DemographicStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/DemographicStats'));
+const GeographicStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/GeographicStats'));
+const PatientsList = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/PatientsList'));
+const ComprehensiveReport = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/ComprehensiveReport'));
+const EventReport = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EventReport'));
+const ActivityMore = lazy(() => import('./Pages/GuestUser/Actvities/Components/ActivityMore'));
+const EvaluationForm = lazy(() => import('./Pages/Common/EvaluationForm'));
+const EvaluationsAdmin = lazy(() => import('./Pages/AuthUser/SuperAdmin/EvaluationsAdmin'));
+const EvaluationStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics'));
+const MyTurn = lazy(() => import('./Pages/GuestUser/MyTurn'));
 
 export default function App() {
   const [specialities, setSpecialities] = useState([]);
@@ -61,6 +63,7 @@ export default function App() {
   return (
     <LanguageProvider>
       <BrowserRouter>
+        <Suspense fallback={<LoadingState />}>
         <Routes>
           {/* -------- Guest / Public Routes (GuestLayout) -------- */}
           <Route path="/" element={<GuestLayout />}>
@@ -141,6 +144,7 @@ export default function App() {
           {/* Fallback - 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </LanguageProvider>
   );

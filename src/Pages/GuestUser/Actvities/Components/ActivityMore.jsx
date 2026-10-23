@@ -1,10 +1,13 @@
-import { useEffect, useState, useContext } from "react";
+import { lazy, Suspense, useEffect, useState, useContext } from "react";
 import { API_BASE_URL } from '../../../../config/environment';
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "../../../../Context/LanguageContext";
 import { AppContext } from "../../../../Context/AppContext";
 
-import ActivityModal from "./ActivityModal";
+import ActivityCard from "./ActivityCard";
+import { fetchTypes, mediaUrl } from "../../../../utils/publicApi";
+
+const ActivityModal = lazy(() => import("./ActivityModal"));
 import {
     Calendar,
     MapPin,
@@ -48,27 +51,11 @@ export default function ActivityMore() {
     
     const isSuperAdmin = user && (user.role_id === 1 || user.role_id === 7);
 
-    // Helper function to get correct media URL
-    const getMediaUrl = (url) => {
-        if (!url) return '/tagemi_consept.png';
-        
-        // Remove any leading slashes
-        url = url.replace(/^\/+/, '');
-        
-        // If URL already starts with 'storage/', just prepend apiUrl
-        if (url.startsWith('storage/')) {
-            return `${apiUrl}/${url}`;
-        }
-        
-        // Otherwise, add 'storage/' prefix
-        return `${apiUrl}/storage/${url}`;
-    };
+    const getMediaUrl = mediaUrl;
 
     async function getTypes() {
         try {
-            const res = await fetch(`${apiUrl}/api/types`);
-            const data = await res.json();
-            setTypes(data);
+            setTypes(await fetchTypes());
         } catch (error) {
             console.error('Error fetching types:', error);
         }
@@ -78,19 +65,15 @@ export default function ActivityMore() {
         try {
             setLoading(true);
             setError(null);
-            const res = await fetch(`${apiUrl}/api/activities/${Actvityid}`);
+            const res = await fetch(`${apiUrl}/api/activities/${Actvityid}`, {
+                headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            });
             
             if (!res.ok) {
                 throw new Error('Activity not found');
             }
             
             const data = await res.json();
-            console.log('Activity data:', data);
-            console.log('Media data:', data.media);
-            if (data.media && data.media.length > 0) {
-                console.log('First media URL:', data.media[0].url);
-                console.log('Full URL would be:', getMediaUrl(data.media[0].url));
-            }
             setActivity(data);
         } catch (error) {
             console.error('Error fetching activity:', error);
@@ -103,6 +86,17 @@ export default function ActivityMore() {
     useEffect(() => {
         getTypes();
     }, []);
+
+    const [related, setRelated] = useState([]);
+    useEffect(() => {
+        if (!activity?.type_id) return;
+        const controller = new AbortController();
+        fetch(`${apiUrl}/api/activities/type/${activity.type_id}`, { signal: controller.signal, headers: { Accept: 'application/json' } })
+            .then((r) => (r.ok ? r.json() : []))
+            .then((list) => setRelated(list.filter((a) => a.id !== activity.id).slice(0, 3)))
+            .catch(() => {});
+        return () => controller.abort();
+    }, [activity?.id, activity?.type_id]);
 
     useEffect(() => {
         getActivity();
@@ -125,7 +119,7 @@ export default function ActivityMore() {
 
             if (response.ok) {
                 // Navigate back to activities list
-                navigate(`/types/${activity.type_id}`);
+                navigate(`/activities/type/${activity.type_id}`);
             } else {
                 alert('Failed to delete activity');
             }
@@ -290,9 +284,11 @@ export default function ActivityMore() {
                                                 src={getMediaUrl(activity.media[selectedMediaIndex].url)}
                                                 alt={language === 'en' ? activity.title_en : activity.title_ar}
                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                fetchPriority="high"
+                                                decoding="async"
                                                 onError={(e) => {
-                                                    console.error('Image failed to load:', e.target.src);
-                                                    e.target.src = '/tagemi_consept.png';
+                                                    e.target.onerror = null;
+                                                    e.target.src = '/tagemi_consept-800.webp';
                                                 }}
                                             />
                                         ) : (
@@ -330,7 +326,7 @@ export default function ActivityMore() {
 
                                         {/* Media Counter */}
                                         {activity.media.length > 1 && (
-                                            <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 bg-black/70 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-droid-arabic-kufi">
+                                            <div dir="ltr" className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 bg-black/70 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-droid-arabic-kufi">
                                                 {selectedMediaIndex + 1} / {activity.media.length}
                                             </div>
                                         )}
@@ -354,9 +350,13 @@ export default function ActivityMore() {
                                                             src={getMediaUrl(media.url)}
                                                             alt={`Media ${index + 1}`}
                                                             className="w-full h-full object-cover"
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                            width="96"
+                                                            height="96"
                                                             onError={(e) => {
-                                                                console.error('Thumbnail failed to load:', e.target.src);
-                                                                e.target.src = '/tagemi_consept.png';
+                                                                e.target.onerror = null;
+                                                                e.target.src = '/tagemi_consept-800.webp';
                                                             }}
                                                         />
                                                     ) : (
@@ -397,7 +397,7 @@ export default function ActivityMore() {
                             </div>
 
                             {/* Title */}
-                            <h1 className="text-2xl sm:text-xl md:text-4xl lg:text-5xl font-bold text-gray-900 font-droid-arabic-kufi leading-tight">
+                            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-[#101E58] font-droid-arabic-kufi leading-snug break-words">
                                 {language === 'en' ? activity.title_en : activity.title_ar}
                             </h1>
 
@@ -531,6 +531,22 @@ export default function ActivityMore() {
                 </div>
             </section>
 
+            {/* More from the same category */}
+            {related.length > 0 && (
+                <section className="py-10 sm:py-14 bg-[#F2F4F9]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <h2 className="text-xl sm:text-2xl font-bold text-[#101E58] mb-6 font-droid-arabic-kufi">
+                            {language === 'en' ? 'More activities' : 'أنشطة أخرى'}
+                        </h2>
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {related.map((a) => (
+                                <ActivityCard key={a.id} activity={a} lang={language === 'en' ? 'en' : 'ar'} />
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* Back Button */}
             <section className="py-6 sm:py-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -581,7 +597,7 @@ export default function ActivityMore() {
                                 className="max-w-full max-h-full object-contain"
                                 onError={(e) => {
                                     console.error('Gallery image failed to load:', e.target.src);
-                                    e.target.src = '/tagemi_consept.png';
+                                    e.target.src = '/tagemi_consept-800.webp';
                                 }}
                             />
                         ) : (
@@ -595,21 +611,25 @@ export default function ActivityMore() {
                     </div>
 
                     {/* Counter */}
-                    <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-sm text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full font-droid-arabic-kufi text-sm sm:text-base">
+                    <div dir="ltr" className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-sm text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full font-droid-arabic-kufi text-sm sm:text-base">
                         {selectedMediaIndex + 1} / {activity.media.length}
                     </div>
                 </div>
             )}
 
             {/* Activity Modal */}
-            <ActivityModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                activity={activity}
-                typeId={activity.type_id}
-                onSuccess={handleModalSuccess}
-                token={token}
-            />
+            {isModalOpen && (
+                <Suspense fallback={null}>
+                    <ActivityModal
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        activity={activity}
+                        typeId={activity.type_id}
+                        onSuccess={handleModalSuccess}
+                        token={token}
+                    />
+                </Suspense>
+            )}
 
             {/* Delete Confirmation Modal */}
             {showDeleteConfirm && (
