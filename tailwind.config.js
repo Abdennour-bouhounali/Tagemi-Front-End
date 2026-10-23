@@ -16,10 +16,12 @@ export default {
         'xs': '320px',
       },
       fontFamily: {
-        'droid-arabic-kufi': ['Droid Arabic Kufi', 'sans-serif'],
-        // Staff app + visit pages: Kufi for headings and ticket numerals, Plex for UI text
-        display: ['Droid Arabic Kufi', 'IBM Plex Sans Arabic', 'sans-serif'],
-        ui: ['IBM Plex Sans Arabic', 'Tahoma', 'sans-serif'],
+        // Tajawal for text, Cairo for headings (see the h1-h6 rule in index.css).
+        // The old names stay as aliases so existing classes pick up the new fonts.
+        sans: ['Tajawal', 'Cairo', 'Tahoma', 'sans-serif'],
+        'droid-arabic-kufi': ['Tajawal', 'Cairo', 'Tahoma', 'sans-serif'],
+        display: ['Cairo', 'Tajawal', 'Tahoma', 'sans-serif'],
+        ui: ['Tajawal', 'Cairo', 'Tahoma', 'sans-serif'],
       },
       colors: {
         // Foundation brand, used by the staff app and the visit pages

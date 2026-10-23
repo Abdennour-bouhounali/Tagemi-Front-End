@@ -1,7 +1,7 @@
 /* Staff app + visit pages. Tokens live in tailwind.config.js. */
 
 .staff-app {
-  font-family: 'IBM Plex Sans Arabic', Tahoma, sans-serif;
+  font-family: 'Tajawal', 'Cairo', Tahoma, sans-serif;
   background: #f2f4f9;
   color: #101e58;
   -webkit-tap-highlight-color: transparent;
