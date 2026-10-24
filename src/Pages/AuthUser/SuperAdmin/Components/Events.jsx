@@ -374,7 +374,7 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
                   <SheetAction icon={UserCog} hint="عيّن الفريق على هذا الحدث من صفحة المستخدمين" onClick={() => go('/admin/users')}>
                     عيّن المستخدمين على الحدث
                   </SheetAction>
-                  <SheetAction icon={RotateCcw} hint="يعود جديدًا بتاريخ اليوم و100 موعد معلّق" onClick={() => { setTrainingAction({ type: 'reset', event: m }); setMenuEvent(null); }}>
+                  <SheetAction icon={RotateCcw} hint="يعود جديدًا بتاريخ اليوم و65 مريضًا (100 موعد معلّق)" onClick={() => { setTrainingAction({ type: 'reset', event: m }); setMenuEvent(null); }}>
                     أعد ضبط الحدث التدريبي
                   </SheetAction>
                   <SheetAction icon={Trash2} tone="text-red-700" hint="يُحذف الحدث وكل ما فيه نهائيًا" onClick={() => { setTrainingAction({ type: 'delete', event: m }); setMenuEvent(null); }}>
@@ -425,13 +425,13 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
       >
         {trainingAction?.type === 'start' && (
           <>
-            <p>سيُنشأ حدث بتاريخ اليوم فيه 8 تخصصات و100 موعد تجريبي كلها معلّقة.</p>
+            <p>سيُنشأ حدث بتاريخ اليوم فيه 8 تخصصات و65 مريضًا تجريبيًا (100 موعد معلّق): 40 يحجزون تخصصًا واحدًا و15 تخصصين و10 ثلاثة تخصصات.</p>
             <p className="text-muted">بعدها عيّن الفريق عليه من صفحة المستخدمين وابدؤوا التدريب.</p>
           </>
         )}
         {trainingAction?.type === 'reset' && (
           <>
-            <p>يعود الحدث كأنه جديد: تاريخ اليوم و100 موعد معلّق.</p>
+            <p>يعود الحدث كأنه جديد: تاريخ اليوم و65 مريضًا (100 موعد معلّق).</p>
             <p className="text-muted">كل ما جرى أثناء التدريب يختفي، والفريق المعيّن عليه يبقى معيّنًا.</p>
           </>
         )}
