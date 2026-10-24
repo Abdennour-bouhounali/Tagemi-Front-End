@@ -32,7 +32,7 @@ export default function CheckPatient() {
     const toast = useToast();
 
     const isOfficer = user && [1, 4].includes(user.role_id);
-    const isSuperAdmin = user?.role_id === 1; // opens / closes the queue on visit day
+    const isSuperAdmin = user?.role_id === 1; // opens queues from the events list
     const canComment = user && [1, 4, 6].includes(user.role_id);
 
     const [data, setData] = useState(null);
@@ -137,8 +137,6 @@ export default function CheckPatient() {
         if (ok) { setSelectedIds([]); setSelecting(false); }
     };
 
-    const toggleOpen = () => data?.event_specialty_id && run(`/api/event-specialties/${data.event_specialty_id}/toggle-open`, { method: 'PATCH' });
-
     const openDetails = async (a) => {
         setDetailsFor(a);
         setPatientAppointments(null);
@@ -210,25 +208,13 @@ export default function CheckPatient() {
             <PageHeader
                 title={data?.speciality || 'الطابور'}
                 subtitle={`طابور اليوم، ${summary.in_queue ?? 0} في الانتظار`}
-                actions={data && (isSuperAdmin ? (
-                    <button
-                        type="button"
-                        onClick={toggleOpen}
-                        disabled={busy}
-                        className={cx('inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold border',
-                            data.is_open ? 'border-st-queue/40 text-st-queue bg-st-queue-bg' : 'border-red-300 text-red-700 bg-red-50')}
-                        title={data.is_open ? 'إغلاق الطابور: لن يُرسل مرضى جدد' : 'فتح الطابور عند وصول الطبيب'}
-                    >
-                        {data.is_open ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                        {data.is_open ? 'الطابور مفتوح' : 'الطابور مغلق'}
-                    </button>
-                ) : (
+                actions={data && (
                     <span className={cx('inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold border',
                         data.is_open ? 'border-st-queue/40 text-st-queue bg-st-queue-bg' : 'border-red-300 text-red-700 bg-red-50')}>
                         {data.is_open ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                         {data.is_open ? 'الطابور مفتوح' : 'الطابور مغلق'}
                     </span>
-                ))}
+                )}
             />
 
             <StatStrip
@@ -483,7 +469,7 @@ export default function CheckPatient() {
 
             {data?.is_open === false && (
                 <p className="mt-6 text-center text-xs text-muted">
-                    هذا التخصص مغلق اليوم، لن يُرسل إليه مرضى جدد.{isSuperAdmin && ' افتحه عند وصول الطبيب.'}
+                    هذا التخصص مغلق اليوم، لن يُرسل إليه مرضى جدد.{isSuperAdmin && ' افتحه من قائمة الأحداث ← «فتح الطوابير عند وصول الأطباء».'}
                 </p>
             )}
             {busy && <span className="sr-only" role="status">جاري التنفيذ</span>}
