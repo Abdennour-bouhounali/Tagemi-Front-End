@@ -80,7 +80,6 @@ const CheckPresence = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [updating, setUpdating] = useState(false);
-  const [checkingInId, setCheckingInId] = useState(null); // patient whose row check-in button is pending
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -1774,6 +1773,19 @@ ${appointmentsList}
     const run = (fn) => () => { closeAllSheets(); fn(); };
     return (
       <div className="divide-y divide-line">
+        {/* Check-in and special case live here, not on the row, so a tap while scrolling cannot trigger them */}
+        {canCheckIn && !checkedIn && (
+          <div className="pb-3">
+            <Button size="lg" block icon={Check} disabled={updating} onClick={run(() => checkInPatient(p.patient_id))}>
+              سجّل الحضور
+            </Button>
+          </div>
+        )}
+        {canManageSpecial && !special && p.status !== "Completed" && (
+          <SheetAction icon={Star} tone="text-rose" hint="يدخل الطابور بأولوية" disabled={updating} onClick={run(() => markAsSpecialCase(p.id))}>
+            سجّله حالة خاصة
+          </SheetAction>
+        )}
         <SheetAction icon={MessageCircle} hint={isTrue(p.is_reminded) ? 'سبق تذكيره، يمكن إعادة الإرسال' : 'يفتح واتساب برسالة فيها مواعيده'} onClick={run(() => sendWhatsAppReminder(p))}>
           أرسل تذكيراً بواتساب
         </SheetAction>
@@ -1784,16 +1796,6 @@ ${appointmentsList}
         {canManageSpecial && (
           <SheetAction icon={RefreshCw} hint="ينقل الموعد إلى أقرب موعد متاح في تخصص آخر" onClick={run(() => fetchAvailableSpecialties(p))}>
             غيّر التخصص
-          </SheetAction>
-        )}
-        {canManageSpecial && !special && p.status !== "Completed" && (
-          <SheetAction icon={Star} tone="text-rose" hint="يدخل الطابور بأولوية" disabled={updating} onClick={run(() => markAsSpecialCase(p.id))}>
-            سجّله حالة خاصة
-          </SheetAction>
-        )}
-        {canCheckIn && !checkedIn && (
-          <SheetAction icon={Check} hint="يدخل طوابير مواعيد اليوم" disabled={updating} onClick={run(() => checkInPatient(p.patient_id))}>
-            سجّل الحضور
           </SheetAction>
         )}
         <SheetAction icon={QrCode} onClick={run(() => setQrFor(p))}>اعرض رمز QR</SheetAction>
@@ -1988,22 +1990,6 @@ ${appointmentsList}
                       </div>
                     </button>
                     <div className="shrink-0 flex items-center gap-1 self-center">
-                      {canCheckIn && !hasCheckedIn(p) && (
-                        <Button
-                          size="sm"
-                          icon={Check}
-                          loading={checkingInId === p.patient_id}
-                          disabled={updating}
-                          aria-label={`سجّل حضور المريض ${p.patient_id}`}
-                          onClick={async () => {
-                            setCheckingInId(p.patient_id);
-                            await checkInPatient(p.patient_id);
-                            setCheckingInId(null);
-                          }}
-                        >
-                          حاضر
-                        </Button>
-                      )}
                       <IconButton icon={MoreVertical} label={`خيارات المريض ${p.patient_id}`} onClick={() => setActionsFor(p)} />
                     </div>
                   </div>

@@ -1,11 +1,12 @@
 import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
-  MoreVertical, Users, Pencil, Trash2, UserX, UserCheck, Copy, RefreshCw, CalendarCheck, ChevronLeft, Phone, Mail,
+  MoreVertical, Users, Pencil, Trash2, UserX, UserCheck, Copy, RefreshCw, CalendarCheck, Phone, Mail,
+  FilterX, Shield, X, Loader2,
 } from "lucide-react";
 import { AppContext } from "../../../Context/AppContext";
 import {
-  Button, IconButton, PageHeader, StatStrip, SearchField, ChipGroup, EmptyState, LoadingState,
+  Button, IconButton, PageHeader, StatStrip, SearchField, EmptyState, LoadingState,
   Sheet, SheetAction, Field, TextInput, SelectInput, useToast, cx,
 } from "../../../Components/ui";
 
@@ -35,6 +36,15 @@ const getRoleName = (roleId) => ROLE_LABELS[roleId] || "غير محدد";
 
 const NETWORK_ERROR = "تعذر الاتصال بالخادم، تحقق من الشبكة ثم أعد المحاولة";
 
+const SORTS = {
+  newest: { label: "الأحدث تسجيلاً", fn: (a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")) },
+  name: { label: "الاسم", fn: (a, b) => (a.name || "").localeCompare(b.name || "", "ar") },
+  role: { label: "الدور", fn: (a, b) => getRoleName(a.role_id).localeCompare(getRoleName(b.role_id), "ar") },
+  event: { label: "الحدث", fn: (a, b) => (a.event?.name || "ي").localeCompare(b.event?.name || "ي", "ar") },
+};
+
+const smallSelect = "h-9 rounded-lg border border-line bg-white px-2 pe-7 text-sm text-ink focus:border-ink focus:outline-none disabled:bg-paper disabled:text-muted";
+
 export default function AllUsers() {
   const { token } = useContext(AppContext);
   const toast = useToast();
@@ -46,6 +56,11 @@ export default function AllUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterEvent, setFilterEvent] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+
+  const [checked, setChecked] = useState([]);
+  const [savingId, setSavingId] = useState(null);
+  const [bulkAction, setBulkAction] = useState(null); // 'event' | 'role' | 'unassign'
 
   const [selected, setSelected] = useState(null);
   const [editFor, setEditFor] = useState(null);
@@ -72,7 +87,6 @@ export default function AllUsers() {
           const rolesData = await rolesRes.json();
           if (rolesData.roles) setRoles(rolesData.roles);
           else if (Array.isArray(rolesData)) setRoles(rolesData);
-          if (rolesData.users && Array.isArray(rolesData.users)) setUsers(rolesData.users);
         }
       } catch {
         // Static roles are enough
@@ -85,20 +99,30 @@ export default function AllUsers() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const all = users || [];
-  const assignableRoles = roles.filter((r) => r.name !== "SuperAdmin");
+  const all = useMemo(() => users || [], [users]);
+  const assignableRoles = roles.filter((r) => r.name !== "SuperAdmin" && r.id !== 1);
 
   const filteredUsers = useMemo(() => {
-    const q = searchTerm.toLowerCase();
-    return all.filter((user) => {
-      const matchesSearch = !q || user.name?.toLowerCase().includes(q) || user.email?.toLowerCase().includes(q) || user.phone?.includes(searchTerm);
-      const matchesRole = filterRole ? String(user.role_id) === String(filterRole) : true;
-      const matchesEvent = filterEvent
-        ? filterEvent === "unassigned" ? !user.event_id : String(user.event_id) === String(filterEvent)
-        : true;
-      return matchesSearch && matchesRole && matchesEvent;
-    });
-  }, [all, searchTerm, filterRole, filterEvent]);
+    const q = searchTerm.trim().toLowerCase();
+    return all
+      .filter((user) => {
+        const matchesSearch = !q || user.name?.toLowerCase().includes(q) || user.email?.toLowerCase().includes(q) || user.phone?.includes(q);
+        const matchesRole = filterRole ? String(user.role_id) === String(filterRole) : true;
+        const matchesEvent = filterEvent
+          ? filterEvent === "unassigned" ? !user.event_id && user.role_id !== 1 : String(user.event_id) === String(filterEvent)
+          : true;
+        return matchesSearch && matchesRole && matchesEvent;
+      })
+      .sort(SORTS[sortBy].fn);
+  }, [all, searchTerm, filterRole, filterEvent, sortBy]);
+
+  // Selection only covers users the admin may change, and stays within the current filter
+  const selectable = filteredUsers.filter((u) => u.role_id !== 1);
+  const visibleChecked = checked.filter((id) => selectable.some((u) => u.id === id));
+  const allChecked = selectable.length > 0 && visibleChecked.length === selectable.length;
+  const toggle = (id) => setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleAll = () => setChecked(allChecked ? [] : selectable.map((u) => u.id));
+  const hasFilters = searchTerm || filterRole || filterEvent;
 
   const copyRegistrationLink = async () => {
     try {
@@ -110,23 +134,86 @@ export default function AllUsers() {
     setMenuOpen(false);
   };
 
-  const roleOptions = [
-    { value: "", label: "كل الأدوار", count: all.length },
-    ...assignableRoles.map((r) => ({ value: String(r.id), label: getRoleName(r.id), count: all.filter((u) => String(u.role_id) === String(r.id)).length })),
-  ];
-  const eventOptions = [
-    { value: "", label: "كل الأحداث" },
-    { value: "unassigned", label: "بدون حدث" },
-    ...events.map((e) => ({ value: String(e.id), label: e.name })),
-  ];
+  // Events seen on users (archived ones included) so the filter can find them too
+  const filterEvents = useMemo(() => {
+    const map = new Map(events.map((e) => [String(e.id), e.name]));
+    all.forEach((u) => u.event_id && !map.has(String(u.event_id)) && map.set(String(u.event_id), u.event?.name || `حدث ${u.event_id}`));
+    return [...map.entries()];
+  }, [events, all]);
 
   const afterChange = (text) => {
     toast(text);
     fetchData();
   };
 
+  /** Inline change of one user's role or event, saved straight away. */
+  const saveRow = async (user, changes) => {
+    setSavingId(user.id);
+    const body = { event_id: user.event_id || null, role_id: user.role_id, ...changes };
+    try {
+      const res = await fetch(`${apiUrl}/api/users/${user.id}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, ...(data.user || body) } : u)));
+        toast(`تم حفظ تعيين ${user.name}`);
+      } else {
+        toast(data.message || "تعذر حفظ التعيين", "error");
+      }
+    } catch {
+      toast(NETWORK_ERROR, "error");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const eventName = (user) => user.event?.name || events.find((e) => e.id === user.event_id)?.name;
+
+  const roleSelect = (user) => (
+    <select
+      aria-label={`دور ${user.name}`}
+      className={cx(smallSelect, "w-full")}
+      value={user.role_id}
+      disabled={savingId === user.id}
+      onChange={(e) => saveRow(user, { role_id: Number(e.target.value) })}
+    >
+      {assignableRoles.map((role) => <option key={role.id} value={role.id}>{getRoleName(role.id)}</option>)}
+    </select>
+  );
+
+  const eventSelect = (user) => {
+    const archived = user.event_id && !events.some((e) => e.id === user.event_id);
+    return (
+      <select
+        aria-label={`حدث ${user.name}`}
+        className={cx(smallSelect, "w-full", !user.event_id && "text-st-pushed")}
+        value={user.event_id || ""}
+        disabled={savingId === user.id}
+        onChange={(e) => saveRow(user, { event_id: e.target.value ? Number(e.target.value) : null })}
+      >
+        <option value="">بدون حدث</option>
+        {archived && <option value={user.event_id}>{eventName(user) || `حدث ${user.event_id}`}</option>}
+        {events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}
+      </select>
+    );
+  };
+
+  const checkbox = (user) =>
+    user.role_id === 1 ? null : (
+      <input
+        type="checkbox"
+        className="w-5 h-5 accent-[#101E58] cursor-pointer"
+        checked={checked.includes(user.id)}
+        onChange={() => toggle(user.id)}
+        aria-label={`تحديد ${user.name}`}
+      />
+    );
+
   return (
-    <div className="max-w-2xl lg:max-w-none mx-auto">
+    <div className="max-w-2xl lg:max-w-none mx-auto pb-24">
       <PageHeader
         title="المستخدمون"
         subtitle="الأدوار والأحداث المعيّنة لكل عضو في الطاقم"
@@ -143,10 +230,49 @@ export default function AllUsers() {
         ]}
       />
 
-      <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم أو البريد أو الهاتف" className="mb-3 lg:max-w-md" />
-      <ChipGroup label="الدور" value={filterRole} onChange={setFilterRole} options={roleOptions} className="mb-2" />
-      <ChipGroup label="الحدث" value={filterEvent} onChange={setFilterEvent} options={eventOptions} className="mb-3" />
-      <p className="text-xs text-muted mb-3">{filteredUsers.length} من {all.length} مستخدم</p>
+      {/* Filters */}
+      <div className="bg-white border border-line rounded-2xl p-3 mb-3 grid grid-cols-2 gap-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto] lg:items-end">
+        <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم أو البريد أو الهاتف" className="col-span-2 lg:col-span-1" />
+        <Field label="الدور">
+          <SelectInput value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
+            <option value="">كل الأدوار ({all.length})</option>
+            {roles.map((r) => (
+              <option key={r.id} value={r.id}>{getRoleName(r.id)} ({all.filter((u) => String(u.role_id) === String(r.id)).length})</option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label="الحدث">
+          <SelectInput value={filterEvent} onChange={(e) => setFilterEvent(e.target.value)}>
+            <option value="">كل الأحداث</option>
+            <option value="unassigned">بدون حدث</option>
+            {filterEvents.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </SelectInput>
+        </Field>
+        <Field label="الترتيب">
+          <SelectInput value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
+          </SelectInput>
+        </Field>
+        <Button
+          variant="ghost"
+          icon={FilterX}
+          className="h-12 self-end"
+          disabled={!hasFilters}
+          onClick={() => { setSearchTerm(""); setFilterRole(""); setFilterEvent(""); }}
+        >
+          امسح
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 mb-2 px-1">
+        <p className="text-xs text-muted">{filteredUsers.length} من {all.length} مستخدم</p>
+        {selectable.length > 0 && (
+          <label className="md:hidden flex items-center gap-2 text-sm font-semibold text-ink">
+            <input type="checkbox" className="w-5 h-5 accent-[#101E58]" checked={allChecked} onChange={toggleAll} />
+            تحديد الكل
+          </label>
+        )}
+      </div>
 
       {users === null ? (
         <LoadingState />
@@ -155,36 +281,122 @@ export default function AllUsers() {
           {all.length ? "غيّر الدور أو الحدث، أو امسح البحث." : "انسخ رابط التسجيل من القائمة ⋮ وأرسله إلى أعضاء الطاقم."}
         </EmptyState>
       ) : (
-        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
-          {filteredUsers.map((user) => (
-            <li key={user.id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setSelected(user)}
-                className="w-full text-start flex items-center gap-3 px-4 py-3 min-h-[4.5rem] hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl"
-              >
-                <span className="flex-1 min-w-0">
-                  <span className="block font-semibold text-ink truncate">{user.name}</span>
-                  <span className="block text-xs text-muted truncate text-end" dir="ltr">{user.email}</span>
-                  <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <span className={cx(
-                      "inline-flex items-center h-6 px-2 rounded-md text-xs font-semibold",
-                      user.role_id === 1 ? "bg-ink text-white" : "bg-ink-faint text-ink"
-                    )}>
-                      {getRoleName(user.role_id)}
-                    </span>
-                    {user.event ? (
-                      <span className="text-xs text-ink-soft truncate">{user.event.name}</span>
-                    ) : user.role_id !== 1 ? (
-                      <span className="text-xs text-st-pushed">بدون حدث</span>
-                    ) : null}
-                  </span>
-                </span>
-                <ChevronLeft className="w-5 h-5 text-muted shrink-0" />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Table (tablet and desktop) */}
+          <div className="hidden md:block bg-white border border-line rounded-2xl overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-paper text-muted text-xs">
+                <tr className="text-start">
+                  <th className="w-12 px-3 py-3">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 accent-[#101E58] cursor-pointer align-middle"
+                      checked={allChecked}
+                      disabled={!selectable.length}
+                      onChange={toggleAll}
+                      aria-label="تحديد الكل"
+                    />
+                  </th>
+                  <th className="px-3 py-3 text-start font-semibold">المستخدم</th>
+                  <th className="px-3 py-3 text-start font-semibold">الهاتف</th>
+                  <th className="px-3 py-3 text-start font-semibold w-60">الدور</th>
+                  <th className="px-3 py-3 text-start font-semibold w-56">الحدث</th>
+                  <th className="px-3 py-3 text-start font-semibold">التسجيل</th>
+                  <th className="w-12 px-2 py-3"><span className="sr-only">خيارات</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {filteredUsers.map((user) => {
+                  const isChecked = checked.includes(user.id);
+                  return (
+                    <tr key={user.id} className={cx("align-middle", isChecked ? "bg-ink-faint" : "hover:bg-paper/60")}>
+                      <td className="px-3 py-2 text-center">{checkbox(user)}</td>
+                      <td className="px-3 py-2 max-w-[16rem]">
+                        <button type="button" className="block text-start w-full" onClick={() => setSelected(user)}>
+                          <span className="block font-semibold text-ink truncate hover:underline">{user.name}</span>
+                          <span className="block text-xs text-muted truncate text-end" dir="ltr">{user.email}</span>
+                        </button>
+                      </td>
+                      <td className="px-3 py-2 text-ink-soft whitespace-nowrap" dir="ltr">{user.phone || "—"}</td>
+                      <td className="px-3 py-2">
+                        {user.role_id === 1 ? (
+                          <span className="inline-flex items-center h-7 px-2 rounded-md text-xs font-semibold bg-ink text-white">{getRoleName(1)}</span>
+                        ) : roleSelect(user)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {user.role_id === 1 ? <span className="text-xs text-muted">كل الأحداث</span> : eventSelect(user)}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted whitespace-nowrap">{formatDate(user.created_at)}</td>
+                      <td className="px-2 py-2">
+                        {savingId === user.id ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-muted mx-auto" />
+                        ) : (
+                          <IconButton icon={MoreVertical} label="خيارات" className="w-9 h-9" onClick={() => setSelected(user)} />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Cards (phone) */}
+          <ul className="md:hidden bg-white border border-line rounded-2xl divide-y divide-line">
+            {filteredUsers.map((user) => (
+              <li key={user.id} className={cx("px-3 py-3", checked.includes(user.id) && "bg-ink-faint")}>
+                <div className="flex items-start gap-3">
+                  <div className="pt-1 w-5 shrink-0">{checkbox(user)}</div>
+                  <button type="button" className="flex-1 min-w-0 text-start" onClick={() => setSelected(user)}>
+                    <span className="block font-semibold text-ink truncate">{user.name}</span>
+                    <span className="block text-xs text-muted truncate text-end" dir="ltr">{user.email}</span>
+                  </button>
+                  {savingId === user.id ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted mt-1" />
+                  ) : (
+                    <IconButton icon={MoreVertical} label="خيارات" className="w-9 h-9 -me-1" onClick={() => setSelected(user)} />
+                  )}
+                </div>
+                {user.role_id === 1 ? (
+                  <span className="ms-8 mt-2 inline-flex items-center h-6 px-2 rounded-md text-xs font-semibold bg-ink text-white">{getRoleName(1)}</span>
+                ) : (
+                  <div className="ms-8 mt-2 grid grid-cols-2 gap-2">
+                    {roleSelect(user)}
+                    {eventSelect(user)}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {/* Bulk bar above the tab bar */}
+      {visibleChecked.length > 0 && (
+        <div className="fixed inset-x-0 lg:start-24 bottom-[4.75rem] lg:bottom-6 z-40 px-4 lg:px-8">
+          <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 bg-ink text-white rounded-2xl p-2 ps-4 shadow-lg">
+            <span className="flex-1 min-w-[6rem] text-sm font-semibold">تم تحديد {visibleChecked.length}</span>
+            <Button size="sm" variant="secondary" icon={CalendarCheck} onClick={() => setBulkAction("event")}>عيّن حدثاً</Button>
+            <Button size="sm" variant="secondary" icon={Shield} onClick={() => setBulkAction("role")}>امنح دوراً</Button>
+            <Button size="sm" variant="secondary" icon={UserX} onClick={() => setBulkAction("unassign")}>
+              <span className="hidden sm:inline">ألغِ التعيين</span>
+            </Button>
+            <IconButton icon={X} label="إلغاء التحديد" className="w-9 h-9 text-white hover:bg-white/10" onClick={() => setChecked([])} />
+          </div>
+        </div>
+      )}
+
+      {bulkAction && (
+        <BulkActionSheet
+          action={bulkAction}
+          users={all.filter((u) => visibleChecked.includes(u.id))}
+          roles={assignableRoles}
+          events={events}
+          token={token}
+          toast={toast}
+          onClose={() => setBulkAction(null)}
+          onSuccess={(text) => { setBulkAction(null); setChecked([]); afterChange(text); }}
+        />
       )}
 
       {/* Header menu */}
@@ -250,6 +462,94 @@ export default function AllUsers() {
         />
       )}
     </div>
+  );
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("ar-DZ", { year: "numeric", month: "short", day: "numeric" });
+}
+
+/** Event, role or unassign for the checked users, through /api/users/bulk-assign. */
+function BulkActionSheet({ action, users, roles, events, token, toast, onClose, onSuccess }) {
+  const [value, setValue] = useState(action === "event" ? String(events[0]?.id || "") : action === "role" ? String(roles[0]?.id || "") : "");
+  const [loading, setLoading] = useState(false);
+
+  const title = { event: "عيّن حدثاً للمحددين", role: "امنح دوراً للمحددين", unassign: "ألغِ تعيين المحددين" }[action];
+  const target = action === "event" ? events.find((e) => String(e.id) === value)?.name : action === "role" ? getRoleName(Number(value)) : null;
+
+  const submit = async () => {
+    const body = { user_ids: users.map((u) => u.id) };
+    if (action === "event") body.event_id = Number(value);
+    if (action === "role") body.role_id = Number(value);
+    if (action === "unassign") body.event_id = null;
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/users/bulk-assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) onSuccess(data.message || "تم التحديث");
+      else toast(data.message || "تعذر تطبيق التغيير", "error");
+    } catch {
+      toast(NETWORK_ERROR, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={title}
+      footer={(
+        <>
+          <Button variant="secondary" className="flex-1" onClick={onClose}>تراجع</Button>
+          <Button
+            className="flex-1"
+            variant={action === "unassign" ? "danger" : "primary"}
+            icon={action === "unassign" ? UserX : UserCheck}
+            loading={loading}
+            disabled={action !== "unassign" && !value}
+            onClick={submit}
+          >
+            طبّق على {users.length}
+          </Button>
+        </>
+      )}
+    >
+      {action === "event" && (
+        <Field label="الحدث" hint={events.length === 0 ? "لا توجد أحداث نشطة حالياً، فعّل حدثاً أولاً." : "تبقى أدوارهم كما هي."} className="mb-4">
+          <SelectInput value={value} onChange={(e) => setValue(e.target.value)} disabled={events.length === 0}>
+            {events.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+          </SelectInput>
+        </Field>
+      )}
+      {action === "role" && (
+        <Field label="الدور" hint="تبقى أحداثهم كما هي." className="mb-4">
+          <SelectInput value={value} onChange={(e) => setValue(e.target.value)}>
+            {roles.map((r) => <option key={r.id} value={r.id}>{getRoleName(r.id)}</option>)}
+          </SelectInput>
+        </Field>
+      )}
+      <p className="text-sm text-ink mb-2">
+        {action === "unassign"
+          ? "يبقى الحساب لكنه لن يرى أي حدث:"
+          : <>سيصبح {target ? <span className="font-semibold">«{target}»</span> : "التغيير"} لهؤلاء:</>}
+      </p>
+      <ul className="max-h-48 overflow-y-auto bg-paper rounded-xl divide-y divide-line text-sm">
+        {users.map((u) => (
+          <li key={u.id} className="flex items-center justify-between gap-2 px-3 py-2">
+            <span className="truncate text-ink">{u.name}</span>
+            <span className="shrink-0 text-xs text-muted">{getRoleName(u.role_id)}{u.event?.name ? `، ${u.event.name}` : ""}</span>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }
 
