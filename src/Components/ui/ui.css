@@ -1,0 +1,94 @@
+/* Staff app + visit pages. Tokens live in tailwind.config.js. */
+
+.staff-app {
+  font-family: 'Tajawal', 'Cairo', Tahoma, sans-serif;
+  background: #f2f4f9;
+  color: #101e58;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Visible keyboard focus everywhere in the app */
+.staff-app :focus-visible {
+  outline: 3px solid #e03a6f;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Bottom bar sits above the phone's home indicator */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Queue ticket: a stub with the place number, separated from the body by a
+   perforation with two half-circle notches, like a paper queue ticket. */
+.ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.25rem 1fr;
+  background: #fff;
+  border: 1px solid #dce1ec;
+  border-radius: 14px;
+}
+.ticket-stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-inline-end: 2px dashed #dce1ec;
+  border-start-start-radius: 13px;
+  border-end-start-radius: 13px;
+}
+.ticket-stub::before,
+.ticket-stub::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #f2f4f9;
+  border: 1px solid #dce1ec;
+}
+.ticket-stub::before { top: -9px; clip-path: inset(50% 0 0 0); }
+.ticket-stub::after { bottom: -9px; clip-path: inset(0 0 50% 0); }
+
+.ticket[data-priority='true'] { border-color: #e03a6f; }
+.ticket[data-priority='true'] .ticket-stub { background: #fbe4ec; }
+.ticket[data-selected='true'] { box-shadow: 0 0 0 2px #101e58; }
+.ticket[data-muted='true'] { opacity: 0.72; }
+
+/* Hide scrollbars on horizontally scrolling strips, keep them scrollable */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Sheets and toasts: one motion each, answering a person's action */
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toast-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.anim-sheet { animation: sheet-up 220ms cubic-bezier(.2, .8, .2, 1); }
+.anim-fade { animation: fade-in 180ms ease-out; }
+.anim-toast { animation: toast-in 200ms ease-out; }
+
+/* Glowing red: reserved for "you must keep this" warnings (patient QR code) */
+@keyframes glow-red {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(220, 38, 38, .45); }
+  50% { box-shadow: 0 0 22px 6px rgba(220, 38, 38, .75); }
+}
+.glow-red { animation: glow-red 1.6s ease-in-out infinite; box-shadow: 0 0 14px 3px rgba(220, 38, 38, .6); }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-sheet, .anim-fade, .anim-toast, .glow-red { animation: none; }
+}
+
+/* The public site's index.css styles bare header/nav/main/label/input
+   elements. Undo that inside the app; :where() keeps specificity at the
+   element level so Tailwind utility classes still win. */
+:where(.staff-app) header { background: transparent; box-shadow: none; padding: 0; }
+:where(.staff-app) nav { padding: 0; max-width: none; margin: 0; display: block; justify-content: normal; align-items: normal; }
+:where(.staff-app) main { width: auto; }
+:where(.staff-app) label { font-size: inherit; font-weight: inherit; line-height: inherit; color: inherit; }
+:where(.staff-app) label::first-letter { text-transform: none; }
+:where(.staff-app) input, :where(.staff-app) textarea, :where(.staff-app) select { box-shadow: none; }
+:where(.staff-app) button:focus:not(:focus-visible), :where(.staff-app) a:focus:not(:focus-visible),
+:where(.staff-app) input:focus:not(:focus-visible) { outline: none; }

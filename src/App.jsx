@@ -1,62 +1,69 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import AdminLayout from './Pages/AdminLayout';
+import { LoadingState } from './Components/ui';
 import GuestLayout from './Pages/GuestLayout';
-import Home from './Pages/GuestUser/HomePage/Home';
-import Login from './Pages/AuthUser/Auth/Login';
-import Register from './Pages/AuthUser/Auth/Register';
-import AllUsers from './Pages/AuthUser/SuperAdmin/AllUsers';
-import { useContext, useEffect, useState } from 'react';
+import { lazy, Suspense, useContext, useEffect, useState } from 'react';
 import { AppContext } from './Context/AppContext';
-import ManageSpeciality from './Pages/AuthUser/SuperAdmin/ManageSpeciality';
-import RegisterVisit from './Pages/AuthUser/Visits/RegisterVisit';
-import CheckPresence from './Pages/AuthUser/RecipientAdmin/CheckPresence';
-import CheckPaitent from './Pages/AuthUser/CheckAdmin/CheckPaitent';
 import './i18n';
-import SpecialCase from './Pages/AuthUser/SpecialCaseAdmin/SpecialCase';
-import VisitsStatistics from './Pages/AuthUser/SuperAdmin/VisitsStatistics';
-import About from './Pages/GuestUser/About';
-import Contact from './Pages/GuestUser/Contact';
-import ManageRules from './Pages/AuthUser/SuperAdmin/ManageRules';
-import Activities from './Pages/GuestUser/Actvities/Activities';
-import Messages from './Pages/AuthUser/SuperAdmin/Messages';
-import VolunteerForm from './Pages/GuestUser/VolunteerForm';
-import FuturProjects from './Pages/GuestUser/FuturProjects/FuturProjects';
-import ProjectDetails from './Pages/GuestUser/FuturProjects/ProjectDetails';
-import SuperAdminVolunteers from './Pages/AuthUser/SuperAdmin/SuperAdminVolunteers';
-import WaitingList from './Pages/AuthUser/WaitingList/WaitingList';
 import { LanguageProvider } from './Context/LanguageContext';
 import RedirectToAppointment from './RedirectToAppointment';
-import NotFound from './Pages/NotFound';
-import NotAuthenticated from './Pages/NotAuthenticated';
-import EventsManagement from './Pages/AuthUser/SuperAdmin/EventsManagement';
-import AddMultipleAppointments from './Pages/AuthUser/SuperAdmin/AddMultipleAppointments';
-import EventTracking from './Pages/AuthUser/SuperAdmin/EventTracking';
-import EventAppointmentDistribution from './Pages/AuthUser/SuperAdmin/Components/EventAppointmentDistribution';
-import SpecialtyStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/SpecialtyStats';
-import StatusStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/StatusStats';
-import DemographicStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/DemographicStats';
-import GeographicStats from './Pages/AuthUser/SuperAdmin/ArchivedStats/GeographicStats';
-import PatientsList from './Pages/AuthUser/SuperAdmin/ArchivedStats/PatientsList';
-import ComprehensiveReport from './Pages/AuthUser/SuperAdmin/ArchivedStats/ComprehensiveReport';
-import EventReport from './Pages/AuthUser/SuperAdmin/Components/EventReport';
-import ActivityMore from './Pages/GuestUser/Actvities/Components/ActivityMore';
-import EvaluationForm from './Pages/Common/EvaluationForm';
-import EvaluationsAdmin from './Pages/AuthUser/SuperAdmin/EvaluationsAdmin';
-import EvaluationStatistics from './Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics';
+
+// Every page is its own chunk: visitors only download the screens they open
+const StaffShell = lazy(() => import('./Pages/StaffShell'));
+const StationsPicker = lazy(() => import('./Pages/AuthUser/CheckAdmin/StationsPicker'));
+const NoEvent = lazy(() => import('./Pages/AuthUser/NoEvent'));
+const Home = lazy(() => import('./Pages/GuestUser/HomePage/Home'));
+const Login = lazy(() => import('./Pages/AuthUser/Auth/Login'));
+const Register = lazy(() => import('./Pages/AuthUser/Auth/Register'));
+const AllUsers = lazy(() => import('./Pages/AuthUser/SuperAdmin/AllUsers'));
+const ManageSpeciality = lazy(() => import('./Pages/AuthUser/SuperAdmin/ManageSpeciality'));
+const RegisterVisit = lazy(() => import('./Pages/AuthUser/Visits/RegisterVisit'));
+const CheckPresence = lazy(() => import('./Pages/AuthUser/RecipientAdmin/CheckPresence'));
+const CheckPaitent = lazy(() => import('./Pages/AuthUser/CheckAdmin/CheckPaitent'));
+const DilatationRoom = lazy(() => import('./Pages/AuthUser/CheckAdmin/DilatationRoom'));
+const VisitsStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/VisitsStatistics'));
+const About = lazy(() => import('./Pages/GuestUser/About'));
+const Contact = lazy(() => import('./Pages/GuestUser/Contact'));
+const ManageRules = lazy(() => import('./Pages/AuthUser/SuperAdmin/ManageRules'));
+const Activities = lazy(() => import('./Pages/GuestUser/Actvities/Activities'));
+const Messages = lazy(() => import('./Pages/AuthUser/SuperAdmin/Messages'));
+const VolunteerForm = lazy(() => import('./Pages/GuestUser/VolunteerForm'));
+const FuturProjects = lazy(() => import('./Pages/GuestUser/FuturProjects/FuturProjects'));
+const ProjectDetails = lazy(() => import('./Pages/GuestUser/FuturProjects/ProjectDetails'));
+const SuperAdminVolunteers = lazy(() => import('./Pages/AuthUser/SuperAdmin/SuperAdminVolunteers'));
+const WaitingList = lazy(() => import('./Pages/AuthUser/WaitingList/WaitingList'));
+const NotFound = lazy(() => import('./Pages/NotFound'));
+const NotAuthenticated = lazy(() => import('./Pages/NotAuthenticated'));
+const EventsManagement = lazy(() => import('./Pages/AuthUser/SuperAdmin/EventsManagement'));
+const AddMultipleAppointments = lazy(() => import('./Pages/AuthUser/SuperAdmin/AddMultipleAppointments'));
+const EventTracking = lazy(() => import('./Pages/AuthUser/SuperAdmin/EventTracking'));
+const EventAppointmentDistribution = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EventAppointmentDistribution'));
+const SpecialtyStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/SpecialtyStats'));
+const StatusStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/StatusStats'));
+const DemographicStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/DemographicStats'));
+const GeographicStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/GeographicStats'));
+const PatientsList = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/PatientsList'));
+const ComprehensiveReport = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/ComprehensiveReport'));
+const EventReport = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EventReport'));
+const ActivityMore = lazy(() => import('./Pages/GuestUser/Actvities/Components/ActivityMore'));
+const EvaluationForm = lazy(() => import('./Pages/Common/EvaluationForm'));
+const EvaluationsAdmin = lazy(() => import('./Pages/AuthUser/SuperAdmin/EvaluationsAdmin'));
+const EvaluationStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics'));
+const MyTurn = lazy(() => import('./Pages/GuestUser/MyTurn'));
 
 export default function App() {
   const [specialities, setSpecialities] = useState([]);
-  const { user } = useContext(AppContext);
+  const { user, token } = useContext(AppContext);
 
-  // Role checks
+  // Role checks (UI only — the API enforces the same rules server-side)
   const isSuperAdmin = user?.role_id === 1;
-  const isCheckAdmin = user && [1, 4, 6].includes(user.role_id);
-  const isRecipientAdmin = user && [1, 5].includes(user.role_id);
   const isSpecialAdmin = user && [1, 3].includes(user.role_id);
+  const guard = (roles, element) =>
+    user && roles.includes(user.role_id) ? element : <NotAuthenticated />;
 
   return (
     <LanguageProvider>
       <BrowserRouter>
+        <Suspense fallback={<LoadingState />}>
         <Routes>
           {/* -------- Guest / Public Routes (GuestLayout) -------- */}
           <Route path="/" element={<GuestLayout />}>
@@ -75,6 +82,7 @@ export default function App() {
             <Route path="futureProjects" element={<FuturProjects />} />
             <Route path="future-prjects/:Projectid" element={<ProjectDetails />} />
             <Route path="waiting-list/:eventId" element={<WaitingList />} />
+            <Route path="my-turn/:eventId" element={<MyTurn />} />
             {/* // Add these routes in the GuestLayout section: */}
             <Route path="evaluation/:eventId/:appointmentId" element={<EvaluationForm />} />
             <Route path="evaluation/:eventId" element={<EvaluationForm />} />
@@ -90,23 +98,30 @@ export default function App() {
             <Route path="register" element={user ? <Navigate to="/home" replace /> : <Register />} />
           </Route>
 
-          {/* -------- Admin / Authenticated Routes (AdminLayout) -------- */}
+          {/* -------- Staff app (StaffShell) -------- */}
+          {/* Signed in but the profile is still loading: don't flash a 404 */}
+          {!user && token && <Route path="/admin/*" element={<LoadingState />} />}
+          {/* Hall waiting screen shown to patients on a laptop/TV: original full-screen
+              design, outside the staff shell (no tabs). Keep its UI as is. */}
+          {user && <Route path="/admin/big-list-waiting/:eventId" element={guard([1, 3], <WaitingList />)} />}
           {user && (
-            <Route path="/admin" element={<AdminLayout />}>
+            <Route path="/admin" element={<StaffShell />}>
+              <Route path="stations/:eventId" element={guard([1, 4, 6], <StationsPicker />)} />
+              <Route path="no-event" element={<NoEvent />} />
               {/* Event Management Routes */}
-              <Route path="event-tracking/:eventId" element={<EventTracking />} />
-              <Route path="check-presence/:eventId" element={<CheckPresence />} />
-              <Route path="appointment-distribution/:eventId" element={<EventAppointmentDistribution />} />
-              <Route path="event-statistics/:eventId" element={<VisitsStatistics />} />
-              <Route path="event-waiting-lists/:eventId/:specialityId" element={<CheckPaitent />} />
-              <Route path="big-list-waiting/:eventId" element={<WaitingList />} />
+              <Route path="event-tracking/:eventId" element={guard([1], <EventTracking />)} />
+              <Route path="check-presence/:eventId" element={guard([1, 3, 5], <CheckPresence />)} />
+              <Route path="appointment-distribution/:eventId" element={guard([1], <EventAppointmentDistribution />)} />
+              <Route path="event-statistics/:eventId" element={guard([1], <VisitsStatistics />)} />
+              <Route path="event-waiting-lists/:eventId/:specialityId" element={guard([1, 4, 6], <CheckPaitent />)} />
+              <Route path="dilatation/:eventId/:eventSpecialtyId" element={guard([1, 4], <DilatationRoom />)} />
               {/* Archived Event Statistics Routes */}
-              <Route path="/admin/archived/specialty-stats/:eventId" element={<SpecialtyStats />} />
-              <Route path="/admin/archived/status-stats/:eventId" element={<StatusStats />} />
-              <Route path="/admin/archived/demographic-stats/:eventId" element={<DemographicStats />} />
-              <Route path="/admin/archived/geographic-stats/:eventId" element={<GeographicStats />} />
-              <Route path="/admin/archived/patients-list/:eventId" element={<PatientsList />} />
-              <Route path="/admin/archived/comprehensive-report/:eventId" element={<ComprehensiveReport />} />
+              <Route path="/admin/archived/specialty-stats/:eventId" element={guard([1], <SpecialtyStats />)} />
+              <Route path="/admin/archived/status-stats/:eventId" element={guard([1], <StatusStats />)} />
+              <Route path="/admin/archived/demographic-stats/:eventId" element={guard([1], <DemographicStats />)} />
+              <Route path="/admin/archived/geographic-stats/:eventId" element={guard([1], <GeographicStats />)} />
+              <Route path="/admin/archived/patients-list/:eventId" element={guard([1], <PatientsList />)} />
+              <Route path="/admin/archived/comprehensive-report/:eventId" element={guard([1], <ComprehensiveReport />)} />
 
 
               {/* Super Admin Only Routes */}
@@ -119,10 +134,9 @@ export default function App() {
               <Route path="volunteers" element={isSuperAdmin ? <SuperAdminVolunteers /> : <NotAuthenticated />} />
               <Route path="evaluations" element={isSuperAdmin ? <EvaluationsAdmin /> : <NotAuthenticated />} />
               <Route path="evaluation_stats/:eventId" element={isSuperAdmin ? <EvaluationStatistics /> : <NotAuthenticated />} />
-              <Route path="/admin/event-report/:eventId" element={<EventReport />} />
+              <Route path="/admin/event-report/:eventId" element={guard([1], <EventReport />)} />
 
               {/* Special Admin Routes */}
-              <Route path="special-case" element={isSpecialAdmin ? <SpecialCase /> : <NotAuthenticated />} />
               <Route path="add-multiple-appointments" element={isSpecialAdmin ? <AddMultipleAppointments /> : <NotAuthenticated />} />
             </Route>
           )}
@@ -130,6 +144,7 @@ export default function App() {
           {/* Fallback - 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </LanguageProvider>
   );

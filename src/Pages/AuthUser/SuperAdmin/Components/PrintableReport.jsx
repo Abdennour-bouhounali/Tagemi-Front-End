@@ -1,4 +1,20 @@
-export const generatePrintableHTML = (event, formData, reportMetadata) => {
+import { escapeHtml } from "../../../../utils/safeHtml";
+
+// Every string that reaches the HTML below is user input: escape it once, up front.
+// Numbers, booleans and null pass through, so the arithmetic below still works.
+const escapeDeep = (value) => {
+  if (typeof value === "string") return escapeHtml(value);
+  if (Array.isArray(value)) return value.map(escapeDeep);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, escapeDeep(v)]));
+  }
+  return value;
+};
+
+export const generatePrintableHTML = (rawEvent, rawFormData, rawReportMetadata) => {
+  const event = escapeDeep(rawEvent);
+  const formData = escapeDeep(rawFormData);
+  const reportMetadata = escapeDeep(rawReportMetadata);
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("ar-DZ", {
@@ -673,7 +689,7 @@ export const generatePrintableHTML = (event, formData, reportMetadata) => {
                       formData.cancelled_appointments
                         ? `
                     <div class="stat-card red">
-                        <div class="stat-label">المواعيد الملغاة</div>
+                        <div class="stat-label">لم يحضروا</div>
                         <div class="stat-value">${formData.cancelled_appointments}</div>
                     </div>
                     `

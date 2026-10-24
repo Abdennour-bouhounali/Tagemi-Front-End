@@ -8,7 +8,7 @@ export const validateEnvironment = () => {
   if (missing.length > 0) {
     console.error('Missing required environment variables:', missing);
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (!import.meta.env.PROD) {
       console.warn(`Missing environment variables: ${missing.join(', ')}`);
     }
   }

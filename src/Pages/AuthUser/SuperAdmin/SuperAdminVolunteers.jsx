@@ -1,441 +1,224 @@
 import { API_BASE_URL } from '../../../config/environment';
-import { useEffect, useState } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { exportRowsCSV } from '../../../utils/csvExportUtils';
+import { MoreVertical, Download, Phone, Mail, MessageCircle, Trash2, Users, ChevronLeft } from 'lucide-react';
+import { AppContext } from '../../../Context/AppContext';
+import { csvSafe } from '../../../utils/safeHtml';
+import {
+  Button, IconButton, PageHeader, SearchField, ChipGroup, EmptyState, LoadingState, Sheet, SheetAction, useToast,
+} from '../../../Components/ui';
 
-const apiUrl = API_BASE_URL; 
+const apiUrl = API_BASE_URL;
 
+// Algerian numbers: 0XXXXXXXXX or XXXXXXXXX become 213XXXXXXXXX (wa.me wants digits only)
+const toWhatsApp = (phone) => {
+  const cleaned = String(phone || '').replace(/\D/g, '');
+  if (!cleaned) return '';
+  if (cleaned.startsWith('213')) return cleaned;
+  if (cleaned.startsWith('00213')) return cleaned.substring(2);
+  if (cleaned.length >= 9 && cleaned.length <= 10) return '213' + cleaned.replace(/^0+/, '');
+  return cleaned;
+};
+
+const DETAIL_FIELDS = [
+  ['phone_number', 'رقم الهاتف'],
+  ['email_address', 'البريد الإلكتروني'],
+  ['date_of_birth', 'تاريخ الميلاد'],
+  ['gender', 'الجنس'],
+  ['city', 'المدينة'],
+  ['state', 'الولاية'],
+  ['relevant_skills', 'المهارات'],
+  ['previous_volunteering_experience', 'تجارب تطوع سابقة'],
+  ['professional_background', 'الخلفية المهنية'],
+  ['areas_of_interest', 'مجالات الاهتمام'],
+  ['preferred_types_of_activities', 'الأنشطة المفضلة'],
+  ['reasons_for_volunteering', 'دوافع التطوع'],
+];
+
+/** Volunteer sign-ups from the public site (super admin). */
 const Volunteers = () => {
-  const [volunteers, setVolunteers] = useState([]);
+  const { token } = useContext(AppContext);
+  const toast = useToast();
+  const [volunteers, setVolunteers] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [stateFilter, setStateFilter] = useState('');
-  const [filteredVolunteers, setFilteredVolunteers] = useState([]);
-  const [states, setStates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [deleteFor, setDeleteFor] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    fetchVolunteers();
-  }, []);
+  const fetchVolunteers = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/api/volunteers`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) setVolunteers(data);
+      else {
+        setVolunteers((prev) => prev || []);
+        toast(data?.message || 'تعذر تحميل المتطوعين', 'error');
+      }
+    } catch {
+      setVolunteers((prev) => prev || []);
+      toast('تعذر الاتصال بالخادم، تحقق من الشبكة ثم أعد المحاولة', 'error');
+    }
+  }, [token, toast]);
 
-  const fetchVolunteers = () => {
-    setLoading(true);
-    fetch(`${apiUrl}/api/volunteers`)
-      .then(response => response.json())
-      .then(data => {
-        setVolunteers(data);
-        setFilteredVolunteers(data);
-        const uniqueStates = [...new Set(data.map(v => v.state))];
-        setStates(uniqueStates);
-      })
-      .catch(error => console.error('Error fetching volunteers:', error))
-      .finally(() => setLoading(false));
-  };
+  useEffect(() => { fetchVolunteers(); }, [fetchVolunteers]);
 
-  useEffect(() => {
-    filterVolunteers();
-  }, [searchTerm, stateFilter, volunteers]);
+  const all = volunteers || [];
+  const states = useMemo(() => [...new Set(all.map((v) => v.state).filter(Boolean))], [all]);
+  const filtered = useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return all.filter((v) =>
+      (v.full_name || '').toLowerCase().includes(q) && (stateFilter === '' || v.state === stateFilter));
+  }, [all, searchTerm, stateFilter]);
 
-  const filterVolunteers = () => {
-    const filtered = volunteers.filter(volunteer =>
-      volunteer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (stateFilter === '' || volunteer.state === stateFilter)
-    );
-    setFilteredVolunteers(filtered);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleStateChange = (e) => {
-    setStateFilter(e.target.value);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setStateFilter('');
-  };
-
-  const handleDelete = (id) => {
-    fetch(`${apiUrl}/api/volunteers/${id}`, {
-      method: 'DELETE',
-    })
-    .then(() => {
-      setVolunteers(volunteers.filter(volunteer => volunteer.id !== id));
-      setFilteredVolunteers(filteredVolunteers.filter(volunteer => volunteer.id !== id));
-      setDeleteConfirm(null);
-    })
-    .catch(error => console.error('Error deleting volunteer:', error));
+  const handleDelete = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/volunteers/${deleteFor.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (res.ok) {
+        setVolunteers((prev) => prev.filter((v) => v.id !== deleteFor.id));
+        setDeleteFor(null);
+        toast('تم حذف المتطوع');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast(data.message || 'تعذر حذف المتطوع', 'error');
+      }
+    } catch {
+      toast('تعذر الاتصال بالخادم، تحقق من الشبكة ثم أعد المحاولة', 'error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleDownloadExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredVolunteers);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Volunteers');
-    XLSX.writeFile(wb, 'volunteers.xlsx');
+    // Same columns as before (every field of the record), cells neutralised against formulas
+    const rows = filtered.map((v) => Object.fromEntries(Object.entries(v).map(([k, val]) => [k, typeof val === 'string' ? csvSafe(val) : val])));
+    exportRowsCSV(rows, 'volunteers.csv');
+    setMenuOpen(false);
   };
 
+  const stateOptions = [
+    { value: '', label: 'كل الولايات', count: all.length },
+    ...states.map((s) => ({ value: s, label: s, count: all.filter((v) => v.state === s).length })),
+  ];
+
+  const ContactLink = ({ href, icon: Icon, children, hint, external }) => (
+    <a
+      href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      className="w-full flex items-center gap-3 min-h-[3.25rem] px-3 -mx-3 rounded-xl hover:bg-ink-faint text-ink"
+    >
+      <Icon className="w-5 h-5 shrink-0" />
+      <span className="flex-1 font-semibold">{children}</span>
+      {hint && <span className="text-sm text-muted truncate max-w-[50%]" dir="ltr">{hint}</span>}
+    </a>
+  );
+
   return (
-<div className="w-full max-w-7xl mx-auto py-8 px-4">
-  <div className="w-full">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Volunteers Management</h1>
-          <p className="text-gray-600">View and manage all registered volunteers</p>
-        </div>
+    <div className="max-w-2xl lg:max-w-none mx-auto">
+      <PageHeader
+        title="المتطوعون"
+        subtitle={volunteers ? `${all.length} متطوع سجّلوا عبر موقع المؤسسة` : 'المسجلون عبر موقع المؤسسة'}
+        actions={<IconButton icon={MoreVertical} label="خيارات" className="bg-white border border-line" onClick={() => setMenuOpen(true)} />}
+      />
 
-        {/* Filters Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Search by Name
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Enter volunteer name..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="w-full px-4 py-3 pl-10 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                />
-                <svg className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="flex-1">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Filter by State
-              </label>
-              <select
-                value={stateFilter}
-                onChange={handleStateChange}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-colors bg-white"
+      <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم" className="mb-3 lg:max-w-md" />
+      {states.length > 0 && (
+        <ChipGroup label="الولاية" value={stateFilter} onChange={setStateFilter} options={stateOptions} className="mb-3" />
+      )}
+
+      {volunteers === null ? (
+        <LoadingState />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={Users} title={all.length ? 'لا أحد يطابق البحث' : 'لا يوجد متطوعون بعد'}>
+          {all.length ? 'جرّب اسماً آخر أو اختر «كل الولايات».' : 'يظهر هنا كل من يملأ استمارة التطوع في موقع المؤسسة.'}
+        </EmptyState>
+      ) : (
+        <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
+          {filtered.map((v) => (
+            <li key={v.id} className="lg:bg-white lg:border lg:border-line lg:rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setSelected(v)}
+                className="w-full text-start flex items-center gap-3 px-4 py-3 min-h-[4rem] hover:bg-ink-faint first:rounded-t-2xl last:rounded-b-2xl"
               >
-                <option value="">كل الولايات</option>
-                {states.map(state => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
-            </div>
+                <span className="flex-1 min-w-0">
+                  <span className="block font-semibold text-ink truncate">{v.full_name}</span>
+                  <span className="block text-xs text-muted mt-0.5 truncate">
+                    {[v.city, v.state].filter(Boolean).join('، ')}
+                  </span>
+                </span>
+                <span className="text-sm text-muted shrink-0" dir="ltr">{v.phone_number}</span>
+                <ChevronLeft className="w-5 h-5 text-muted shrink-0" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
-            <div className="flex gap-3">
-              {(searchTerm || stateFilter) && (
-                <button
-                  onClick={clearFilters}
-                  className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-gray-400 flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Clear
-                </button>
+      <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="المتطوعون">
+        <div className="divide-y divide-line">
+          <SheetAction icon={Download} hint={`${filtered.length} متطوع حسب التصفية الحالية`} onClick={handleDownloadExcel} disabled={!filtered.length}>
+            حمّل ملف Excel (CSV)
+          </SheetAction>
+        </div>
+      </Sheet>
+
+      <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected?.full_name || ''} size="lg">
+        {selected && (
+          <>
+            <div className="divide-y divide-line mb-4">
+              {selected.phone_number && toWhatsApp(selected.phone_number) && (
+                <ContactLink href={`https://wa.me/${toWhatsApp(selected.phone_number)}`} icon={MessageCircle} external>
+                  راسله عبر واتساب
+                </ContactLink>
               )}
-              
-              <button
-                onClick={handleDownloadExcel}
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-md flex items-center gap-2 whitespace-nowrap"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Download Excel
-              </button>
+              {selected.phone_number && (
+                <ContactLink href={`tel:${String(selected.phone_number).replace(/[^\d+]/g, '')}`} icon={Phone} hint={selected.phone_number}>
+                  اتصل به
+                </ContactLink>
+              )}
+              {selected.email_address && (
+                <ContactLink href={`mailto:${selected.email_address}`} icon={Mail} hint={selected.email_address}>
+                  أرسل بريداً
+                </ContactLink>
+              )}
             </div>
-          </div>
-
-          {/* Stats */}
-          <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Showing <span className="font-semibold text-gray-900">{filteredVolunteers.length}</span> of <span className="font-semibold text-gray-900">{volunteers.length}</span> volunteers
-            </div>
-            {(searchTerm || stateFilter) && (
-              <div className="text-sm text-blue-600 font-medium">
-                Active filters applied
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Volunteers Table */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {loading ? (
-            <div className="text-center py-20">
-              <svg className="animate-spin h-10 w-10 mx-auto text-blue-500 mb-4" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <p className="text-gray-500 text-lg">Loading volunteers...</p>
-            </div>
-          ) : filteredVolunteers.length === 0 ? (
-            <div className="text-center py-20">
-              <svg className="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <p className="text-gray-500 text-lg mb-2">No volunteers found</p>
-              <p className="text-gray-400">No volunteers match your search criteria</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-blue-50 to-blue-100 border-b-2 border-blue-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Full Name</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Phone Number</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Email Address</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">City</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">State</th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredVolunteers.map((volunteer, index) => (
-                    <tr 
-                      key={volunteer.id} 
-                      className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                      }`}
-                      onClick={() => setSelectedVolunteer(volunteer)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold mr-3">
-                            {volunteer.full_name.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-sm font-medium text-gray-800">{volunteer.full_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 font-mono">{volunteer.phone_number}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{volunteer.email_address}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{volunteer.city}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                          {volunteer.state}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => setSelectedVolunteer(volunteer)}
-                            className="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            View
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(volunteer.id)}
-                            className="inline-flex items-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Volunteer Details Modal */}
-      {selectedVolunteer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setSelectedVolunteer(null)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto transform animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-16 h-16 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-2xl font-bold mr-4">
-                    {selectedVolunteer.full_name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">{selectedVolunteer.full_name}</h2>
-                    <p className="text-blue-100">{selectedVolunteer.email_address}</p>
-                  </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-sm mb-4">
+              {DETAIL_FIELDS.map(([key, label], i) => (
+                <div key={key} className={i >= 6 ? 'sm:col-span-2' : undefined}>
+                  <dt className="text-muted">{label}</dt>
+                  <dd className="font-semibold text-ink break-words whitespace-pre-wrap">{selected[key] || 'غير محدد'}</dd>
                 </div>
-                <button
-                  onClick={() => setSelectedVolunteer(null)}
-                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+              ))}
+            </dl>
+            <Button variant="danger" icon={Trash2} block onClick={() => { setDeleteFor(selected); setSelected(null); }}>
+              احذف المتطوع
+            </Button>
+          </>
+        )}
+      </Sheet>
 
-            {/* Modal Body */}
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Basic Information */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Basic Information
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Phone Number</label>
-                      <p className="text-gray-800 font-mono">{selectedVolunteer.phone_number}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Date of Birth</label>
-                      <p className="text-gray-800">{selectedVolunteer.date_of_birth}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Gender</label>
-                      <p className="text-gray-800">{selectedVolunteer.gender}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Location
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
-                      <p className="text-gray-800">{selectedVolunteer.city}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">State</label>
-                      <p className="text-gray-800">{selectedVolunteer.state}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Skills & Experience */}
-                <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                    Skills & Experience
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Relevant Skills</label>
-                      <p className="text-gray-800">{selectedVolunteer.relevant_skills || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Previous Volunteering Experience</label>
-                      <p className="text-gray-800">{selectedVolunteer.previous_volunteering_experience || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Professional Background</label>
-                      <p className="text-gray-800">{selectedVolunteer.professional_background || 'Not specified'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Interests & Preferences */}
-                <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    Interests & Preferences
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Areas of Interest</label>
-                      <p className="text-gray-800">{selectedVolunteer.areas_of_interest || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Preferred Types of Activities</label>
-                      <p className="text-gray-800">{selectedVolunteer.preferred_types_of_activities || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Reasons for Volunteering</label>
-                      <p className="text-gray-800">{selectedVolunteer.reasons_for_volunteering || 'Not specified'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="border-t border-gray-200 p-6 flex justify-end gap-3">
-              <button
-                onClick={() => setSelectedVolunteer(null)}
-                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform animate-scale-in">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Volunteer</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone</p>
-              </div>
-            </div>
-            <p className="text-gray-600 mb-6">Are you sure you want to permanently delete this volunteer?</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes scale-in {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-        .animate-scale-in {
-          animation: scale-in 0.3s ease-out;
-        }
-      `}</style>
+      <Sheet
+        open={!!deleteFor}
+        onClose={() => setDeleteFor(null)}
+        title="حذف المتطوع"
+        footer={(
+          <>
+            <Button variant="secondary" className="flex-1" onClick={() => setDeleteFor(null)}>تراجع</Button>
+            <Button variant="danger" icon={Trash2} className="flex-1" loading={busy} onClick={handleDelete}>احذف</Button>
+          </>
+        )}
+      >
+        <p className="text-sm text-ink">سيُحذف {deleteFor?.full_name} من قائمة المتطوعين نهائياً، ولا يمكن التراجع عن ذلك.</p>
+      </Sheet>
     </div>
   );
 };

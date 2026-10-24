@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../../../config/environment';
 import { useParams, Link } from 'react-router-dom';
 import Footer from '../HomePage/Components/Footer';
 import { useLanguage } from '../../../Context/LanguageContext';
+import { sanitizeHtml } from '../../../utils/safeHtml';
 
 const apiUrl = API_BASE_URL;
 
@@ -234,7 +235,7 @@ const ActivityDetails = () => {
                                         language === 'en' ? 'text-left' : 'text-right'
                                     }`}
                                     dangerouslySetInnerHTML={{
-                                        __html: language === 'en' ? activity.description_en : activity.description_ar,
+                                        __html: sanitizeHtml(language === 'en' ? activity.description_en : activity.description_ar),
                                     }}
                                 />
                             </div>

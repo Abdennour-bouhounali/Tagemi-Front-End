@@ -1,5 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../../../../Context/LanguageContext';
+
+const VIDEO_ID = 'Bc9DI4uzg2Q';
+
+// The YouTube player is ~1 MB of scripts: show the poster and only load it on click
+const VideoFacade = ({ label }) => {
+    const [playing, setPlaying] = useState(false);
+    if (playing) {
+        return (
+            <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay=1&rel=0`}
+                title={label}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+                className="w-full h-full"
+            ></iframe>
+        );
+    }
+    return (
+        <button type="button" onClick={() => setPlaying(true)} className="relative w-full h-full block group/play" aria-label={label}>
+            <img
+                src={`https://i.ytimg.com/vi/${VIDEO_ID}/hqdefault.jpg`}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                width="480"
+                height="360"
+                className="w-full h-full object-cover"
+            />
+            <span className="absolute inset-0 bg-[#101E58]/30 group-hover/play:bg-[#101E58]/10 transition-colors"></span>
+            <span className="absolute inset-0 flex items-center justify-center">
+                <span className="w-20 h-20 rounded-full bg-[#E03A6F] flex items-center justify-center shadow-xl group-hover/play:scale-110 transition-transform">
+                    <svg className="w-9 h-9 text-white ms-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                </span>
+            </span>
+        </button>
+    );
+};
 
 const Introduction = () => {
     const { language } = useLanguage();
@@ -21,16 +61,7 @@ const Introduction = () => {
                             {/* Video Container */}
                             <div className="relative rounded-2xl overflow-hidden shadow-2xl transform group-hover:scale-[1.02] transition-transform duration-300">
                                 <div className="aspect-video">
-                                    <iframe
-                                        width="100%"
-                                        height="100%"
-                                        src="https://www.youtube.com/embed/Bc9DI4uzg2Q?si=m0cfxB4yaRS_w2Y6"
-                                        title="YouTube video player"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        referrerPolicy="strict-origin-when-cross-origin"
-                                        allowFullScreen
-                                        className="w-full h-full"
-                                    ></iframe>
+                                    <VideoFacade label={language === 'en' ? 'Play the Tagemi Foundation video' : 'تشغيل فيديو مؤسسة تجمي'} />
                                 </div>
                             </div>
                             

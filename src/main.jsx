@@ -1,6 +1,7 @@
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import './Components/ui/ui.css' // after index.css: the app's resets must come last
 
 import AppProvider from './Context/AppContext.jsx'
 import { I18nextProvider } from 'react-i18next';

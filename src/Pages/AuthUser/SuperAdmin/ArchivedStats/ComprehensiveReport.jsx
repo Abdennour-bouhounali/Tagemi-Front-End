@@ -1,42 +1,25 @@
-import { useState, useEffect, useContext } from "react";
 import { API_BASE_URL } from '../../../../config/environment';
-import { useParams, Link } from "react-router-dom";
+// Archived event: one page with every statistic (outcomes, specialties, demographics, wilayas).
+import React, { useState, useEffect, useContext } from "react";
+import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
+import { useParams } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
+import { Download, Printer } from "lucide-react";
+import { PageHeader, StatStrip, LoadingState, Panel, useToast } from "../../../../Components/ui";
 import {
-  ArrowLeft,
-  AlertCircle,
-  Activity,
-  Download,
-  Printer,
-  BarChart3,
-  Users,
-  MapPin,
-  PieChart as PieChartIcon,
-  CheckCircle,
-  TrendingUp,
-  Calendar,
-  FileText,
-} from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+  ActionsMenu, ARCHIVED_OUTCOMES, BackLink, CHART, ErrorState, HBarChart, POPUP_BLOCKED, ResponsiveTable, ShareBar, pct, printHtml,
+} from "../../../../Components/ui/StatsKit";
 
 const apiUrl = API_BASE_URL;
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+const GENDER_COLORS = { 'ذكر': CHART.inkSoft, 'أنثى': CHART.rose };
+const outcomeOf = (status) => ARCHIVED_OUTCOMES[status] || { label: status, color: CHART.hold };
+const formatDay = (value) => (value ? new Date(value).toLocaleDateString("en-UK") : "—");
 
 const ComprehensiveReport = () => {
   const { eventId } = useParams();
   const { token } = useContext(AppContext);
+  const toast = useToast();
   
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,15 +51,7 @@ const ComprehensiveReport = () => {
   };
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    const printContent = generatePrintDocument();
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+    if (!printHtml(generatePrintDocument())) toast(POPUP_BLOCKED, "error");
   };
 
   const generatePrintDocument = () => {
@@ -91,8 +66,8 @@ const ComprehensiveReport = () => {
     const statusData = report.status_breakdown.map(stat => ({
       name: stat.status,
       nameAr: stat.status === 'Completed' ? 'أنهى الفحص' : 
-              stat.status === 'Pending' ? 'غائب' : 
-              stat.status === 'Waiting' ? 'في الإنتظار' : stat.status,
+              stat.status === 'Pending' ? 'لم يحضر' : 
+              stat.status === 'Waiting' ? 'حضر ولم يُفحص' : stat.status,
       count: parseInt(stat.count),
       special: parseInt(stat.special_count || 0)
     }));
@@ -103,7 +78,7 @@ const ComprehensiveReport = () => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>التقرير الشامل - ${report.event.name}</title>
+        <title>التقرير الشامل - ${escapeHtml(report.event.name)}</title>
         <style>
           @page {
             size: A4;
@@ -326,15 +301,15 @@ const ComprehensiveReport = () => {
           <div class="header">
             <img src="/tagemi_logo.png" alt="Logo" class="logo" />
             <h1>التقرير الشامل للحملة الطبية</h1>
-            <p class="event-name">${report.event.name}</p>
-            <p class="date">تاريخ الإصدار: ${currentDate}</p>
+            <p class="event-name">${escapeHtml(report.event.name)}</p>
+            <p class="date">تاريخ الإصدار: ${escapeHtml(currentDate)}</p>
           </div>
 
           <!-- Event Info -->
           <div class="info-grid">
             <div class="info-card">
               <div class="label">اسم الحدث</div>
-              <div class="value">${report.event.name}</div>
+              <div class="value">${escapeHtml(report.event.name)}</div>
             </div>
             <div class="info-card">
               <div class="label">تاريخ الحدث</div>
@@ -342,7 +317,7 @@ const ComprehensiveReport = () => {
             </div>
             <div class="info-card">
               <div class="label">إجمالي المواعيد</div>
-              <div class="value">${report.total_appointments}</div>
+              <div class="value">${escapeHtml(report.total_appointments)}</div>
             </div>
             <div class="info-card">
               <div class="label">الحالة</div>
@@ -356,10 +331,10 @@ const ComprehensiveReport = () => {
             <div class="summary-grid">
               ${statusData.map(stat => `
                 <div class="summary-card">
-                  <div class="label">${stat.nameAr}</div>
-                  <div class="value">${stat.count}</div>
+                  <div class="label">${escapeHtml(stat.nameAr)}</div>
+                  <div class="value">${escapeHtml(stat.count)}</div>
                   <div class="percentage">${((stat.count / report.total_appointments) * 100).toFixed(1)}%</div>
-                  ${stat.special > 0 ? `<div class="percentage">خاص: ${stat.special}</div>` : ''}
+                  ${stat.special > 0 ? `<div class="percentage">خاص: ${escapeHtml(stat.special)}</div>` : ''}
                 </div>
               `).join('')}
             </div>
@@ -380,9 +355,9 @@ const ComprehensiveReport = () => {
               <tbody>
                 ${statusData.map(stat => `
                   <tr>
-                    <td><strong>${stat.nameAr}</strong></td>
-                    <td>${stat.count}</td>
-                    <td>${stat.special > 0 ? stat.special : '-'}</td>
+                    <td><strong>${escapeHtml(stat.nameAr)}</strong></td>
+                    <td>${escapeHtml(stat.count)}</td>
+                    <td>${stat.special > 0 ? escapeHtml(stat.special) : '-'}</td>
                     <td>${((stat.count / report.total_appointments) * 100).toFixed(1)}%</td>
                   </tr>
                 `).join('')}
@@ -406,8 +381,8 @@ const ComprehensiveReport = () => {
                   const percentage = ((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1);
                   return `
                     <tr>
-                      <td><strong>${stat.name}</strong></td>
-                      <td>${stat.count}</td>
+                      <td><strong>${escapeHtml(stat.name)}</strong></td>
+                      <td>${escapeHtml(stat.count)}</td>
                       <td>${percentage}%</td>
                     </tr>
                   `;
@@ -436,8 +411,8 @@ const ComprehensiveReport = () => {
                       const percentage = ((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1);
                       return `
                         <tr>
-                          <td>${genderName}</td>
-                          <td>${stat.count}</td>
+                          <td>${escapeHtml(genderName)}</td>
+                          <td>${escapeHtml(stat.count)}</td>
                           <td>${percentage}%</td>
                         </tr>
                       `;
@@ -457,8 +432,8 @@ const ComprehensiveReport = () => {
                   <tbody>
                     ${report.age_breakdown.map(stat => `
                       <tr>
-                        <td>${stat.age_group} سنة</td>
-                        <td>${stat.count}</td>
+                        <td>${escapeHtml(stat.age_group)} سنة</td>
+                        <td>${escapeHtml(stat.count)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -485,8 +460,8 @@ const ComprehensiveReport = () => {
                   return `
                     <tr>
                       <td>${index + 1}</td>
-                      <td><strong>${stat.state}</strong></td>
-                      <td>${stat.count}</td>
+                      <td><strong>${escapeHtml(stat.state)}</strong></td>
+                      <td>${escapeHtml(stat.count)}</td>
                       <td>${percentage}%</td>
                     </tr>
                   `;
@@ -501,11 +476,11 @@ const ComprehensiveReport = () => {
             <div class="analysis-box">
               <h3>النقاط الرئيسية:</h3>
               <ul>
-                <li>إجمالي المواعيد المؤرشفة: <strong>${report.total_appointments}</strong> موعد</li>
+                <li>إجمالي المواعيد المؤرشفة: <strong>${escapeHtml(report.total_appointments)}</strong> موعد</li>
                 <li>عدد التخصصات الطبية المشاركة: <strong>${report.specialty_breakdown.length}</strong> تخصص</li>
                 <li>التغطية الجغرافية: <strong>${report.top_states.length}+</strong> ولاية</li>
-                <li>أكبر تخصص مشاركة: <strong>${report.specialty_breakdown[0]?.name}</strong> بـ <strong>${report.specialty_breakdown[0]?.count}</strong> مريض</li>
-                <li>أكثر ولاية تمثيلاً: <strong>${report.top_states[0]?.state}</strong> بـ <strong>${report.top_states[0]?.count}</strong> مريض</li>
+                <li>أكبر تخصص مشاركة: <strong>${escapeHtml(report.specialty_breakdown[0]?.name)}</strong> بـ <strong>${escapeHtml(report.specialty_breakdown[0]?.count)}</strong> مريض</li>
+                <li>أكثر ولاية تمثيلاً: <strong>${escapeHtml(report.top_states[0]?.state)}</strong> بـ <strong>${escapeHtml(report.top_states[0]?.count)}</strong> مريض</li>
                 <li>تاريخ الأرشفة: <strong>${new Date(report.event.updated_at).toLocaleDateString('en-UK')}</strong></li>
               </ul>
             </div>
@@ -552,7 +527,7 @@ const ComprehensiveReport = () => {
       ["=== أعلى 10 ولايات ==="],
       ["الولاية", "العدد"],
       ...report.top_states.map(stat => [stat.state, stat.count]),
-    ].map(row => row.join(",")).join("\n");
+    ].map(row => row.map(cell => `"${csvSafe(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
 
     const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -561,389 +536,158 @@ const ComprehensiveReport = () => {
     link.click();
   };
 
-  if (loading) {
+  const backTo = `/admin/event-tracking/${eventId}`;
+
+  if (loading) return <LoadingState label="جاري تحميل التقرير..." />;
+
+  if (error || !report) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-droid-arabic-kufi">جاري تحميل التقرير...</p>
-        </div>
+      <div className="max-w-6xl lg:max-w-none mx-auto">
+        <BackLink to={backTo} />
+        <PageHeader title="التقرير الشامل" />
+        <ErrorState message={error} onRetry={fetchReport} />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle className="w-6 h-6 text-red-600" />
-            <h3 className="text-lg font-bold text-red-800 font-droid-arabic-kufi">خطأ</h3>
-          </div>
-          <p className="text-red-700 font-droid-arabic-kufi">{error}</p>
-        </div>
-      </div>
-    );
-  }
+  const total = parseInt(report.total_appointments) || 0;
 
-  if (!report) return null;
+  // Outcomes, added up when several raw statuses share one label
+  const outcomes = [];
+  report.status_breakdown.forEach((stat) => {
+    const { label, color } = outcomeOf(stat.status);
+    const found = outcomes.find((o) => o.label === label);
+    if (found) {
+      found.value += parseInt(stat.count) || 0;
+      found.special += parseInt(stat.special_count) || 0;
+    } else {
+      outcomes.push({ label, color, value: parseInt(stat.count) || 0, special: parseInt(stat.special_count) || 0 });
+    }
+  });
+  const specialTotal = outcomes.reduce((sum, o) => sum + o.special, 0);
 
-  const statusData = report.status_breakdown.map(stat => ({
-    name: stat.status,
-    value: parseInt(stat.count)
-  }));
+  const genderParts = [];
+  report.gender_breakdown.forEach((stat) => {
+    const label = stat.sex === "0" || stat.sex === 0 || stat.sex === "ذكر" ? "ذكر" : "أنثى";
+    const found = genderParts.find((g) => g.label === label);
+    if (found) found.value += parseInt(stat.count) || 0;
+    else genderParts.push({ label, value: parseInt(stat.count) || 0, color: GENDER_COLORS[label] });
+  });
 
-  const specialtyData = report.specialty_breakdown.map(stat => ({
-    name: stat.name,
-    value: parseInt(stat.count)
-  }));
-
-  const genderData = report.gender_breakdown.map(stat => ({
-    name: stat.sex === '0' || stat.sex === 'ذكر' ? 'ذكر' : 'أنثى',
-    value: parseInt(stat.count)
-  }));
-
-  const ageData = report.age_breakdown.map(stat => ({
-    name: stat.age_group,
-    value: parseInt(stat.count)
-  }));
+  const specialtyData = report.specialty_breakdown.map((stat) => ({ name: stat.name, value: parseInt(stat.count) || 0 }));
+  const ageData = report.age_breakdown.map((stat) => ({ name: `${stat.age_group} سنة`, value: parseInt(stat.count) || 0 }));
+  const stateData = report.top_states.map((stat) => ({ name: stat.state, value: parseInt(stat.count) || 0 }));
+  const oneBar = [{ key: "value", name: "العدد", color: CHART.inkSoft }];
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-b from-red-50 to-white p-6 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-7xl mb-4">
-        {/* Header */}
-        <div className="mb-6 no-print">
-          <Link
-            to={`/admin/event-tracking/${eventId}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-droid-arabic-kufi transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            العودة إلى صفحة المتابعة
-          </Link>
+    <div className="max-w-6xl lg:max-w-none mx-auto">
+      <BackLink to={backTo} />
+      <PageHeader
+        title="التقرير الشامل"
+        subtitle={report.event.name}
+        actions={
+          <ActionsMenu
+            actions={[
+              { icon: Printer, label: "اطبع التقرير", onClick: handlePrint },
+              { icon: Download, label: "نزّل ملف CSV", onClick: handleExport },
+            ]}
+          />
+        }
+      />
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="bg-red-100 w-16 h-16 rounded-xl flex items-center justify-center">
-                  <Activity className="w-8 h-8 text-red-600" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">
-                    التقرير الشامل
-                  </h1>
-                  <p className="text-gray-600 font-droid-arabic-kufi">{report.event.name}</p>
-                </div>
-              </div>
+      <StatStrip
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
+        items={[
+          { label: "المواعيد", value: total },
+          ...outcomes.map((o) => ({ label: o.label, value: o.value })),
+          { label: "التخصصات", value: report.specialty_breakdown.length },
+          specialTotal > 0 && { label: "حالات خاصة", value: specialTotal, tone: "text-rose" },
+        ]}
+      />
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير CSV
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Printer className="w-4 h-4" />
-                  طباعة
-                </button>
-              </div>
+      <div className="space-y-4">
+        <Panel title="عن الحدث">
+          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 text-sm">
+            <div>
+              <dt className="text-xs text-muted">تاريخ الحدث</dt>
+              <dd className="font-semibold text-ink">{formatDay(report.event.date)}</dd>
             </div>
-          </div>
-        </div>
+            <div>
+              <dt className="text-xs text-muted">الحالة</dt>
+              <dd className="font-semibold text-ink">مؤرشف</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">تاريخ الأرشفة</dt>
+              <dd className="font-semibold text-ink">{formatDay(report.event.updated_at)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">تاريخ التقرير</dt>
+              <dd className="font-semibold text-ink">{formatDay(new Date())}</dd>
+            </div>
+          </dl>
+        </Panel>
 
-        {/* Event Info Card */}
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl shadow-lg p-8 mb-6 text-white">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <FileText className="w-8 h-8 mx-auto mb-2 opacity-80" />
-              <p className="text-sm opacity-80 font-droid-arabic-kufi mb-1">اسم الحدث</p>
-              <p className="text-xl font-bold font-droid-arabic-kufi">{report.event.name}</p>
-            </div>
-            <div className="text-center">
-              <Calendar className="w-8 h-8 mx-auto mb-2 opacity-80" />
-              <p className="text-sm opacity-80 font-droid-arabic-kufi mb-1">التاريخ</p>
-              <p className="text-xl font-bold font-droid-arabic-kufi">{new Date(report.event.date).toLocaleDateString('en-UK')}</p>
-            </div>
-            <div className="text-center">
-              <Users className="w-8 h-8 mx-auto mb-2 opacity-80" />
-              <p className="text-sm opacity-80 font-droid-arabic-kufi mb-1">إجمالي المواعيد</p>
-              <p className="text-3xl font-bold font-droid-arabic-kufi">{report.total_appointments}</p>
-            </div>
-            <div className="text-center">
-              <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-80" />
-              <p className="text-sm opacity-80 font-droid-arabic-kufi mb-1">الحالة</p>
-              <p className="text-xl font-bold font-droid-arabic-kufi">مؤرشف</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          {report.status_breakdown.map((stat, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 font-droid-arabic-kufi text-sm">
-              {stat.status === 'Completed' && 'أنهى الفحص'}
-            {stat.status === 'Pending' && 'غائب'}
-            {stat.status === 'Waiting' && 'في الإنتظار'}
-                  
-                  </span>
-                <TrendingUp className="w-5 h-5 text-gray-400" />
-              </div>
-              <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">{stat.count}</p>
-              <p className="text-xs text-gray-500 font-droid-arabic-kufi mt-1">
-                {((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1)}%
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Status & Specialty Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Status Pie Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center gap-3 mb-4">
-              <PieChartIcon className="w-6 h-6 text-red-600" />
-              <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-                توزيع الحالات
-              </h3>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={(entry) => `${entry.name}: ${entry.value}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Specialty Bar Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center gap-3 mb-4">
-              <BarChart3 className="w-6 h-6 text-blue-600" />
-              <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-                توزيع التخصصات
-              </h3>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={specialtyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} style={{ fontSize: '10px' }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" name="العدد">
-                  {specialtyData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Demographics Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Gender Distribution */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center gap-3 mb-4">
-              <Users className="w-6 h-6 text-purple-600" />
-              <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-                توزيع الجنس
-              </h3>
-            </div>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={genderData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={(entry) => `${entry.name}: ${entry.value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {genderData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.name === 'ذكر' ? '#3b82f6' : '#ec4899'} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Age Distribution */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center gap-3 mb-4">
-              <Activity className="w-6 h-6 text-orange-600" />
-              <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-                الفئات العمرية
-              </h3>
-            </div>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={ageData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" style={{ fontSize: '12px' }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" name="العدد" fill="#f59e0b" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Geographic Distribution */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <MapPin className="w-6 h-6 text-green-600" />
-            <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-              أعلى 10 ولايات
-            </h3>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={report.top_states} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="state" type="category" width={100} style={{ fontSize: '12px' }} />
-              <Tooltip />
-              <Bar dataKey="count" name="عدد المرضى" fill="#10b981" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Detailed Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Specialty Table */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="p-4 bg-gray-50 border-b border-gray-100">
-              <h4 className="font-bold text-gray-900 font-droid-arabic-kufi">تفاصيل التخصصات</h4>
-            </div>
-            <div className="p-4">
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {report.specialty_breakdown.map((stat, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="font-droid-arabic-kufi text-sm font-semibold text-gray-900">
-                      {stat.name}
-                    </span>
-                    <span className="font-droid-arabic-kufi font-bold text-blue-600">
-                      {stat.count}
-                    </span>
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Panel title="نتيجة المواعيد">
+            <ShareBar total={total} parts={outcomes} />
+            {specialTotal > 0 && (
+              <ul className="mt-2 space-y-1 text-sm text-muted">
+                {outcomes.filter((o) => o.special > 0).map((o) => (
+                  <li key={o.label}>
+                    منها حالات خاصة في «{o.label}»: <span className="font-semibold text-rose">{o.special}</span>
+                  </li>
                 ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Status Table */}
-         <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-  <div className="p-4 bg-gray-50 border-b border-gray-100">
-    <h4 className="font-bold text-gray-900 font-droid-arabic-kufi">تفاصيل الحالات</h4>
-  </div>
-  <div className="p-4">
-    <div className="space-y-2">
-      {report.status_breakdown.map((stat, index) => (
-        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-          <span className="font-droid-arabic-kufi text-sm font-semibold text-gray-900">
-            {stat.status === 'Completed' && 'أنهى الفحص'}
-            {stat.status === 'Pending' && 'غائب'}
-            {stat.status === 'Waiting' && 'في الإنتظار'}
-          </span>
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <div>
-                <span className="font-droid-arabic-kufi font-bold text-gray-900 block">
-                  {stat.count}
-                </span>
-                <span className="text-xs text-gray-500 font-droid-arabic-kufi">
-                  {((parseInt(stat.count) / report.total_appointments) * 100).toFixed(1)}%
-                </span>
-              </div>
-              {stat.special_count > 0 && (
-                <div className="bg-blue-100 px-2 py-1 rounded">
-                  <span className="text-xs font-droid-arabic-kufi font-semibold text-blue-700">
-                    خاص: {stat.special_count}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-</div>
-        </div>
-
-        {/* Summary Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-            ملخص التقرير
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <h4 className="font-bold text-gray-800 font-droid-arabic-kufi">النقاط الرئيسية:</h4>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-1">•</span>
-                  <span className="text-gray-700 font-droid-arabic-kufi">
-                    إجمالي المواعيد المؤرشفة: <strong>{report.total_appointments}</strong>
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-1">•</span>
-                  <span className="text-gray-700 font-droid-arabic-kufi">
-                    عدد التخصصات: <strong>{report.specialty_breakdown.length}</strong>
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-1">•</span>
-                  <span className="text-gray-700 font-droid-arabic-kufi">
-                    التغطية الجغرافية: <strong>{report.top_states.length}+</strong> ولاية
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-1">•</span>
-                  <span className="text-gray-700 font-droid-arabic-kufi">
-                    أكبر تخصص: <strong>{report.specialty_breakdown[0]?.name}</strong> ({report.specialty_breakdown[0]?.count} مريض)
-                  </span>
-                </li>
               </ul>
-            </div>
-            <div className="bg-red-50 rounded-lg p-4">
-              <h4 className="font-bold text-gray-800 font-droid-arabic-kufi mb-3">معلومات إضافية:</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-droid-arabic-kufi text-sm">تاريخ التقرير:</span>
-                  <span className="font-bold text-red-600 font-droid-arabic-kufi text-sm">
-                    {new Date().toLocaleDateString('en-UK')}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-droid-arabic-kufi text-sm">تاريخ الأرشفة:</span>
-                  <span className="font-bold text-red-600 font-droid-arabic-kufi text-sm">
-                    {new Date(report.event.updated_at).toLocaleDateString('en-UK')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+            )}
+          </Panel>
+
+          <Panel title="حسب الجنس">
+            <ShareBar parts={genderParts} />
+          </Panel>
         </div>
+
+        <Panel title="حسب التخصص" bodyClassName="xl:grid xl:grid-cols-2 xl:gap-6 xl:items-start">
+          <HBarChart data={specialtyData} bars={oneBar} />
+          <div className="mt-4 xl:mt-0">
+            <ResponsiveTable
+              columns={[
+                { key: "name", label: "التخصص", primary: true },
+                { key: "count", label: "المواعيد", align: "center", render: (row) => parseInt(row.count) || 0 },
+                { key: "share", label: "النسبة", align: "center", render: (row) => `${pct(row.count, total)}%` },
+              ]}
+              rows={report.specialty_breakdown}
+              rowKey={(row, i) => `${row.name}-${i}`}
+            />
+          </div>
+        </Panel>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Panel title="حسب الفئة العمرية">
+            <HBarChart data={ageData} bars={oneBar} labelWidth={84} />
+          </Panel>
+
+          <Panel title="أعلى 10 ولايات">
+            <HBarChart data={stateData} bars={oneBar} />
+          </Panel>
+        </div>
+
+        <Panel title="ملخص التقرير">
+          <ul className="space-y-1.5 text-sm text-ink">
+            <li>المواعيد المؤرشفة: <strong>{total}</strong>.</li>
+            <li>التخصصات المشاركة: <strong>{report.specialty_breakdown.length}</strong>.</li>
+            <li>التغطية الجغرافية: <strong>{report.top_states.length}+</strong> ولاية.</li>
+            {report.specialty_breakdown[0] && (
+              <li>
+                أكبر تخصص: <strong>{report.specialty_breakdown[0].name}</strong> ({report.specialty_breakdown[0].count} مريض).
+              </li>
+            )}
+            {report.top_states[0] && (
+              <li>
+                أكثر ولاية تمثيلاً: <strong>{report.top_states[0].state}</strong> ({report.top_states[0].count} مريض).
+              </li>
+            )}
+          </ul>
+        </Panel>
       </div>
     </div>
   );

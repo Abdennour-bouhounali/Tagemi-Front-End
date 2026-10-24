@@ -1,42 +1,57 @@
-import { useState, useEffect, useContext } from "react";
 import { API_BASE_URL } from '../../../../config/environment';
-import { useParams, Link } from "react-router-dom";
+// Archived event: every appointment, server-paginated, with filters.
+import React, { useState, useEffect, useContext } from "react";
+import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
+import { useParams } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
-import {Select} from '../../../Common/FormInputs';
-import { Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Printer, SlidersHorizontal } from "lucide-react";
 import {
-  ArrowLeft,
-  AlertCircle,
-  FileText,
-  Download,
-  Printer,
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Phone,
-  Calendar,
-  MapPin,
-  Stethoscope,
-  Clock,
-  CheckCircle,
-  XCircle,
-  UserX,
-} from "lucide-react";
+  Button, ChipGroup, EmptyState, Field, LoadingState, PageHeader, Panel, SearchField, SelectInput, Sheet, useToast, cx,
+} from "../../../../Components/ui";
+import { ActionsMenu, ARCHIVED_OUTCOMES, BackLink, ErrorState, POPUP_BLOCKED, printHtml } from "../../../../Components/ui/StatsKit";
 
 const apiUrl = API_BASE_URL;
 
-const STATUS_CONFIG = {
-  Completed: { label: "مكتمل", color: "bg-green-100 text-green-700", icon: CheckCircle },
-  Cancelled: { label: "ملغي", color: "bg-red-100 text-red-700", icon: XCircle },
-  NoShow: { label: "غائب", color: "bg-orange-100 text-orange-700", icon: UserX },
-  Pending: { label: "معلق", color: "bg-blue-100 text-blue-700", icon: Clock },
+// Final outcome of an archived appointment (same as StatusStats / VisitStatistics::outcomeOf)
+const OUTCOMES = {
+  Completed: { label: ARCHIVED_OUTCOMES.Completed.label, tone: "bg-st-queue-bg text-st-queue" },
+  Pending: { label: ARCHIVED_OUTCOMES.Pending.label, tone: "bg-st-pending-bg text-st-pending" },
+  Waiting: { label: ARCHIVED_OUTCOMES.Waiting.label, tone: "bg-st-pushed-bg text-st-pushed" },
 };
+
+const outcomeOf = (status) => (status === 'Completed' || status === 'Pending' ? status : 'Waiting');
+
+function OutcomeBadge({ status }) {
+  const outcome = OUTCOMES[outcomeOf(status)];
+  return (
+    <span className={cx("inline-flex items-center h-6 px-2 rounded-md text-xs font-semibold whitespace-nowrap", outcome.tone)}>
+      {outcome.label}
+    </span>
+  );
+}
+
+const sexLabel = (sex) => (sex === '0' ? 'ذكر' : 'أنثى');
+const formatBirthday = (value) => (value ? new Date(value).toLocaleDateString('en-UK') : '—');
+
+function Detail({ label, children }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2.5">
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="text-sm font-semibold text-ink text-end">{children || '—'}</dd>
+    </div>
+  );
+}
+
+const STATUS_OPTIONS = [
+  { value: "", label: "الكل" },
+  { value: "Completed", label: OUTCOMES.Completed.label },
+  { value: "Pending", label: OUTCOMES.Pending.label },
+];
 
 const PatientsList = () => {
   const { eventId } = useParams();
   const { token } = useContext(AppContext);
+  const toast = useToast();
   
   const [event, setEvent] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -45,12 +60,27 @@ const PatientsList = () => {
   const [error, setError] = useState("");
   
   // Filters
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [perPage, setPerPage] = useState(50);
+  const [total, setTotal] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  // Wait for a pause in typing before asking the server (weak networks)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput.trim() !== searchTerm) {
+        setSearchTerm(searchInput.trim());
+        setCurrentPage(1);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput, searchTerm]);
 
   useEffect(() => {
     fetchEvent();
@@ -119,7 +149,9 @@ const PatientsList = () => {
       
       if (res.ok) {
         setAppointments(data.appointments.data);
-        setTotalPages(data.appointments.last_page);
+        setTotalPages(data.appointments.last_page || 1);
+        setTotal(data.appointments.total ?? null);
+        setError("");
       } else {
         setError(data.message || "فشل في تحميل البيانات");
       }
@@ -132,15 +164,7 @@ const PatientsList = () => {
   };
 
 const handlePrint = () => {
-  const printWindow = window.open('', '_blank');
-  const printContent = generatePrintDocument();
-  printWindow.document.write(printContent);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 250);
+  if (!printHtml(generatePrintDocument())) toast(POPUP_BLOCKED, "error");
 };
 
 const generatePrintDocument = () => {
@@ -150,15 +174,7 @@ const generatePrintDocument = () => {
     day: 'numeric'
   });
 
-  const getStatusLabel = (status) => {
-    const labels = {
-      'Completed': 'مكتمل',
-      'Cancelled': 'ملغي',
-      'NoShow': 'غائب',
-      'Pending': 'معلق'
-    };
-    return labels[status] || status;
-  };
+  const getStatusLabel = (status) => OUTCOMES[outcomeOf(status)].label;
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
@@ -174,7 +190,7 @@ const generatePrintDocument = () => {
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="UTF-8">
-      <title>قائمة المرضى - ${event?.name}</title>
+      <title>قائمة المرضى - ${escapeHtml(event?.name)}</title>
       <style>
         @page { size: A4 landscape; margin: 1.5cm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -252,8 +268,8 @@ const generatePrintDocument = () => {
       <div class="header">
         <img src="/tagemi_logo.png" alt="Logo" class="logo" />
         <h1>قائمة المرضى الكاملة</h1>
-        <p class="event-name">${event?.name}</p>
-        <p class="date">تاريخ الإصدار: ${currentDate}</p>
+        <p class="event-name">${escapeHtml(event?.name)}</p>
+        <p class="date">تاريخ الإصدار: ${escapeHtml(currentDate)}</p>
       </div>
 
       <div class="summary-box">
@@ -281,25 +297,24 @@ const generatePrintDocument = () => {
           ${appointments.map(apt => {
             const statusClass = 
               apt.status === 'Completed' ? 'status-completed' :
-              apt.status === 'Cancelled' ? 'status-cancelled' :
-              apt.status === 'NoShow' ? 'status-noshow' :
+              apt.status === 'Pending' ? 'status-cancelled' :
               'status-pending';
             
             return `
               <tr>
-                <td><strong>${apt.id}</strong></td>
-                <td style="text-align: right; padding-right: 10px;"><strong>${apt.full_name}</strong></td>
+                <td><strong>${escapeHtml(apt.id)}</strong></td>
+                <td style="text-align: right; padding-right: 10px;"><strong>${escapeHtml(apt.full_name)}</strong></td>
                 <td>${apt.sex === '0' ? 'ذكر' : 'أنثى'}</td>
-                <td>${formatDate(apt.birthday) || '-'}</td>
-                <td>${apt.phone || '-'}</td>
-                <td>${apt.city || '-'}</td>
-                <td>${apt.state || '-'}</td>
-                <td>${apt.event_specialty?.specialty?.name || '-'}</td>
-                <td>${apt.day?.day_date || '-'}</td>
-                <td>${apt.hour?.time || '-'}</td>
+                <td>${escapeHtml(formatDate(apt.birthday) || '-')}</td>
+                <td>${escapeHtml(apt.phone || '-')}</td>
+                <td>${escapeHtml(apt.city || '-')}</td>
+                <td>${escapeHtml(apt.state || '-')}</td>
+                <td>${escapeHtml(apt.event_specialty?.specialty?.name || '-')}</td>
+                <td>${escapeHtml(apt.day?.day_date || '-')}</td>
+                <td>${escapeHtml(apt.hour?.time || '-')}</td>
                 <td>
                   <span class="status-badge ${statusClass}">
-                    ${getStatusLabel(apt.status)}
+                    ${escapeHtml(getStatusLabel(apt.status))}
                   </span>
                 </td>
               </tr>
@@ -335,9 +350,9 @@ const generatePrintDocument = () => {
         apt.doctor?.name || '',
         apt.day?.name || '',
         apt.hour?.time || '',
-        STATUS_CONFIG[apt.status]?.label || apt.status
+        OUTCOMES[outcomeOf(apt.status)]?.label || apt.status
       ])
-    ].map(row => row.join(",")).join("\n");
+    ].map(row => row.map(cell => `"${csvSafe(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
 
     const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -347,329 +362,233 @@ const generatePrintDocument = () => {
   };
 
   const resetFilters = () => {
+    setSearchInput("");
     setSearchTerm("");
     setStatusFilter("");
     setSpecialtyFilter("");
     setCurrentPage(1);
   };
 
-  if (error) {
+  const backTo = `/admin/event-tracking/${eventId}`;
+  const specialtyName = specialties.find((sp) => String(sp.id) === String(specialtyFilter))?.name;
+  const hasFilters = !!(searchTerm || statusFilter || specialtyFilter);
+
+  if (error && appointments.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle className="w-6 h-6 text-red-600" />
-            <h3 className="text-lg font-bold text-red-800 font-droid-arabic-kufi">خطأ</h3>
-          </div>
-          <p className="text-red-700 font-droid-arabic-kufi">{error}</p>
-        </div>
+      <div className="max-w-6xl lg:max-w-none mx-auto">
+        <BackLink to={backTo} />
+        <PageHeader title="قائمة المرضى" subtitle={event?.name} />
+        <ErrorState message={error} onRetry={() => { setError(""); fetchPatients(); }} />
       </div>
     );
   }
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-b from-indigo-50 to-white p-6 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-7xl mb-4">
-        {/* Header */}
-        <div className="mb-6 no-print">
-          <Link
-            to={`/admin/event-tracking/${eventId}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-droid-arabic-kufi transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            العودة إلى صفحة المتابعة
-          </Link>
-
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="bg-indigo-100 w-16 h-16 rounded-xl flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-indigo-600" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">
-                    قائمة المرضى الكاملة
-                  </h1>
-                  <p className="text-gray-600 font-droid-arabic-kufi">{event?.name}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير CSV
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Printer className="w-4 h-4" />
-                  طباعة
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-{/* Filters */}
-<div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-6 no-print">
-  <div className="flex items-center gap-3 mb-4">
-    <Filter className="w-5 h-5 text-indigo-600" />
-    <h3 className="text-lg font-bold text-gray-900 font-droid-arabic-kufi">الفلاتر</h3>
-  </div>
-
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-    {/* Search */}
-    <div className="relative">
-      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-      <input
-        type="text"
-        placeholder="بحث (الاسم، الهاتف، رقم المريض)"
-        value={searchTerm}
-        onChange={(e) => {
-          setSearchTerm(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-droid-arabic-kufi"
+    <div className="max-w-6xl lg:max-w-none mx-auto">
+      <BackLink to={backTo} />
+      <PageHeader
+        title="قائمة المرضى"
+        subtitle={[event?.name, total !== null ? `${total} موعد` : null].filter(Boolean).join("، ")}
+        actions={
+          <ActionsMenu
+            actions={[
+              { icon: Printer, label: "اطبع هذه الصفحة", hint: "المواعيد المعروضة حالياً فقط", onClick: handlePrint, disabled: appointments.length === 0 },
+              { icon: Download, label: "نزّل ملف CSV", hint: "المواعيد المعروضة حالياً فقط", onClick: handleExport, disabled: appointments.length === 0 },
+            ]}
+          />
+        }
       />
-    </div>
 
-    {/* Status Filter */}
-    <Select
-      icon={Filter}
-      value={statusFilter}
-      onChange={(e) => {
-        setStatusFilter(e.target.value);
-        setCurrentPage(1);
-      }}
-      options={[
-        { value: "", label: "جميع الحالات" },
-        { value: "Completed", label: "مكتمل" },
-        { value: "Cancelled", label: "ملغي" },
-        { value: "NoShow", label: "غائب" },
-        { value: "Pending", label: "معلق" }
-      ]}
-    />
-
-    {/* Specialty Filter */}
-    <Select
-      icon={Users}
-      value={specialtyFilter}
-      onChange={(e) => {
-        setSpecialtyFilter(e.target.value);
-        setCurrentPage(1);
-      }}
-      options={[
-        { value: "", label: "جميع التخصصات" },
-        ...specialties.map(specialty => ({
-          value: specialty.id,
-          label: specialty.name
-        }))
-      ]}
-    />
-
-    {/* Reset Button */}
-    <button
-      onClick={resetFilters}
-      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-droid-arabic-kufi font-semibold"
-    >
-      إعادة تعيين
-    </button>
-  </div>
-
-  {/* Per Page Selector */}
-  <div className="mt-4 flex items-center gap-3">
-    <span className="text-sm text-gray-600 font-droid-arabic-kufi">عدد النتائج في الصفحة:</span>
-    <Select
-      value={perPage}
-      onChange={(e) => {
-        setPerPage(Number(e.target.value));
-        setCurrentPage(1);
-      }}
-      options={[
-        { value: "25", label: "25" },
-        { value: "50", label: "50" },
-        { value: "100", label: "100" }
-      ]}
-    />
-  </div>
-</div>
-
-        {/* Loading State */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 font-droid-arabic-kufi">جاري التحميل...</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Patients Table */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-                    المرضى ({appointments.length})
-                  </h3>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 font-droid-arabic-kufi">الرقم</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 font-droid-arabic-kufi">الاسم الكامل</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 font-droid-arabic-kufi">الجنس</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 font-droid-arabic-kufi">تاريخ الميلاد</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 font-droid-arabic-kufi">الهاتف</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 font-droid-arabic-kufi">الموقع</th>
-                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 font-droid-arabic-kufi">التخصص</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 font-droid-arabic-kufi">الموعد</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 font-droid-arabic-kufi">الحالة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {appointments.map((apt) => {
-                      const statusConfig = STATUS_CONFIG[apt.status];
-                      const StatusIcon = statusConfig?.icon || Clock;
-                      return (
-                        <tr key={apt.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 text-right font-droid-arabic-kufi text-sm text-gray-900 font-semibold">
-                            {apt.id}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-gray-400" />
-                              <span className="font-droid-arabic-kufi text-sm font-semibold text-gray-900">
-                                {apt.full_name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-center font-droid-arabic-kufi text-sm text-gray-600">
-                            {apt.sex === '0' ? 'ذكر' : 'أنثى'}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Calendar className="w-3 h-3 text-gray-400" />
-                          <span className="font-droid-arabic-kufi text-xs text-gray-600">
-                            {apt.birthday ? new Date(apt.birthday).toLocaleDateString('en-UK') : '-'}
-                          </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Phone className="w-3 h-3 text-gray-400" />
-                              <span className="font-droid-arabic-kufi text-xs text-gray-600">
-                                {apt.phone}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-gray-400" />
-                              <span className="font-droid-arabic-kufi text-xs text-gray-600">
-                                {apt.city}, {apt.state}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center gap-1">
-                              <Stethoscope className="w-3 h-3 text-gray-400" />
-                              <span className="font-droid-arabic-kufi text-xs text-gray-600">
-                                {apt.event_specialty?.specialty?.name || '-'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-center font-droid-arabic-kufi text-xs text-gray-600">
-                            {apt.day?.name} - {apt.hour?.time}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold font-droid-arabic-kufi ${statusConfig?.color}`}>
-                              <StatusIcon className="w-3 h-3" />
-                              {statusConfig?.label || apt.status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {appointments.length === 0 && (
-                <div className="text-center py-12">
-                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500 font-droid-arabic-kufi">لا توجد نتائج</p>
-                </div>
-              )}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-center gap-2 no-print">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-
-                {[...Array(totalPages)].map((_, index) => {
-                  const page = index + 1;
-                  // Show first page, last page, current page, and pages around current
-                  if (
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1)
-                  ) {
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-4 py-2 rounded-lg font-droid-arabic-kufi font-semibold transition-colors ${
-                          currentPage === page
-                            ? 'bg-indigo-600 text-white'
-                            : 'border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  } else if (page === currentPage - 2 || page === currentPage + 2) {
-                    return <span key={page} className="px-2">...</span>;
-                  }
-                  return null;
-                })}
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Filters */}
+      <div className="space-y-3 mb-4 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-3">
+        <div className="flex gap-2 lg:flex-1 lg:min-w-[22rem]">
+          <SearchField
+            className="flex-1"
+            value={searchInput}
+            onChange={setSearchInput}
+            placeholder="ابحث بالاسم أو الهاتف أو رقم المريض"
+          />
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className={cx(
+              "shrink-0 inline-flex items-center gap-2 h-12 px-3 rounded-xl border text-sm font-semibold",
+              specialtyFilter ? "bg-ink text-white border-ink" : "bg-white text-ink border-line hover:bg-ink-faint"
             )}
-          </>
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            <span className="hidden sm:inline">تصفية إضافية</span>
+          </button>
+        </div>
+        <ChipGroup
+          label="النتيجة"
+          value={statusFilter}
+          onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}
+          options={STATUS_OPTIONS}
+          className="lg:mx-0 lg:px-0"
+        />
+        {(specialtyName || hasFilters) && (
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+            {specialtyName && <span>التخصص: <span className="font-semibold text-ink">{specialtyName}</span></span>}
+            {hasFilters && (
+              <button type="button" onClick={resetFilters} className="min-h-[2.75rem] px-1 font-semibold text-ink underline underline-offset-4">
+                امسح التصفية
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
+      {loading && appointments.length === 0 ? (
+        <LoadingState />
+      ) : appointments.length === 0 ? (
+        <Panel>
+          <EmptyState title="لا توجد نتائج">
+            {hasFilters ? "غيّر البحث أو امسح التصفية لعرض مواعيد أخرى." : "لا توجد مواعيد مؤرشفة لهذا الحدث."}
+          </EmptyState>
+        </Panel>
+      ) : (
+        <div className={cx("bg-white border border-line rounded-2xl overflow-hidden", loading && "opacity-60")} aria-busy={loading}>
+          {/* Phones and tablets: tappable rows */}
+          <ul className="lg:hidden divide-y divide-line">
+            {appointments.map((apt) => (
+              <li key={apt.id}>
+                <button type="button" onClick={() => setSelected(apt)} className="w-full text-start px-4 py-3 hover:bg-ink-faint">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold text-ink min-w-0 truncate">{apt.full_name}</p>
+                    <OutcomeBadge status={apt.status} />
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    <span className="font-semibold text-ink">#{apt.id}</span>
+                    <span className="mx-1.5">|</span>
+                    {apt.event_specialty?.specialty?.name || 'بدون تخصص'}
+                    {(apt.day?.name || apt.hour?.time) && (
+                      <>
+                        <span className="mx-1.5">|</span>
+                        {apt.day?.name} {apt.hour?.time}
+                      </>
+                    )}
+                  </p>
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: full table */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-line bg-paper text-muted">
+                  {["الرقم", "الاسم الكامل", "الجنس", "تاريخ الميلاد", "الهاتف", "الموقع", "التخصص", "الموعد", "النتيجة"].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-start font-semibold whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {appointments.map((apt) => (
+                  <tr key={apt.id} onClick={() => setSelected(apt)} className="cursor-pointer hover:bg-ink-faint">
+                    <td className="px-4 py-2.5 font-semibold text-ink">{apt.id}</td>
+                    <td className="px-4 py-2.5 font-semibold text-ink">{apt.full_name}</td>
+                    <td className="px-4 py-2.5 text-ink">{sexLabel(apt.sex)}</td>
+                    <td className="px-4 py-2.5 text-ink whitespace-nowrap">{formatBirthday(apt.birthday)}</td>
+                    <td className="px-4 py-2.5 text-ink whitespace-nowrap" dir="ltr">{apt.phone}</td>
+                    <td className="px-4 py-2.5 text-ink">{[apt.city, apt.state].filter(Boolean).join('، ') || '—'}</td>
+                    <td className="px-4 py-2.5 text-ink">{apt.event_specialty?.specialty?.name || '—'}</td>
+                    <td className="px-4 py-2.5 text-ink whitespace-nowrap">{apt.day?.name} {apt.hour?.time}</td>
+                    <td className="px-4 py-2.5"><OutcomeBadge status={apt.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <nav className="mt-4 flex items-center justify-between gap-2" aria-label="الصفحات">
+          <Button
+            variant="secondary"
+            icon={ChevronRight}
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1 || loading}
+          >
+            السابقة
+          </Button>
+          <span className="text-sm text-muted">
+            صفحة <span className="font-semibold text-ink">{currentPage}</span> من {totalPages}
+          </span>
+          <Button
+            variant="secondary"
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages || loading}
+          >
+            التالية
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+        </nav>
+      )}
+
+      {/* More filters */}
+      <Sheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="تصفية إضافية"
+        footer={
+          <>
+            <Button variant="secondary" className="flex-1" onClick={() => { setSpecialtyFilter(""); setPerPage(50); setCurrentPage(1); }}>
+              أعد الضبط
+            </Button>
+            <Button className="flex-1" onClick={() => setFiltersOpen(false)}>اعرض النتائج</Button>
+          </>
         }
-      `}</style>
+      >
+        <div className="space-y-4">
+          <Field label="التخصص">
+            <SelectInput
+              value={specialtyFilter}
+              onChange={(e) => { setSpecialtyFilter(e.target.value); setCurrentPage(1); }}
+            >
+              <option value="">كل التخصصات</option>
+              {specialties.map((sp) => (
+                <option key={sp.id} value={sp.id}>{sp.name}</option>
+              ))}
+            </SelectInput>
+          </Field>
+          <div>
+            <span className="block mb-1.5 text-sm font-semibold text-ink">عدد المواعيد في الصفحة</span>
+            <ChipGroup
+              label="عدد المواعيد في الصفحة"
+              value={String(perPage)}
+              onChange={(value) => { setPerPage(Number(value)); setCurrentPage(1); }}
+              options={[{ value: "25", label: "25" }, { value: "50", label: "50" }, { value: "100", label: "100" }]}
+            />
+          </div>
+        </div>
+      </Sheet>
+
+      {/* Appointment details */}
+      <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected ? selected.full_name : ""}>
+        {selected && (
+          <>
+            <div className="mb-2"><OutcomeBadge status={selected.status} /></div>
+            <dl className="divide-y divide-line">
+              <Detail label="رقم الموعد">#{selected.id}</Detail>
+              <Detail label="الجنس">{sexLabel(selected.sex)}</Detail>
+              <Detail label="تاريخ الميلاد">{formatBirthday(selected.birthday)}</Detail>
+              <Detail label="الهاتف">
+                {selected.phone && <a href={`tel:${selected.phone}`} dir="ltr" className="underline underline-offset-4">{selected.phone}</a>}
+              </Detail>
+              <Detail label="المدينة">{selected.city}</Detail>
+              <Detail label="الولاية">{selected.state}</Detail>
+              <Detail label="التخصص">{selected.event_specialty?.specialty?.name}</Detail>
+              {selected.doctor?.name && <Detail label="الطبيب">{selected.doctor.name}</Detail>}
+              <Detail label="اليوم">{selected.day?.name || selected.day?.day_date}</Detail>
+              <Detail label="الساعة">{selected.hour?.time}</Detail>
+            </dl>
+          </>
+        )}
+      </Sheet>
     </div>
   );
 };

@@ -1,32 +1,30 @@
-import { useContext, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { AppContext } from "../../../Context/AppContext";
 import { API_BASE_URL } from '../../../config/environment';
-import { Eye, EyeOff, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-
+import { staffHome } from '../../../utils/staffNav';
+import { useContext, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AppContext } from '../../../Context/AppContext';
+import { Eye, EyeOff, AlertTriangle, CheckCircle2, LogIn } from 'lucide-react';
+import { Button, Field, TextInput } from '../../../Components/ui';
 import logo from '/tagemi_logo.png';
 
 const apiUrl = API_BASE_URL;
 
+/** Staff login: one centered card on the paper background. */
 export default function Login() {
-  const { token, setToken } = useContext(AppContext)
+  const { setToken } = useContext(AppContext);
   const navigate = useNavigate();
-  const [FormData, setFormData] = useState({
-    'email': '',
-    'password': '',
-  })
-
-  const [errors, setErrors] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [FormData, setFormData] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   async function handleLogin(e) {
     e.preventDefault();
     setIsLoading(true);
     setErrors({});
 
-    let headers = new Headers();
+    const headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
     headers.append('Access-Control-Allow-Origin', 'https://tagemi-foundation.org');
@@ -34,242 +32,118 @@ export default function Login() {
 
     try {
       const res = await fetch(`${apiUrl}/api/login`, {
-        method: "post",
+        method: 'post',
         body: JSON.stringify(FormData),
-        headers: headers
+        headers,
       });
 
-      const data = await res.json()
-      
+      const data = await res.json();
+
       if (data.errors) {
-        setErrors(data.errors)
-        setIsLoading(false)
+        setErrors(data.errors);
+        setIsLoading(false);
       } else {
-        setSuccess(true)
-        localStorage.setItem('token', data.token)
+        setSuccess(true);
+        localStorage.setItem('token', data.token);
         setToken(data.token);
-        
-        // Navigate after showing success state
+
         setTimeout(() => {
-          navigate("/home", { state: { loggedIn: true } });
+          // Staff go straight to their working screen
+          navigate(staffHome(data.user), { state: { loggedIn: true }, replace: true });
         }, 800);
       }
     } catch (error) {
-      setErrors({ general: ['حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.'] })
-      setIsLoading(false)
+      setErrors({ general: ['تعذّر الاتصال بالخادم. تأكد من اتصالك بالإنترنت ثم حاول مرة أخرى.'] });
+      setIsLoading(false);
     }
   }
 
+  const disabled = isLoading || success;
+  const firstError = (key) => (Array.isArray(errors[key]) ? errors[key][0] : errors[key]);
+
   return (
-    <div className="relative m-0 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 w-screen h-screen overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-      <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-
-      <div className="flex items-center justify-center w-full min-h-screen p-4">
-        <div className="w-full max-w-md">
-          <div className={`bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${
-            success ? 'scale-105' : 'scale-100'
-          }`}>
-            
-            {/* Header Section */}
-            <div className="bg-gradient-to-br from-[#131842] to-[#2F3645] p-8 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
-              <div className="relative z-10">
-                <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full p-4 shadow-lg transform transition-transform hover:scale-110 duration-300">
-                  <img src={logo} alt="Tagemi Logo" className="w-full h-full object-contain" />
-                </div>
-                <h1 className="text-2xl md:text-3xl font-bold font-droid-arabic-kufi text-white mb-2">
-                  أهلاً بك
-                </h1>
-                <p className="text-white/80 text-sm font-droid-arabic-kufi">
-                  سجل دخولك للمتابعة
-                </p>
-              </div>
-            </div>
-
-            {/* Form Section */}
-            <div className="p-8">
-              {/* Success Message */}
-              {success && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 animate-in slide-in-from-top">
-                  <CheckCircle2 className="text-green-600 flex-shrink-0" size={20} />
-                  <p className="text-green-700 text-sm font-droid-arabic-kufi">
-                    تم تسجيل الدخول بنجاح! جاري التحويل...
-                  </p>
-                </div>
-              )}
-
-              {/* General Error */}
-              {errors.general && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 animate-in slide-in-from-top">
-                  <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-                  <p className="text-red-700 text-sm font-droid-arabic-kufi">
-                    {errors.general[0]}
-                  </p>
-                </div>
-              )}
-
-              <form className="space-y-5" onSubmit={handleLogin}>
-                {/* Email Input */}
-                <div className="space-y-2">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    البريد الإلكتروني
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.email}
-                      onChange={(e) => setFormData({ ...FormData, email: e.target.value })}
-                      type="email"
-                      name="email"
-                      id="email"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pr-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.email ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="example@email.com"
-                      required
-                    />
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  </div>
-                  {errors.email && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.email[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* Password Input */}
-                <div className="space-y-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.password}
-                      onChange={(e) => setFormData({ ...FormData, password: e.target.value })}
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      id="password"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pr-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.password ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="••••••••"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      disabled={isLoading || success}
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.password[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* Forgot Password Link */}
-                <div className="text-right">
-                  <Link 
-                    to="/forgot-password" 
-                    className="text-sm text-[#131842] hover:text-[#2F3645] font-droid-arabic-kufi transition-colors hover:underline"
-                  >
-                    نسيت كلمة المرور؟
-                  </Link>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading || success}
-                  className="w-full bg-gradient-to-r from-[#131842] to-[#2F3645] text-white py-3 px-6 rounded-lg
-                    font-droid-arabic-kufi font-medium text-base
-                    hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]
-                    disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100
-                    transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={20} />
-                      <span>جاري تسجيل الدخول...</span>
-                    </>
-                  ) : success ? (
-                    <>
-                      <CheckCircle2 size={20} />
-                      <span>تم بنجاح!</span>
-                    </>
-                  ) : (
-                    <span>تسجيل الدخول</span>
-                  )}
-                </button>
-
-                {/* Register Link */}
-                {/* <div className="text-center pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                    ليس لديك حساب؟{' '}
-                    <Link 
-                      to="/register" 
-                      className="text-[#131842] font-bold hover:text-[#2F3645] transition-colors hover:underline"
-                    >
-                      إنشاء حساب جديد
-                    </Link>
-                  </p>
-                </div> */}
-              </form>
-            </div>
+    <div className="staff-app min-h-screen flex items-center justify-center px-4 py-10" dir="rtl">
+      <div className="w-full max-w-sm">
+        <div className="bg-white border border-line rounded-2xl p-6 sm:p-8">
+          <div className="text-center mb-6">
+            <img src={logo} alt="مؤسسة تجمي" className="h-14 w-auto mx-auto mb-4" />
+            <h1 className="font-display text-2xl text-ink">دخول الفريق</h1>
+            <p className="mt-1 text-sm text-muted">ادخل ببريدك الإلكتروني وكلمة المرور التي سلّمها لك المنظمون.</p>
           </div>
 
-          {/* Footer Text */}
-          <p className="text-center mt-6 text-sm text-gray-600 font-droid-arabic-kufi">
-            © 2024 مؤسسة تاجمي. جميع الحقوق محفوظة.
-          </p>
-        </div>
-      </div>
+          {errors.general && (
+            <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+              <p>{firstError('general')}</p>
+            </div>
+          )}
+          {success && (
+            <div role="status" className="mb-4 flex items-center gap-2 rounded-xl bg-st-queue-bg px-3 py-2.5 text-sm text-st-queue">
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+              <p>تم الدخول، جاري فتح صفحتك...</p>
+            </div>
+          )}
 
-      {/* Add custom animations to your global CSS */}
-      <style jsx>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          25% { transform: translate(20px, -50px) scale(1.1); }
-          50% { transform: translate(-20px, 20px) scale(0.9); }
-          75% { transform: translate(50px, 50px) scale(1.05); }
-        }
-        .animate-blob {
-          animation: blob 15s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        @keyframes slide-in-from-top {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-in {
-          animation: slide-in-from-top 0.3s ease-out;
-        }
-      `}</style>
+          <form className="space-y-4" onSubmit={handleLogin}>
+            <Field label="البريد الإلكتروني" error={firstError('email')}>
+              <TextInput
+                value={FormData.email}
+                onChange={(e) => setFormData({ ...FormData, email: e.target.value })}
+                type="email"
+                name="email"
+                id="email"
+                dir="ltr"
+                autoComplete="email"
+                inputMode="email"
+                disabled={disabled}
+                invalid={!!errors.email}
+                placeholder="example@email.com"
+                className="text-start"
+                required
+              />
+            </Field>
+
+            <Field label="كلمة المرور" error={firstError('password')}>
+              <div className="relative">
+                <TextInput
+                  value={FormData.password}
+                  onChange={(e) => setFormData({ ...FormData, password: e.target.value })}
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  id="password"
+                  dir="ltr"
+                  autoComplete="current-password"
+                  disabled={disabled}
+                  invalid={!!errors.password}
+                  className="pe-12 text-start"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={disabled}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  className="absolute top-0 end-0 h-12 w-12 flex items-center justify-center text-muted hover:text-ink"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </Field>
+
+            <Button type="submit" size="lg" block icon={success ? CheckCircle2 : LogIn} loading={isLoading} disabled={disabled} className="mt-2">
+              {success ? 'تم الدخول' : 'ادخل'}
+            </Button>
+
+            <div className="text-center">
+              <Link to="/forgot-password" className="inline-flex items-center min-h-[44px] text-sm text-ink-soft underline-offset-4 hover:underline">
+                نسيت كلمة المرور؟
+              </Link>
+            </div>
+          </form>
+        </div>
+
+        <p className="text-center mt-6 text-xs text-muted">© 2024 مؤسسة تجمي</p>
+      </div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,6 @@
 import { useLanguage } from '../../../../Context/LanguageContext';
 import { CheckCircle2, Sparkles } from 'lucide-react';
+import { sanitizeHtml } from '../../../../utils/safeHtml';
 
 const AboutActvity = ({ TypeDescription }) => {
     const { language } = useLanguage();
@@ -47,7 +48,7 @@ const AboutActvity = ({ TypeDescription }) => {
                     >
                         <div 
                             className="text-gray-700 leading-relaxed font-droid-arabic-kufi space-y-4"
-                            dangerouslySetInnerHTML={{ __html: TypeDescription }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(TypeDescription) }}
                         />
                     </div>
                 </div>

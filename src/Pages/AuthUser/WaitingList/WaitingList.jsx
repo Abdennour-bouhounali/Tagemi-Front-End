@@ -1,23 +1,30 @@
-import { useEffect, useState, useContext } from 'react';
-import { useParams, Link } from "react-router-dom";
 import { API_BASE_URL } from '../../../config/environment';
+import React, { useEffect, useState, useContext } from 'react';
+import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle } from 'lucide-react';
-import { AppContext } from "../../../Context/AppContext";
 
 const apiUrl = API_BASE_URL;
+
+// Hall screen: up to 5 specialty columns at once, otherwise two halves in turn
+const MAX_COLUMNS = 5;
+const ROTATION_MS = 10000;
+import { AppContext } from "../../../Context/AppContext";
 
 const WaitingList = () => {
   const { eventId } = useParams();
   const { user } = useContext(AppContext);
   
   const [event, setEvent] = useState(null);
-  const [specialities, setSpecialities] = useState([]);
+  const [allSpecialities, setAllSpecialities] = useState([]);
   const [waitingList, setWaitingList] = useState({});
   const [filteredWaitingList, setFilteredWaitingList] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
   const [sexFilter, setSexFilter] = useState('all'); // 'all', 'male', 'female'
+  // More than 5 specialties don't fit on the hall screen: show them in two
+  // halves that take turns every 10 seconds.
+  const [groupIndex, setGroupIndex] = useState(0);
 
   // Helper function to determine patient sex
   const getPatientSex = (patient) => {
@@ -118,13 +125,13 @@ const WaitingList = () => {
         data.event_specialties.forEach(es => {
           if (es.specialty && !seenIds.has(es.specialty.id)) {
             seenIds.add(es.specialty.id);
-            uniqueSpecialties.push(es.specialty);
+            uniqueSpecialties.push({ ...es.specialty, queue_open: es.queue_open });
           }
         });
       }
       
       const filtered = uniqueSpecialties.filter(s => s.name !== 'NoSpeciality');
-      setSpecialities(filtered);
+      setAllSpecialities(filtered);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching specialities:', error);
@@ -165,11 +172,28 @@ const WaitingList = () => {
     const interval = setInterval(() => {
       if (eventId) {
         getWaitingList();
+        getEventSpecialities();
       }
     }, 10000);
     
     return () => clearInterval(interval);
   }, [eventId]);
+
+  // Only specialties opened today (doctor present), or still finishing their queue
+  const specialities = allSpecialities.filter(s => s.queue_open || (waitingList[s.id] || []).length > 0);
+  const specialtyGroups = specialities.length > MAX_COLUMNS
+    ? [specialities.slice(0, Math.ceil(specialities.length / 2)), specialities.slice(Math.ceil(specialities.length / 2))]
+    : [specialities];
+  const visibleSpecialities = specialtyGroups[groupIndex % specialtyGroups.length];
+
+  useEffect(() => {
+    if (specialtyGroups.length < 2) {
+      setGroupIndex(0);
+      return undefined;
+    }
+    const rotation = setInterval(() => setGroupIndex((i) => (i + 1) % 2), ROTATION_MS);
+    return () => clearInterval(rotation);
+  }, [specialtyGroups.length]);
 
   // Manual refresh
   const handleRefresh = () => {
@@ -181,7 +205,7 @@ const WaitingList = () => {
     return Object.values(filteredWaitingList).reduce((sum, arr) => sum + (arr?.length || 0), 0);
   };
 
-  const maxRows = Math.max(...Object.values(filteredWaitingList).map(arr => arr?.length || 0), 0);
+  const maxRows = Math.max(...visibleSpecialities.map(s => filteredWaitingList[s.id]?.length || 0), 0);
 
   if (loading) {
     return (
@@ -310,14 +334,22 @@ const WaitingList = () => {
       <div className="flex items-center gap-2 border-r pr-6 mr-2">
         <div className="flex items-center gap-1 bg-red-50 border-2 border-red-400 rounded-lg px-2 py-1">
           <AlertCircle className="w-4 h-4 text-red-600" />
-          <span className="text-red-700 font-semibold">قريباً</span>
+          <span className="text-red-700 font-semibold">تم إنزاله</span>
         </div>
-        <span className="text-red-600 text-xs">(سيتم الإزالة إذا لم يحضر)</span>
+        <span className="text-red-600 text-xs">(لم يكن عند الباب، سيُنادى بعد قليل)</span>
       </div>
         <div className="flex items-center gap-2 border-r pr-6 mr-2">
           <Clock className="w-4 h-4 text-green-500 animate-pulse" />
           <span className="text-gray-700">تحديث تلقائي كل 10 ثوانٍ</span>
         </div>
+        {specialtyGroups.length > 1 && (
+          <div className="flex items-center gap-2 border-r pr-6 mr-2">
+            <RefreshCw className="w-4 h-4 text-indigo-500" />
+            <span className="text-gray-700">
+              التخصصات {groupIndex % 2 + 1} / 2 (تتبدل كل 10 ثوانٍ)
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Table Container */}
@@ -331,7 +363,7 @@ const WaitingList = () => {
                     لا توجد تخصصات متاحة لهذا الحدث
                   </th>
                 ) : (
-                  specialities.map((speciality) => {
+                  visibleSpecialities.map((speciality) => {
                     const count = filteredWaitingList[speciality.id]?.length || 0;
                     
                     return (
@@ -357,7 +389,7 @@ const WaitingList = () => {
               {specialities.length === 0 || maxRows === 0 ? (
                 <tr>
                   <td 
-                    colSpan={specialities.length || 1} 
+                    colSpan={visibleSpecialities.length || 1} 
                     className="px-6 py-8 text-center text-gray-500 font-droid-arabic-kufi"
                   >
                     <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -383,7 +415,7 @@ const WaitingList = () => {
                       rowIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                     } hover:bg-indigo-50 transition-colors`}
                   >
-                    {specialities.map((speciality) => {
+                    {visibleSpecialities.map((speciality) => {
                       const patients = filteredWaitingList[speciality.id] || [];
                       const patient = patients[rowIndex] || null;
                       
@@ -412,7 +444,7 @@ const WaitingList = () => {
                             {/* Patient Name with Gender Icon and Warning */}
                             <div className="w-2/3 flex items-center justify-end gap-2">
                               {(patient.is_coming_soon || patient.status === 'Commingsoon') && (
-                                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" title="قريباً - سيتم الإزالة" />
+                                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" title="تم إنزاله: سيُنادى بعد قليل" />
                               )}
                               <span className={`font-medium ${
                                 patient.is_coming_soon || patient.status === 'Commingsoon'

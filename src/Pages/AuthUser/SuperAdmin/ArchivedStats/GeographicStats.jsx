@@ -1,42 +1,29 @@
-import { useState, useEffect, useContext } from "react";
 import { API_BASE_URL } from '../../../../config/environment';
-import { useParams, Link } from "react-router-dom";
+// Archived event: patients by wilaya and city.
+import React, { useState, useEffect, useContext } from "react";
+import { escapeHtml, csvSafe } from "../../../../utils/safeHtml";
+import { useParams } from "react-router-dom";
 import { AppContext } from "../../../../Context/AppContext";
+import { Download, Printer } from "lucide-react";
+import { PageHeader, StatStrip, LoadingState, Panel, useToast } from "../../../../Components/ui";
 import {
-  ArrowLeft,
-  AlertCircle,
-  MapPin,
-  Download,
-  Printer,
-  Map,
-} from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+  ActionsMenu, BackLink, CHART, ErrorState, HBarChart, POPUP_BLOCKED, RankList, ResponsiveTable, pct, printHtml,
+} from "../../../../Components/ui/StatsKit";
 
 const apiUrl = API_BASE_URL;
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
 const GeographicStats = () => {
   const { eventId } = useParams();
   const { token } = useContext(AppContext);
+  const toast = useToast();
   
   const [event, setEvent] = useState(null);
   const [stateStats, setStateStats] = useState([]);
   const [cityStats, setCityStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const totalPatients = stateStats.reduce((sum, stat) => sum + (parseInt(stat.count) || 0), 0);
 
   useEffect(() => {
     fetchData();
@@ -65,17 +52,8 @@ const GeographicStats = () => {
     }
   };
 
-// STEP 2: With these two functions:
 const handlePrint = () => {
-  const printWindow = window.open('', '_blank');
-  const printContent = generatePrintDocument();
-  printWindow.document.write(printContent);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 250);
+  if (!printHtml(generatePrintDocument())) toast(POPUP_BLOCKED, "error");
 };
 
 const generatePrintDocument = () => {
@@ -90,7 +68,7 @@ const generatePrintDocument = () => {
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="UTF-8">
-      <title>إحصائيات جغرافية - ${event?.name}</title>
+      <title>إحصائيات جغرافية - ${escapeHtml(event?.name)}</title>
       <style>
         @page { size: A4; margin: 2cm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -131,8 +109,8 @@ const generatePrintDocument = () => {
       <div class="header">
         <img src="/tagemi_logo.png" alt="Logo" class="logo" />
         <h1>تقرير الإحصائيات الجغرافية</h1>
-        <p>${event?.name}</p>
-        <p>تاريخ الإصدار: ${currentDate}</p>
+        <p>${escapeHtml(event?.name)}</p>
+        <p>تاريخ الإصدار: ${escapeHtml(currentDate)}</p>
       </div>
 
       <h2>إحصائيات الولايات</h2>
@@ -151,8 +129,8 @@ const generatePrintDocument = () => {
             return `
               <tr>
                 <td>${index + 1}</td>
-                <td><strong>${stat.state}</strong></td>
-                <td>${stat.count}</td>
+                <td><strong>${escapeHtml(stat.state)}</strong></td>
+                <td>${escapeHtml(stat.count)}</td>
                 <td>${percentage}%</td>
               </tr>
             `;
@@ -174,9 +152,9 @@ const generatePrintDocument = () => {
           ${cityStats.map((stat, index) => `
             <tr>
               <td>${index + 1}</td>
-              <td>${stat.city}</td>
-              <td>${stat.state}</td>
-              <td>${stat.count}</td>
+              <td>${escapeHtml(stat.city)}</td>
+              <td>${escapeHtml(stat.state)}</td>
+              <td>${escapeHtml(stat.count)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -194,7 +172,7 @@ const generatePrintDocument = () => {
       ["=== إحصائيات المدن (أعلى 20) ==="],
       ["المدينة", "الولاية", "العدد"],
       ...cityStats.map(stat => [stat.city, stat.state, stat.count])
-    ].map(row => row.join(",")).join("\n");
+    ].map(row => row.map(cell => `"${csvSafe(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
 
     const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -203,298 +181,104 @@ const generatePrintDocument = () => {
     link.click();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-droid-arabic-kufi">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
+  const backTo = `/admin/event-tracking/${eventId}`;
+
+  if (loading) return <LoadingState />;
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle className="w-6 h-6 text-red-600" />
-            <h3 className="text-lg font-bold text-red-800 font-droid-arabic-kufi">خطأ</h3>
-          </div>
-          <p className="text-red-700 font-droid-arabic-kufi">{error}</p>
-        </div>
+      <div className="max-w-6xl lg:max-w-none mx-auto">
+        <BackLink to={backTo} />
+        <PageHeader title="إحصائيات جغرافية" />
+        <ErrorState message={error} onRetry={fetchData} />
       </div>
     );
   }
 
-  const totalPatients = stateStats.reduce((sum, stat) => sum + parseInt(stat.count), 0);
+  const stateChartData = stateStats.slice(0, 10).map((stat) => ({ name: stat.state, value: parseInt(stat.count) || 0 }));
+  const cityChartData = cityStats.slice(0, 15).map((stat) => ({ name: stat.city, value: parseInt(stat.count) || 0 }));
 
-  const stateChartData = stateStats.slice(0, 10).map(stat => ({
-    name: stat.state,
-    value: parseInt(stat.count)
-  }));
+  const cityColumns = [
+    { key: "rank", label: "الترتيب", align: "center", render: (row) => row.rank },
+    { key: "city", label: "المدينة", primary: true },
+    { key: "state", label: "الولاية" },
+    { key: "count", label: "العدد", align: "center", render: (row) => parseInt(row.count) || 0 },
+    { key: "share", label: "النسبة", align: "center", render: (row) => `${pct(row.count, totalPatients)}%` },
+  ];
 
-  const cityChartData = cityStats.slice(0, 15).map(stat => ({
-    name: stat.city,
-    value: parseInt(stat.count),
-    state: stat.state
-  }));
+  const average = (count) => (count > 0 ? Math.round(totalPatients / count) : 0);
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-b from-orange-50 to-white p-6 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-7xl mb-4">
-        {/* Header */}
-        <div className="mb-6 no-print">
-          <Link
-            to={`/admin/event-tracking/${eventId}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-droid-arabic-kufi transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            العودة إلى صفحة المتابعة
-          </Link>
-
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="bg-orange-100 w-16 h-16 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-8 h-8 text-orange-600" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">
-                    إحصائيات جغرافية
-                  </h1>
-                  <p className="text-gray-600 font-droid-arabic-kufi">{event?.name}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Download className="w-4 h-4" />
-                  تصدير CSV
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-droid-arabic-kufi"
-                >
-                  <Printer className="w-4 h-4" />
-                  طباعة
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 font-droid-arabic-kufi text-sm">إجمالي المرضى</span>
-              <MapPin className="w-5 h-5 text-orange-600" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">{totalPatients}</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 font-droid-arabic-kufi text-sm">عدد الولايات</span>
-              <Map className="w-5 h-5 text-blue-600" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">{stateStats.length}</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 font-droid-arabic-kufi text-sm">عدد المدن</span>
-              <MapPin className="w-5 h-5 text-green-600" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 font-droid-arabic-kufi">{cityStats.length}</p>
-          </div>
-        </div>
-
-        {/* State Statistics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* States Bar Chart */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-              أعلى 10 ولايات
-            </h3>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={stateChartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={100} style={{ fontSize: '11px' }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" name="عدد المرضى">
-                  {stateChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* States Table */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-              جميع الولايات
-            </h3>
-            <div className="max-h-[350px] overflow-y-auto">
-              <div className="space-y-2">
-                {stateStats.map((stat, index) => {
-                  const percentage = ((parseInt(stat.count) / totalPatients) * 100).toFixed(1);
-                  return (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-lg">
-                          <span className="text-xs font-bold text-orange-600 font-droid-arabic-kufi">
-                            {index + 1}
-                          </span>
-                        </div>
-                        <span className="font-droid-arabic-kufi font-semibold text-gray-900">
-                          {stat.state}
-                        </span>
-                      </div>
-                      <div className="text-left">
-                        <p className="font-droid-arabic-kufi font-bold text-gray-900">{stat.count}</p>
-                        <p className="text-xs text-gray-500 font-droid-arabic-kufi">{percentage}%</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* City Statistics */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-6">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 font-droid-arabic-kufi">
-              أعلى 20 مدينة
-            </h3>
-          </div>
-
-          {/* Cities Bar Chart */}
-          <div className="p-6">
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={cityChartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={120} style={{ fontSize: '11px' }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" name="عدد المرضى" fill="#f59e0b" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Cities Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-right text-sm font-bold text-gray-700 font-droid-arabic-kufi">الترتيب</th>
-                  <th className="px-6 py-4 text-right text-sm font-bold text-gray-700 font-droid-arabic-kufi">المدينة</th>
-                  <th className="px-6 py-4 text-right text-sm font-bold text-gray-700 font-droid-arabic-kufi">الولاية</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 font-droid-arabic-kufi">العدد</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 font-droid-arabic-kufi">النسبة المئوية</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {cityStats.map((stat, index) => {
-                  const percentage = ((parseInt(stat.count) / totalPatients) * 100).toFixed(1);
-                  return (
-                    <tr key={index} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-right">
-                        <span className="inline-flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-600 rounded-lg font-bold text-sm font-droid-arabic-kufi">
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right font-droid-arabic-kufi font-semibold text-gray-900">
-                        {stat.city}
-                      </td>
-                      <td className="px-6 py-4 text-right font-droid-arabic-kufi text-gray-600">
-                        {stat.state}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-semibold font-droid-arabic-kufi">
-                          {stat.count}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center font-droid-arabic-kufi font-semibold text-gray-900">
-                        {percentage}%
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Geographic Insights */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 font-droid-arabic-kufi">
-            الملاحظات الجغرافية
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <span className="text-orange-600 mt-1">•</span>
-                <span className="text-gray-700 font-droid-arabic-kufi">
-                  أكثر ولاية تمثيلاً: <strong>{stateStats[0]?.state}</strong> بـ <strong>{stateStats[0]?.count}</strong> مريض
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-orange-600 mt-1">•</span>
-                <span className="text-gray-700 font-droid-arabic-kufi">
-                  أكثر مدينة تمثيلاً: <strong>{cityStats[0]?.city}</strong> بـ <strong>{cityStats[0]?.count}</strong> مريض
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-orange-600 mt-1">•</span>
-                <span className="text-gray-700 font-droid-arabic-kufi">
-                  التغطية الجغرافية: <strong>{stateStats.length}</strong> ولاية و <strong>{cityStats.length}</strong> مدينة
-                </span>
-              </div>
-            </div>
-            <div className="bg-orange-50 rounded-lg p-4">
-              <h4 className="font-bold text-gray-800 font-droid-arabic-kufi mb-3">إحصائيات إضافية:</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-droid-arabic-kufi">متوسط المرضى لكل ولاية:</span>
-                  <span className="font-bold text-orange-600 font-droid-arabic-kufi">
-                    {Math.round(totalPatients / stateStats.length)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-droid-arabic-kufi">متوسط المرضى لكل مدينة:</span>
-                  <span className="font-bold text-orange-600 font-droid-arabic-kufi">
-                    {Math.round(totalPatients / cityStats.length)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
+    <div className="max-w-6xl lg:max-w-none mx-auto">
+      <BackLink to={backTo} />
+      <PageHeader
+        title="إحصائيات جغرافية"
+        subtitle={event?.name}
+        actions={
+          <ActionsMenu
+            actions={[
+              { icon: Printer, label: "اطبع التقرير", onClick: handlePrint },
+              { icon: Download, label: "نزّل ملف CSV", onClick: handleExport },
+            ]}
+          />
         }
-      `}</style>
+      />
+
+      <StatStrip
+        className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
+        items={[
+          { label: "المرضى", value: totalPatients },
+          { label: "الولايات", value: stateStats.length },
+          { label: "المدن", value: cityStats.length },
+          { label: "متوسط المرضى لكل ولاية", value: average(stateStats.length) },
+          { label: "متوسط المرضى لكل مدينة", value: average(cityStats.length) },
+        ]}
+      />
+
+      {stateStats.length === 0 && cityStats.length === 0 ? (
+        <Panel>
+          <p className="py-6 text-center text-sm text-muted">لا توجد بيانات عناوين مؤرشفة لهذا الحدث.</p>
+        </Panel>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Panel title="أعلى 10 ولايات">
+              <HBarChart data={stateChartData} bars={[{ key: "value", name: "المرضى", color: CHART.inkSoft }]} />
+            </Panel>
+
+            <Panel title={`كل الولايات (${stateStats.length})`}>
+              <div className="max-h-[26rem] overflow-y-auto">
+                <RankList total={totalPatients} items={stateStats.map((stat) => ({ label: stat.state, value: stat.count }))} />
+              </div>
+            </Panel>
+          </div>
+
+          <Panel title="أعلى المدن" bodyClassName="xl:grid xl:grid-cols-2 xl:gap-6 xl:items-start">
+            <HBarChart data={cityChartData} bars={[{ key: "value", name: "المرضى", color: CHART.inkSoft }]} />
+            <div className="mt-4 xl:mt-0">
+              <ResponsiveTable
+                columns={cityColumns}
+                rows={cityStats.map((stat, index) => ({ ...stat, rank: index + 1 }))}
+                rowKey={(row) => `${row.city}-${row.state}-${row.rank}`}
+              />
+            </div>
+          </Panel>
+
+          {(stateStats[0] || cityStats[0]) && (
+            <Panel title="ملاحظات">
+              <ul className="space-y-1.5 text-sm text-ink">
+                {stateStats[0] && (
+                  <li>أكثر ولاية تمثيلاً: <strong>{stateStats[0].state}</strong> بـ {stateStats[0].count} مريض.</li>
+                )}
+                {cityStats[0] && (
+                  <li>أكثر مدينة تمثيلاً: <strong>{cityStats[0].city}</strong> بـ {cityStats[0].count} مريض.</li>
+                )}
+                <li>التغطية: {stateStats.length} ولاية و{cityStats.length} مدينة.</li>
+              </ul>
+            </Panel>
+          )}
+        </div>
+      )}
     </div>
   );
 };
