@@ -167,6 +167,7 @@ export function EventInfoFields({ form, setForm, errors = {}, onStateChange }) {
       <div className="bg-white border border-line rounded-2xl px-4 divide-y divide-line">
         <SwitchRow checked={form.is_active} onChange={(v) => set('is_active', v)} label="الحدث نشط" hint="الحدث النشط يقبل الحجوزات" />
         <SwitchRow checked={form.is_tawat} onChange={(v) => set('is_tawat', v)} label="حدث TAWAT" hint="نوع الحدث" />
+        <SwitchRow checked={!!form.is_simulation} onChange={(v) => set('is_simulation', v)} label="حدث تدريبي (محاكاة)" hint="للتدريب فقط، لا يُؤرشف ويظهر للجميع أنه غير حقيقي" />
       </div>
     </div>
   );

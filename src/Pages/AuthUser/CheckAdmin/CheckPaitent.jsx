@@ -62,7 +62,7 @@ export default function CheckPatient() {
     // Push down (إنزال): the appointments to move and how many places, picked with the slider
     const [pushFor, setPushFor] = useState(null);
     const [pushPlaces, setPushPlaces] = useState(DEFAULT_PUSH_PLACES);
-    const [actionMenuOpen, setActionMenuOpen] = useState(false);
+    const [cardMenuId, setCardMenuId] = useState(null);
 
     const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, Accept: 'application/json' }), [token]);
 
@@ -339,6 +339,36 @@ export default function CheckPatient() {
                                         )}
                                     </div>
 
+                                    {isOfficer && queued && !selecting && (
+                                        <div className="mt-3">
+                                            <button
+                                                type="button"
+                                                aria-haspopup="menu"
+                                                aria-expanded={cardMenuId === a.id}
+                                                disabled={busy}
+                                                onClick={() => setCardMenuId(cardMenuId === a.id ? null : a.id)}
+                                                className="w-full flex items-center justify-between gap-2 h-11 px-4 rounded-xl border border-line bg-white font-semibold text-ink disabled:opacity-60"
+                                            >
+                                                <span>الإجراء في الطابور</span>
+                                                <ChevronDown className={cx('w-5 h-5 transition-transform', cardMenuId === a.id && 'rotate-180')} />
+                                            </button>
+                                            {cardMenuId === a.id && (
+                                                <div role="menu" className="mt-1 rounded-xl border border-line bg-white overflow-hidden divide-y divide-line">
+                                                    <button type="button" role="menuitem" disabled={busy}
+                                                        className="w-full flex items-center gap-2 h-12 px-4 text-st-done font-semibold hover:bg-paper disabled:opacity-60"
+                                                        onClick={() => { setCardMenuId(null); pass(a); }}>
+                                                        <Check className="w-5 h-5" /> إجتاز
+                                                    </button>
+                                                    <button type="button" role="menuitem" disabled={busy}
+                                                        className="w-full flex items-center gap-2 h-12 px-4 text-ink font-semibold hover:bg-paper disabled:opacity-60"
+                                                        onClick={() => { setCardMenuId(null); openPushDown([a]); }}>
+                                                        <ChevronsDown className="w-5 h-5" /> إنزال
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {!queued && (
                                         <p className="mt-2 text-xs text-st-dil">في قاعة التمدد، يعود تلقائياً بأولوية</p>
                                     )}
@@ -362,39 +392,9 @@ export default function CheckPatient() {
             )}
 
             {/* Per-patient menu */}
-            <Sheet open={!!actionsFor} onClose={() => { setActionsFor(null); setActionMenuOpen(false); }} title={actionsFor ? `#${actionsFor.patient_id} ${actionsFor.full_name}` : ''}>
+            <Sheet open={!!actionsFor} onClose={() => setActionsFor(null)} title={actionsFor ? `#${actionsFor.patient_id} ${actionsFor.full_name}` : ''}>
                 {actionsFor && (
                     <div className="divide-y divide-line">
-                        {/* Queue actions live here, not on the ticket, so a tap while scrolling cannot pass or push anyone */}
-                        {isOfficer && inQueue(actionsFor) && (
-                            <div className="pb-3">
-                                <button
-                                    type="button"
-                                    aria-haspopup="menu"
-                                    aria-expanded={actionMenuOpen}
-                                    disabled={busy}
-                                    onClick={() => setActionMenuOpen(!actionMenuOpen)}
-                                    className="w-full flex items-center justify-between gap-2 h-12 px-4 rounded-xl border border-line bg-white font-semibold text-ink disabled:opacity-60"
-                                >
-                                    <span>الإجراء في الطابور</span>
-                                    <ChevronDown className={cx('w-5 h-5 transition-transform', actionMenuOpen && 'rotate-180')} />
-                                </button>
-                                {actionMenuOpen && (
-                                    <div role="menu" className="mt-1 rounded-xl border border-line bg-white overflow-hidden divide-y divide-line">
-                                        <button type="button" role="menuitem" disabled={busy}
-                                            className="w-full flex items-center gap-2 h-12 px-4 text-st-done font-semibold hover:bg-paper disabled:opacity-60"
-                                            onClick={() => { pass(actionsFor); setActionsFor(null); setActionMenuOpen(false); }}>
-                                            <Check className="w-5 h-5" /> إجتاز
-                                        </button>
-                                        <button type="button" role="menuitem" disabled={busy}
-                                            className="w-full flex items-center gap-2 h-12 px-4 text-ink font-semibold hover:bg-paper disabled:opacity-60"
-                                            onClick={() => { openPushDown([actionsFor]); setActionsFor(null); setActionMenuOpen(false); }}>
-                                            <ChevronsDown className="w-5 h-5" /> إنزال
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                         {isOfficer && inQueue(actionsFor) && hasDilatation && (
                             <SheetAction icon={Droplets} hint="يغادر الطابور ويعود بأولوية بعد التمدد" onClick={() => { toDilatation(actionsFor); setActionsFor(null); }}>
                                 إرسال إلى قاعة التمدد

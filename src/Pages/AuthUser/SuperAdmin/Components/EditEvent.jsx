@@ -26,6 +26,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
     description: event.description || '',
     is_active: event.is_active ?? true,
     is_tawat: event.is_tawat ?? true,
+    is_simulation: !!event.is_simulation,
   });
   const [selectedRules, setSelectedRules] = useState(event.rules_ids || []);
   const [eventSpecialties, setEventSpecialties] = useState([]);

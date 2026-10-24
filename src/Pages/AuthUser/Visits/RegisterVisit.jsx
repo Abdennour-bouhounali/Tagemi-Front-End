@@ -1394,6 +1394,13 @@ const RegisterVisitInner = () => {
             </div>
           </header>
 
+          {event.is_simulation && (
+            <div role="note" className="mb-5 rounded-2xl border border-st-pushed/30 bg-st-pushed-bg text-st-pushed px-4 py-3 text-sm leading-relaxed">
+              <p className="font-semibold">حدث تجريبي للتدريب فقط</p>
+              <p>هذا الحجز تجريبي وغير حقيقي، ولن يكون له أي أثر في الواقع. لا تحضر إلى أي مكان بناءً عليه.</p>
+            </div>
+          )}
+
           {/* Event details: first step only on phones, kept in the side column on laptops */}
           <section className={cx('mb-5 bg-white border border-line rounded-2xl p-4 text-sm', currentStep !== 0 && 'hidden lg:block')}>
             {event.description && <p className="text-ink leading-relaxed mb-3 whitespace-pre-line">{event.description}</p>}

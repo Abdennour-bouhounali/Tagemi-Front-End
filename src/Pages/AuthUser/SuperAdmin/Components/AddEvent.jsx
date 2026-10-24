@@ -20,6 +20,7 @@ const EMPTY_FORM = {
   rules_ids: [],
   is_active: true,
   is_tawat: true,
+  is_simulation: false,
 };
 
 // 08:00 to 17:00, like before

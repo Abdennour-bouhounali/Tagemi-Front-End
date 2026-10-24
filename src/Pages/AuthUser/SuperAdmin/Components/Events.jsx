@@ -3,7 +3,7 @@ import { useContext, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   MoreVertical, ChevronRight, CalendarDays, Activity, Info, Link as LinkIcon, Monitor, MessageSquareHeart,
-  Power, PencilLine, Users, PieChart, TrendingUp, Archive, RotateCcw, FileText, BarChart3, Plus, MapPin, Unlock,
+  Power, PencilLine, Users, PieChart, TrendingUp, Archive, RotateCcw, FileText, BarChart3, Plus, MapPin, Unlock, FlaskConical, Trash2, UserCog,
 } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import {
@@ -64,6 +64,39 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
   const [detailsEvent, setDetailsEvent] = useState(null);
   const [archiveTarget, setArchiveTarget] = useState(null); // { event, count }
   const [restoreTarget, setRestoreTarget] = useState(null);
+  const [trainingAction, setTrainingAction] = useState(null); // { type: 'start' | 'reset' | 'delete', event? }
+
+  const trainingEvent = events.find((e) => e.is_simulation);
+
+  // --- Training event (simulation) ---
+
+  async function runTrainingAction() {
+    const { type, event } = trainingAction;
+    const request = {
+      start: ['/api/events/training', 'POST', 'أُنشئ الحدث التدريبي لليوم'],
+      reset: [`/api/events/${event?.id}/training/reset`, 'POST', 'أُعيد ضبط الحدث التدريبي'],
+      delete: [`/api/events/${event?.id}/training`, 'DELETE', 'حُذف الحدث التدريبي'],
+    }[type];
+    setBusy(true);
+    try {
+      const res = await fetch(`${apiUrl}${request[0]}`, {
+        method: request[1],
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast(request[2]);
+        setTrainingAction(null);
+        getEvents();
+      } else {
+        toast(data.message || 'تعذر تنفيذ العملية', 'error');
+      }
+    } catch {
+      toast('تعذر الاتصال بالخادم', 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // --- Actions (same endpoints as before) ---
 
@@ -213,7 +246,14 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
       <PageHeader
         title="الأحداث"
         subtitle="اضغط على حدث لمتابعته"
-        actions={<Button icon={Plus} onClick={onAdd}>حدث جديد</Button>}
+        actions={
+          <>
+            {!trainingEvent && (
+              <Button variant="warning" icon={FlaskConical} onClick={() => setTrainingAction({ type: 'start' })}>حدث تدريبي</Button>
+            )}
+            <Button icon={Plus} onClick={onAdd}>حدث جديد</Button>
+          </>
+        }
       />
 
       {events.length > 6 && (
@@ -257,7 +297,10 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
                   className="flex-1 min-w-0 flex items-center gap-3 ps-4 py-3 min-h-[4.5rem] hover:bg-ink-faint rounded-2xl"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-ink truncate">{event.name}</p>
+                    <p className="font-semibold text-ink truncate">
+                      {event.name}
+                      {event.is_simulation && <span className="ms-2 inline-flex items-center h-5 px-1.5 rounded-md text-[11px] font-semibold bg-st-pushed-bg text-st-pushed align-middle">تدريبي</span>}
+                    </p>
                     {place && (
                       <p className="text-sm text-muted truncate flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 shrink-0" /> {place}
@@ -326,7 +369,19 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
             </div>
 
             <div className="pt-1">
-              {m.is_archived ? (
+              {m.is_simulation ? (
+                <>
+                  <SheetAction icon={UserCog} hint="عيّن الفريق على هذا الحدث من صفحة المستخدمين" onClick={() => go('/admin/users')}>
+                    عيّن المستخدمين على الحدث
+                  </SheetAction>
+                  <SheetAction icon={RotateCcw} hint="يعود جديدًا بتاريخ اليوم و100 موعد معلّق" onClick={() => { setTrainingAction({ type: 'reset', event: m }); setMenuEvent(null); }}>
+                    أعد ضبط الحدث التدريبي
+                  </SheetAction>
+                  <SheetAction icon={Trash2} tone="text-red-700" hint="يُحذف الحدث وكل ما فيه نهائيًا" onClick={() => { setTrainingAction({ type: 'delete', event: m }); setMenuEvent(null); }}>
+                    احذف الحدث التدريبي
+                  </SheetAction>
+                </>
+              ) : m.is_archived ? (
                 <SheetAction icon={RotateCcw} hint="يرجع الحدث ومواعيده نشطة" onClick={() => { setRestoreTarget(m); setMenuEvent(null); }}>
                   استعد الحدث
                 </SheetAction>
@@ -357,6 +412,35 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
           <p>لا توجد مواعيد في هذا الحدث.</p>
         )}
         <p className="text-muted">يمكنك استعادة الحدث ومواعيده لاحقًا.</p>
+      </ConfirmSheet>
+
+      <ConfirmSheet
+        open={!!trainingAction}
+        onClose={() => !busy && setTrainingAction(null)}
+        title={{ start: 'بدء حدث تدريبي؟', reset: 'إعادة ضبط الحدث التدريبي؟', delete: 'حذف الحدث التدريبي؟' }[trainingAction?.type] || ''}
+        confirmLabel={{ start: 'ابدأ التدريب', reset: 'أعد الضبط', delete: 'احذفه نهائيًا' }[trainingAction?.type] || ''}
+        danger={trainingAction?.type === 'delete'}
+        loading={busy}
+        onConfirm={runTrainingAction}
+      >
+        {trainingAction?.type === 'start' && (
+          <>
+            <p>سيُنشأ حدث بتاريخ اليوم فيه 8 تخصصات و100 موعد تجريبي كلها معلّقة.</p>
+            <p className="text-muted">بعدها عيّن الفريق عليه من صفحة المستخدمين وابدؤوا التدريب.</p>
+          </>
+        )}
+        {trainingAction?.type === 'reset' && (
+          <>
+            <p>يعود الحدث كأنه جديد: تاريخ اليوم و100 موعد معلّق.</p>
+            <p className="text-muted">كل ما جرى أثناء التدريب يختفي، والفريق المعيّن عليه يبقى معيّنًا.</p>
+          </>
+        )}
+        {trainingAction?.type === 'delete' && (
+          <>
+            <p>سيُحذف الحدث التدريبي وكل مواعيده نهائيًا.</p>
+            <p className="text-muted">الفريق المعيّن عليه سيصبح بلا حدث حتى تعيّنه على حدث آخر.</p>
+          </>
+        )}
       </ConfirmSheet>
 
       <ConfirmSheet

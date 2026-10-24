@@ -95,6 +95,12 @@ export default function StaffShell() {
           {tabs.map((tab) => <TabItem key={tab.key} tab={tab} rail />)}
         </nav>
 
+        {user?.event?.is_simulation && (
+          <div role="note" className="bg-st-pushed-bg text-st-pushed border-b border-st-pushed/30 px-4 py-2 text-center text-sm font-semibold">
+            حدث تدريبي للمحاكاة فقط، البيانات هنا غير حقيقية ولن تعمل في الواقع
+          </div>
+        )}
+
         <main className="mx-auto max-w-screen-2xl px-4 lg:px-8 pt-4 lg:pt-6 pb-28 lg:pb-10">
           <Outlet />
         </main>
