@@ -53,7 +53,7 @@ export default function Register() {
 
         // Navigate after showing success state
         setTimeout(() => {
-          navigate("/home", { state: { loggedIn: true } });
+          navigate("/home", { state: { loggedIn: true }, replace: true });
         }, 800);
       }
     } catch (error) {

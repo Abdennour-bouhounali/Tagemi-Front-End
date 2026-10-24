@@ -9,6 +9,8 @@ import {
     ActionsMenu, BackLink, CHART, ChartLegend, ErrorState, HBarChart, RankList, ResponsiveTable, ShareBar, downloadCsv,
 } from '../../../Components/ui/StatsKit';
 
+import DeepStatsSection from './Components/DeepStatsSection';
+
 const apiUrl = API_BASE_URL;
 
 const GROUP_KEYS = Object.keys(STATUS_GROUPS);
@@ -336,6 +338,8 @@ const VisitsStatistics = () => {
                     </Panel>
                 </div>
             </div>
+
+            <DeepStatsSection eventId={eventId} />
         </div>
     );
 };

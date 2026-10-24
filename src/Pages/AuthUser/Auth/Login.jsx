@@ -49,7 +49,7 @@ export default function Login() {
 
         setTimeout(() => {
           // Staff go straight to their working screen
-          navigate(staffHome(data.user), { state: { loggedIn: true } });
+          navigate(staffHome(data.user), { state: { loggedIn: true }, replace: true });
         }, 800);
       }
     } catch (error) {

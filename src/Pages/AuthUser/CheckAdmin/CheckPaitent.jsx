@@ -3,7 +3,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { useParams, Link } from 'react-router-dom';
 import {
     Check, ChevronsDown, MoreVertical, ScanLine, Droplets, Send, MessageSquare, Info, QrCode,
-    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight,
+    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, ChevronDown,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { csvSafe } from '../../../utils/safeHtml';
@@ -20,6 +20,8 @@ const apiUrl = API_BASE_URL;
 const QUEUED = ['Present', 'Commingsoon'];
 const AWAY = ['DilatationSent', 'Dilatation'];
 const inQueue = (a) => QUEUED.includes(a.status);
+const DEFAULT_PUSH_PLACES = 5;
+const MAX_PUSH_PLACES = 30;
 
 /**
  * Specialty queue (مسؤول التخصص / الطبيب). Patients are shown as tickets in
@@ -56,6 +58,11 @@ export default function CheckPatient() {
     const [referralOptions, setReferralOptions] = useState(null);
     const [qrFor, setQrFor] = useState(null);
     const [scanAction, setScanAction] = useState(null);
+
+    // Push down (إنزال): the appointments to move and how many places, picked with the slider
+    const [pushFor, setPushFor] = useState(null);
+    const [pushPlaces, setPushPlaces] = useState(DEFAULT_PUSH_PLACES);
+    const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
     const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, Accept: 'application/json' }), [token]);
 
@@ -129,14 +136,17 @@ export default function CheckPatient() {
     // ---------------------------------------------------------------- actions
 
     const pass = (a) => run(`/api/waitinglist/Complete/${a.id}`, { success: 'تم الفحص' });
-    const pushDown = (a) => run(`/api/waitinglist/Commingsoon/${a.id}`);
+    const openPushDown = (list) => { setPushPlaces(DEFAULT_PUSH_PLACES); setPushFor(list); };
     const toDilatation = (a) => run(`/api/waitinglist/Dilatation/${a.id}`, { success: 'أُرسل إلى قاعة التمدد' });
 
     const toggleOpen = () => run(`/api/event-specialties/${data.event_specialty_id}/toggle-open`, { method: 'PATCH' });
 
-    const pushDownSelected = async () => {
-        const ok = await run('/api/waitinglist/push-down', { body: { appointment_ids: selectedIds } });
-        if (ok) { setSelectedIds([]); setSelecting(false); }
+    const confirmPushDown = async () => {
+        const ids = pushFor.map((a) => a.id);
+        const ok = pushFor.length === 1
+            ? await run(`/api/waitinglist/Commingsoon/${ids[0]}`, { body: { places: pushPlaces } })
+            : await run('/api/waitinglist/push-down', { body: { appointment_ids: ids, places: pushPlaces } });
+        if (ok) { setPushFor(null); setSelectedIds([]); setSelecting(false); }
     };
 
     const openDetails = async (a) => {
@@ -344,7 +354,7 @@ export default function CheckPatient() {
                 <div className="fixed inset-x-0 lg:start-24 bottom-[4.75rem] lg:bottom-6 z-40 px-4 lg:px-8">
                     <div className="max-w-2xl lg:max-w-3xl mx-auto flex items-center gap-2 bg-ink text-white rounded-2xl p-2 ps-4 shadow-lg">
                         <span className="flex-1 text-sm font-semibold">تم تحديد {selectedIds.length}</span>
-                        <Button variant="warning" icon={ChevronsDown} disabled={!selectedIds.length || busy} onClick={pushDownSelected}>
+                        <Button variant="warning" icon={ChevronsDown} disabled={!selectedIds.length || busy} onClick={() => openPushDown(appointments.filter((a) => selectedIds.includes(a.id)))}>
                             إنزال المحددين
                         </Button>
                     </div>
@@ -352,20 +362,37 @@ export default function CheckPatient() {
             )}
 
             {/* Per-patient menu */}
-            <Sheet open={!!actionsFor} onClose={() => setActionsFor(null)} title={actionsFor ? `#${actionsFor.patient_id} ${actionsFor.full_name}` : ''}>
+            <Sheet open={!!actionsFor} onClose={() => { setActionsFor(null); setActionMenuOpen(false); }} title={actionsFor ? `#${actionsFor.patient_id} ${actionsFor.full_name}` : ''}>
                 {actionsFor && (
                     <div className="divide-y divide-line">
                         {/* Queue actions live here, not on the ticket, so a tap while scrolling cannot pass or push anyone */}
                         {isOfficer && inQueue(actionsFor) && (
-                            <div className="flex gap-2 pb-3">
-                                <Button variant="success" size="lg" icon={Check} className="flex-1" disabled={busy}
-                                    onClick={() => { pass(actionsFor); setActionsFor(null); }}>
-                                    إجتاز
-                                </Button>
-                                <Button variant="warning" size="lg" icon={ChevronsDown} className="flex-1" disabled={busy}
-                                    onClick={() => { pushDown(actionsFor); setActionsFor(null); }}>
-                                    إنزال
-                                </Button>
+                            <div className="pb-3">
+                                <button
+                                    type="button"
+                                    aria-haspopup="menu"
+                                    aria-expanded={actionMenuOpen}
+                                    disabled={busy}
+                                    onClick={() => setActionMenuOpen(!actionMenuOpen)}
+                                    className="w-full flex items-center justify-between gap-2 h-12 px-4 rounded-xl border border-line bg-white font-semibold text-ink disabled:opacity-60"
+                                >
+                                    <span>الإجراء في الطابور</span>
+                                    <ChevronDown className={cx('w-5 h-5 transition-transform', actionMenuOpen && 'rotate-180')} />
+                                </button>
+                                {actionMenuOpen && (
+                                    <div role="menu" className="mt-1 rounded-xl border border-line bg-white overflow-hidden divide-y divide-line">
+                                        <button type="button" role="menuitem" disabled={busy}
+                                            className="w-full flex items-center gap-2 h-12 px-4 text-st-done font-semibold hover:bg-paper disabled:opacity-60"
+                                            onClick={() => { pass(actionsFor); setActionsFor(null); setActionMenuOpen(false); }}>
+                                            <Check className="w-5 h-5" /> إجتاز
+                                        </button>
+                                        <button type="button" role="menuitem" disabled={busy}
+                                            className="w-full flex items-center gap-2 h-12 px-4 text-ink font-semibold hover:bg-paper disabled:opacity-60"
+                                            onClick={() => { openPushDown([actionsFor]); setActionsFor(null); setActionMenuOpen(false); }}>
+                                            <ChevronsDown className="w-5 h-5" /> إنزال
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                         {isOfficer && inQueue(actionsFor) && hasDilatation && (
@@ -387,6 +414,33 @@ export default function CheckPatient() {
                         <SheetAction icon={QrCode} onClick={() => { setQrFor(actionsFor); setActionsFor(null); }}>عرض رمز QR</SheetAction>
                     </div>
                 )}
+            </Sheet>
+
+            {/* Push down: choose how many places with a vertical slider */}
+            <Sheet
+                open={!!pushFor}
+                onClose={() => setPushFor(null)}
+                title={pushFor?.length > 1 ? `إنزال ${pushFor.length} مرضى` : 'إنزال المريض'}
+                footer={<Button variant="warning" block size="lg" icon={ChevronsDown} loading={busy} onClick={confirmPushDown}>إنزال {pushPlaces} مراتب</Button>}
+            >
+                <p className="text-sm text-muted mb-3">اسحب المؤشر للأسفل لزيادة عدد المراتب.</p>
+                <div className="flex items-center justify-center gap-6 py-2">
+                    <input
+                        type="range"
+                        min={1}
+                        max={MAX_PUSH_PLACES}
+                        step={1}
+                        value={pushPlaces}
+                        onChange={(e) => setPushPlaces(Number(e.target.value))}
+                        aria-label="عدد المراتب"
+                        className="accent-[#101E58] w-10 h-56"
+                        style={{ writingMode: 'vertical-lr', direction: 'ltr' }}
+                    />
+                    <div className="text-center">
+                        <p className="font-display text-5xl text-ink leading-none">{pushPlaces}</p>
+                        <p className="text-sm text-muted mt-1">مراتب</p>
+                    </div>
+                </div>
             </Sheet>
 
             {/* Details */}
