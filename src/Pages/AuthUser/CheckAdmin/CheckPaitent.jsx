@@ -32,7 +32,7 @@ export default function CheckPatient() {
     const toast = useToast();
 
     const isOfficer = user && [1, 4].includes(user.role_id);
-    const isSuperAdmin = user?.role_id === 1; // opens queues from the events list
+    const isSuperAdmin = user?.role_id === 1; // opens / closes the queue on visit day
     const canComment = user && [1, 4, 6].includes(user.role_id);
 
     const [data, setData] = useState(null);
@@ -132,6 +132,8 @@ export default function CheckPatient() {
     const pushDown = (a) => run(`/api/waitinglist/Commingsoon/${a.id}`);
     const toDilatation = (a) => run(`/api/waitinglist/Dilatation/${a.id}`, { success: 'أُرسل إلى قاعة التمدد' });
 
+    const toggleOpen = () => run(`/api/event-specialties/${data.event_specialty_id}/toggle-open`, { method: 'PATCH' });
+
     const pushDownSelected = async () => {
         const ok = await run('/api/waitinglist/push-down', { body: { appointment_ids: selectedIds } });
         if (ok) { setSelectedIds([]); setSelecting(false); }
@@ -208,12 +210,18 @@ export default function CheckPatient() {
             <PageHeader
                 title={data?.speciality || 'الطابور'}
                 subtitle={`طابور اليوم، ${summary.in_queue ?? 0} في الانتظار`}
-                actions={data && (
-                    <span className={cx('inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold border',
-                        data.is_open ? 'border-st-queue/40 text-st-queue bg-st-queue-bg' : 'border-red-300 text-red-700 bg-red-50')}>
-                        {data.is_open ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                        {data.is_open ? 'الطابور مفتوح' : 'الطابور مغلق'}
-                    </span>
+                actions={data?.event_specialty_id && isSuperAdmin && (
+                    <button
+                        type="button"
+                        onClick={toggleOpen}
+                        disabled={busy}
+                        className={cx('inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold border disabled:opacity-60',
+                            data.is_open ? 'border-line text-muted bg-white' : 'border-st-queue/40 text-st-queue bg-st-queue-bg')}
+                        title={data.is_open ? 'لن يُرسل مرضى جدد، ويُفحص من في الطابور' : 'يُرسل إليه المرضى المنتظرون فوراً'}
+                    >
+                        {data.is_open ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                        {data.is_open ? 'أغلق الطابور' : 'افتح الطابور'}
+                    </button>
                 )}
             />
 
@@ -276,8 +284,10 @@ export default function CheckPatient() {
             />
             </div>
 
-            {selecting && (
+            {selecting ? (
                 <p className="text-sm text-muted mb-3">اختر المرضى غير الموجودين عند الباب، ثم اضغط «إنزال المحددين».</p>
+            ) : isOfficer && (
+                <p className="text-sm text-muted mb-3">اضغط على بطاقة المريض لتسجيل الإجتياز أو الإنزال.</p>
             )}
 
             {visible.length === 0 ? (
@@ -294,8 +304,8 @@ export default function CheckPatient() {
                             <li key={a.id}>
                                 <Ticket position={queued ? a.orderList : '—'} priority={a.is_priority} selected={selected} muted={!queued}>
                                     <div
-                                        className={cx('flex items-start gap-2', selecting && queued && 'cursor-pointer')}
-                                        onClick={selecting ? select : undefined}
+                                        className={cx('flex items-start gap-2', (!selecting || queued) && 'cursor-pointer')}
+                                        onClick={selecting ? select : () => setActionsFor(a)}
                                     >
                                         {selecting && queued && (
                                             <input type="checkbox" checked={selected} onChange={select} onClick={(e) => e.stopPropagation()}
@@ -315,21 +325,10 @@ export default function CheckPatient() {
                                             )}
                                         </div>
                                         {!selecting && (
-                                            <IconButton icon={MoreVertical} label="خيارات" className="-me-2 -mt-1" onClick={() => setActionsFor(a)} />
+                                            <IconButton icon={MoreVertical} label="إجراءات المريض" className="-me-2 -mt-1" />
                                         )}
                                     </div>
 
-                                    {isOfficer && queued && !selecting && (
-                                        <div className="mt-3 flex gap-2">
-                                            <Button variant="success" icon={Check} className="flex-1" disabled={busy} onClick={() => pass(a)}>إجتاز</Button>
-                                            <Button variant="warning" icon={ChevronsDown} disabled={busy} onClick={() => pushDown(a)}>إنزال</Button>
-                                            {hasDilatation && (
-                                                <Button variant="secondary" icon={Droplets} disabled={busy} onClick={() => toDilatation(a)} aria-label="إرسال للتمدد">
-                                                    <span className="hidden sm:inline">تمدد</span>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
                                     {!queued && (
                                         <p className="mt-2 text-xs text-st-dil">في قاعة التمدد، يعود تلقائياً بأولوية</p>
                                     )}
@@ -356,6 +355,19 @@ export default function CheckPatient() {
             <Sheet open={!!actionsFor} onClose={() => setActionsFor(null)} title={actionsFor ? `#${actionsFor.patient_id} ${actionsFor.full_name}` : ''}>
                 {actionsFor && (
                     <div className="divide-y divide-line">
+                        {/* Queue actions live here, not on the ticket, so a tap while scrolling cannot pass or push anyone */}
+                        {isOfficer && inQueue(actionsFor) && (
+                            <div className="flex gap-2 pb-3">
+                                <Button variant="success" size="lg" icon={Check} className="flex-1" disabled={busy}
+                                    onClick={() => { pass(actionsFor); setActionsFor(null); }}>
+                                    إجتاز
+                                </Button>
+                                <Button variant="warning" size="lg" icon={ChevronsDown} className="flex-1" disabled={busy}
+                                    onClick={() => { pushDown(actionsFor); setActionsFor(null); }}>
+                                    إنزال
+                                </Button>
+                            </div>
+                        )}
                         {isOfficer && inQueue(actionsFor) && hasDilatation && (
                             <SheetAction icon={Droplets} hint="يغادر الطابور ويعود بأولوية بعد التمدد" onClick={() => { toDilatation(actionsFor); setActionsFor(null); }}>
                                 إرسال إلى قاعة التمدد
@@ -469,7 +481,7 @@ export default function CheckPatient() {
 
             {data?.is_open === false && (
                 <p className="mt-6 text-center text-xs text-muted">
-                    هذا التخصص مغلق اليوم، لن يُرسل إليه مرضى جدد.{isSuperAdmin && ' افتحه من قائمة الأحداث ← «فتح الطوابير عند وصول الأطباء».'}
+                    هذا التخصص مغلق اليوم، لن يُرسل إليه مرضى جدد.{isSuperAdmin && ' افتحه بزر «افتح الطابور» أعلاه عند وصول الطبيب.'}
                 </p>
             )}
             {busy && <span className="sr-only" role="status">جاري التنفيذ</span>}
