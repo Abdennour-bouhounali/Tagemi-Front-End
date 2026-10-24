@@ -80,7 +80,9 @@ function StateCard({ appt, showDate }) {
       }
       break;
     case "waiting":
-      message = "ستُستدعى لهذا التخصص بعد إنهاء التخصص الحالي";
+      message = appt.specialty_open === false
+        ? "في انتظار وصول الطبيب، ستُوجَّه إليه عند فتح التخصص"
+        : "ستُستدعى لهذا التخصص بعد إنهاء التخصص الحالي";
       break;
     case "dilatation":
       message = appt.dilatation_step === "sent" ? "توجّه إلى قاعة التمدد" : "أنت في فترة التمدد، ستعود بأولوية بعد انتهائها";

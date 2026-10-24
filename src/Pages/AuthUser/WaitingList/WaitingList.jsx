@@ -15,7 +15,7 @@ const WaitingList = () => {
   const { user } = useContext(AppContext);
   
   const [event, setEvent] = useState(null);
-  const [specialities, setSpecialities] = useState([]);
+  const [allSpecialities, setAllSpecialities] = useState([]);
   const [waitingList, setWaitingList] = useState({});
   const [filteredWaitingList, setFilteredWaitingList] = useState({});
   const [loading, setLoading] = useState(true);
@@ -125,13 +125,13 @@ const WaitingList = () => {
         data.event_specialties.forEach(es => {
           if (es.specialty && !seenIds.has(es.specialty.id)) {
             seenIds.add(es.specialty.id);
-            uniqueSpecialties.push(es.specialty);
+            uniqueSpecialties.push({ ...es.specialty, queue_open: es.queue_open });
           }
         });
       }
       
       const filtered = uniqueSpecialties.filter(s => s.name !== 'NoSpeciality');
-      setSpecialities(filtered);
+      setAllSpecialities(filtered);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching specialities:', error);
@@ -172,12 +172,15 @@ const WaitingList = () => {
     const interval = setInterval(() => {
       if (eventId) {
         getWaitingList();
+        getEventSpecialities();
       }
     }, 10000);
     
     return () => clearInterval(interval);
   }, [eventId]);
 
+  // Only specialties opened today (doctor present), or still finishing their queue
+  const specialities = allSpecialities.filter(s => s.queue_open || (waitingList[s.id] || []).length > 0);
   const specialtyGroups = specialities.length > MAX_COLUMNS
     ? [specialities.slice(0, Math.ceil(specialities.length / 2)), specialities.slice(Math.ceil(specialities.length / 2))]
     : [specialities];

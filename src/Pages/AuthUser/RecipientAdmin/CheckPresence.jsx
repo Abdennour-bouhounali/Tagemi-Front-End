@@ -249,7 +249,8 @@ const CheckPresence = () => {
 
       if (res.ok) {
         const place = data.position ? `. ترتيبه في الطابور: ${data.position}` : "";
-        toast(`${data.message}${place}`);
+        // No open specialty: checked in, waits for a doctor to arrive
+        toast(`${data.message}${place}`, data.appointment ? "success" : "info");
         setManualPatientId("");
         await fetchAppointments(true);
         return true;
