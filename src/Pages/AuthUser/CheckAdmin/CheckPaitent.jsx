@@ -26,7 +26,9 @@ const MAX_PUSH_PLACES = 30;
 /**
  * Specialty queue (مسؤول التخصص / الطبيب). Patients are shown as tickets in
  * queue order. The officer passes, pushes down, sends to dilatation or to
- * another specialty; the doctor reads and writes notes.
+ * another specialty; the patient manager (مسؤول الإنزال) only pushes down; the
+ * doctor reads and writes notes. Every action works from the buttons and from
+ * a QR scan of the patient's card.
  */
 export default function CheckPatient() {
     const { eventId, specialityId } = useParams();
@@ -34,6 +36,7 @@ export default function CheckPatient() {
     const toast = useToast();
 
     const isOfficer = user && [1, 4].includes(user.role_id);
+    const canPushDown = user && [1, 4, 8].includes(user.role_id); // patient manager: إنزال only
     const isSuperAdmin = user?.role_id === 1; // opens / closes the queue on visit day
     const canComment = user && [1, 4, 6].includes(user.role_id);
 
@@ -178,16 +181,22 @@ export default function CheckPatient() {
         if (ok) setCommentFor(null);
     };
 
+    // Returns false so the scanner stays open when the patient can't take the action
     const handleScan = async (patientId) => {
         const a = appointments.find((x) => String(x.patient_id) === String(patientId));
         if (!a) {
             toast(`المريض #${patientId} ليس في هذا الطابور اليوم`, 'error');
-            return;
+            return false;
+        }
+        if (['complete', 'pushdown'].includes(scanAction) && !inQueue(a)) {
+            toast(`المريض #${patientId} ليس في الطابور الآن (${statusLabel(a.status)})`, 'error');
+            return false;
         }
         setScanAction(null);
-        if (scanAction === 'complete' && inQueue(a)) return pass(a);
-        if (scanAction === 'dilatation' && inQueue(a)) return toDilatation(a);
-        openDetails(a);
+        if (scanAction === 'complete') return pass(a);
+        if (scanAction === 'pushdown') return openPushDown([a]);
+        // "actions": the same menu as tapping the patient's card
+        setActionsFor(a);
     };
 
     const exportCsv = () => {
@@ -254,8 +263,13 @@ export default function CheckPatient() {
                         مسح للإجتياز
                     </Button>
                 )}
-                <IconButton icon={QrCode} label="مسح لعرض التفاصيل" className="bg-white border border-line" onClick={() => setScanAction('details')} />
-                {isOfficer && (
+                {canPushDown && (
+                    <Button variant={isOfficer ? 'secondary' : 'primary'} icon={ChevronsDown} className="flex-1" onClick={() => setScanAction('pushdown')}>
+                        مسح للإنزال
+                    </Button>
+                )}
+                <IconButton icon={QrCode} label="مسح لعرض إجراءات المريض" className="bg-white border border-line" onClick={() => setScanAction('actions')} />
+                {canPushDown && (
                     <IconButton
                         icon={selecting ? X : ListChecks}
                         label={selecting ? 'إلغاء التحديد' : 'تحديد عدة مرضى للإنزال'}
@@ -296,8 +310,10 @@ export default function CheckPatient() {
 
             {selecting ? (
                 <p className="text-sm text-muted mb-3">اختر المرضى غير الموجودين عند الباب، ثم اضغط «إنزال المحددين».</p>
-            ) : isOfficer && (
-                <p className="text-sm text-muted mb-3">اضغط على بطاقة المريض لتسجيل الإجتياز أو الإنزال.</p>
+            ) : canPushDown && (
+                <p className="text-sm text-muted mb-3">
+                    {isOfficer ? 'اضغط على بطاقة المريض لتسجيل الإجتياز أو الإنزال، أو امسح رمزه.' : 'اضغط على بطاقة المريض لإنزاله، أو امسح رمزه.'}
+                </p>
             )}
 
             {visible.length === 0 ? (
@@ -339,7 +355,7 @@ export default function CheckPatient() {
                                         )}
                                     </div>
 
-                                    {isOfficer && queued && !selecting && (
+                                    {canPushDown && queued && !selecting && (
                                         <div className="mt-3">
                                             <button
                                                 type="button"
@@ -354,11 +370,13 @@ export default function CheckPatient() {
                                             </button>
                                             {cardMenuId === a.id && (
                                                 <div role="menu" className="mt-1 rounded-xl border border-line bg-white overflow-hidden divide-y divide-line">
-                                                    <button type="button" role="menuitem" disabled={busy}
-                                                        className="w-full flex items-center gap-2 h-12 px-4 text-st-done font-semibold hover:bg-paper disabled:opacity-60"
-                                                        onClick={() => { setCardMenuId(null); pass(a); }}>
-                                                        <Check className="w-5 h-5" /> إجتاز
-                                                    </button>
+                                                    {isOfficer && (
+                                                        <button type="button" role="menuitem" disabled={busy}
+                                                            className="w-full flex items-center gap-2 h-12 px-4 text-st-done font-semibold hover:bg-paper disabled:opacity-60"
+                                                            onClick={() => { setCardMenuId(null); pass(a); }}>
+                                                            <Check className="w-5 h-5" /> إجتاز
+                                                        </button>
+                                                    )}
                                                     <button type="button" role="menuitem" disabled={busy}
                                                         className="w-full flex items-center gap-2 h-12 px-4 text-ink font-semibold hover:bg-paper disabled:opacity-60"
                                                         onClick={() => { setCardMenuId(null); openPushDown([a]); }}>
@@ -395,6 +413,16 @@ export default function CheckPatient() {
             <Sheet open={!!actionsFor} onClose={() => setActionsFor(null)} title={actionsFor ? `#${actionsFor.patient_id} ${actionsFor.full_name}` : ''}>
                 {actionsFor && (
                     <div className="divide-y divide-line">
+                        {isOfficer && inQueue(actionsFor) && (
+                            <SheetAction icon={Check} hint="انتهى فحصه، ينتقل إلى تخصصه التالي" onClick={() => { pass(actionsFor); setActionsFor(null); }}>
+                                إجتاز
+                            </SheetAction>
+                        )}
+                        {canPushDown && inQueue(actionsFor) && (
+                            <SheetAction icon={ChevronsDown} hint="ليس عند الباب، يرجع بعض المراتب" onClick={() => { openPushDown([actionsFor]); setActionsFor(null); }}>
+                                إنزال
+                            </SheetAction>
+                        )}
                         {isOfficer && inQueue(actionsFor) && hasDilatation && (
                             <SheetAction icon={Droplets} hint="يغادر الطابور ويعود بأولوية بعد التمدد" onClick={() => { toDilatation(actionsFor); setActionsFor(null); }}>
                                 إرسال إلى قاعة التمدد
@@ -529,7 +557,11 @@ export default function CheckPatient() {
                     onScanSuccess={handleScan}
                     onClose={() => setScanAction(null)}
                     eventId={eventId}
-                    actionTitle={scanAction === 'complete' ? 'امسح رمز المريض لتسجيل الإجتياز' : 'امسح رمز المريض لعرض التفاصيل'}
+                    actionTitle={
+                        scanAction === 'complete' ? 'امسح رمز المريض لتسجيل الإجتياز'
+                            : scanAction === 'pushdown' ? 'امسح رمز المريض لإنزاله'
+                                : 'امسح رمز المريض لعرض إجراءاته'
+                    }
                 />
             )}
 

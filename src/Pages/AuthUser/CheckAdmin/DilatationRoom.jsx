@@ -1,16 +1,18 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronRight, Footprints, Timer, Undo2, Star, User } from 'lucide-react';
+import { ChevronRight, Footprints, Timer, Undo2, Star, User, ScanLine } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import useLiveRefresh from '../../../utils/useLiveRefresh';
+import QRScanner from '../RecipientAdmin/QRScanner';
 import { Button, PageHeader, StatStrip, EmptyState, LoadingState, Ticket, useToast, cx } from '../../../Components/ui';
 
 const apiUrl = API_BASE_URL;
 
 // Hidden dilatation station of a specialty (e.g. تصحيح النظر). The specialty
 // officer sends patients here; this screen receives them and sends them back,
-// with priority, when dilatation is done.
+// with priority, when dilatation is done. Both steps work from the buttons or
+// from a QR scan of the patient's card.
 export default function DilatationRoom() {
   const { eventId, eventSpecialtyId } = useParams();
   const { token, user } = useContext(AppContext);
@@ -18,6 +20,7 @@ export default function DilatationRoom() {
 
   const [data, setData] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [scanning, setScanning] = useState(false);
   // Server clock minus device clock, so timers don't depend on the phone's clock
   const [clockOffset, setClockOffset] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -56,11 +59,27 @@ export default function DilatationRoom() {
       const json = await res.json().catch(() => ({}));
       toast(json.message || fallback, res.ok ? 'success' : 'error');
       if (res.ok) load();
+      return res.ok;
     } catch {
       toast('تعذر الاتصال بالخادم', 'error');
+      return false;
     } finally {
       setBusyId(null);
     }
+  };
+
+  const arrived = (p) => act(p, `/api/waitinglist/DilatationArrived/${p.id}`, 'تم تسجيل الوصول');
+  const finished = (p) => act(p, `/api/waitinglist/FinishedDilatation/${p.id}`, 'عاد المريض بأولوية');
+
+  // Scan: on the way → arrived; in the room → dilatation done
+  const handleScan = (patientId) => {
+    const same = (p) => String(p.patient_id) === String(patientId);
+    const coming = data.coming.find(same);
+    if (coming) return arrived(coming);
+    const inRoom = data.in_room.find(same);
+    if (inRoom) return finished(inRoom);
+    toast(`المريض #${patientId} ليس في الطريق إلى القاعة ولا فيها`, 'error');
+    return false;
   };
 
   const minutesSince = (iso) => (iso ? Math.max(0, Math.floor((now + clockOffset - new Date(iso).getTime()) / 60000)) : 0);
@@ -87,6 +106,10 @@ export default function DilatationRoom() {
       </Link>
       <PageHeader title={`قاعة تمدد ${data.specialty}`} subtitle={`بعد التمدد يعود المريض إلى رأس طابور ${data.specialty}`} />
 
+      <Button variant="primary" size="lg" block icon={ScanLine} className="mb-4 lg:max-w-md" onClick={() => setScanning(true)}>
+        مسح QR: وصل إلى القاعة أو انتهى التمدد
+      </Button>
+
       <StatStrip
         className="mb-5"
         items={[
@@ -109,7 +132,7 @@ export default function DilatationRoom() {
               <Ticket position={minutesSince(p.dilatation_sent_at)} stubCaption="دقيقة">
                 <Who p={p} />
                 <Button variant="primary" size="lg" block className="mt-3" loading={busyId === p.id}
-                  onClick={() => act(p, `/api/waitinglist/DilatationArrived/${p.id}`, 'تم تسجيل الوصول')}>
+                  onClick={() => arrived(p)}>
                   وصل إلى القاعة
                 </Button>
               </Ticket>
@@ -132,7 +155,7 @@ export default function DilatationRoom() {
               <Ticket position={minutesSince(p.dilatation_started_at)} stubCaption="دقيقة">
                 <Who p={p} />
                 <Button variant="success" size="lg" block icon={Undo2} className="mt-3" loading={busyId === p.id}
-                  onClick={() => act(p, `/api/waitinglist/FinishedDilatation/${p.id}`, 'عاد المريض بأولوية')}>
+                  onClick={() => finished(p)}>
                   انتهى التمدد، أرجعه إلى {data.specialty}
                 </Button>
               </Ticket>
@@ -142,6 +165,15 @@ export default function DilatationRoom() {
       )}
       </section>
       </div>
+
+      {scanning && (
+        <QRScanner
+          onScanSuccess={handleScan}
+          onClose={() => setScanning(false)}
+          eventId={eventId}
+          actionTitle="امسح رمز المريض لتسجيل وصوله أو انتهاء تمدده"
+        />
+      )}
     </div>
   );
 }

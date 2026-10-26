@@ -8,6 +8,7 @@ export const ROLE_NAMES = {
   5: 'مسؤول الاستقبال',
   6: 'طبيب',
   7: 'مسؤول المحتوى',
+  8: 'مسؤول الإنزال',
 };
 
 /** Where each role lands after login (and on the app's home tab). */
@@ -19,7 +20,8 @@ export function staffHome(user) {
     case 3:
     case 5: return event ? `/admin/check-presence/${event}` : '/admin/no-event';
     case 4:
-    case 6: return event ? `/admin/stations/${event}` : '/admin/no-event';
+    case 6:
+    case 8: return event ? `/admin/stations/${event}` : '/admin/no-event';
     default: return '/home';
   }
 }
@@ -56,6 +58,7 @@ export function staffTabs(user) {
       ];
     case 4:
     case 6:
+    case 8:
       return [
         { key: 'stations', label: 'التخصصات', icon: Stethoscope, to: `/admin/stations/${e}`, match: ['/admin/stations', '/admin/event-waiting-lists', '/admin/dilatation'] },
         more,

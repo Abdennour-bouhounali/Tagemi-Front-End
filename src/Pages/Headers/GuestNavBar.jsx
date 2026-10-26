@@ -449,7 +449,7 @@ const UserMenu = ({ user, language, handleLogout }) => {
             )}
 
             {/* Waiting List Dropdown - Role 4 */}
-            {user.role_id === 4 && specialties.length > 0 && (
+            {[4, 8].includes(user.role_id) && specialties.length > 0 && (
                 <div className="relative group">
                     <select
                         onChange={handleSpecialtyChange}
@@ -526,7 +526,7 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
             )}
 
             {/* Waiting List Dropdown - Role 4 */}
-            {user.role_id === 4 && specialties.length > 0 && (
+            {[4, 8].includes(user.role_id) && specialties.length > 0 && (
                 <div className="relative">
                     <select
                         onChange={handleSpecialtyChange}

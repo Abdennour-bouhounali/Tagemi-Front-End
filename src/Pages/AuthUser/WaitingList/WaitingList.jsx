@@ -1,13 +1,24 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle, Monitor, ListFilter, Maximize, Minimize } from 'lucide-react';
 
 const apiUrl = API_BASE_URL;
 
-// Hall screen: up to 5 specialty columns at once, otherwise two halves in turn
+// Hall screen: up to 5 specialty columns at once, otherwise several views
+// (two halves for up to 10) shown in turn, or picked by hand
 const MAX_COLUMNS = 5;
 const ROTATION_MS = 10000;
+
+// Display settings are kept per device (each screen shows its own specialties)
+const settingsKey = (eventId) => `hall-screen:${eventId}`;
+const loadSettings = (eventId) => {
+  try {
+    return JSON.parse(localStorage.getItem(settingsKey(eventId))) || {};
+  } catch {
+    return {};
+  }
+};
 import { AppContext } from "../../../Context/AppContext";
 
 const WaitingList = () => {
@@ -22,9 +33,39 @@ const WaitingList = () => {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
   const [sexFilter, setSexFilter] = useState('all'); // 'all', 'male', 'female'
-  // More than 5 specialties don't fit on the hall screen: show them in two
-  // halves that take turns every 10 seconds.
-  const [groupIndex, setGroupIndex] = useState(0);
+  // More than 5 specialties don't fit on the hall screen: show them in views
+  // that take turns every 10 seconds ('auto') or the one picked ('manual').
+  const [groupIndex, setGroupIndex] = useState(() => loadSettings(eventId).view || 0);
+  const [displayMode, setDisplayMode] = useState(() => loadSettings(eventId).mode || 'auto');
+  // Specialties this screen shows; empty = all of them
+  const [selectedIds, setSelectedIds] = useState(() => loadSettings(eventId).specialties || []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(settingsKey(eventId), JSON.stringify({ mode: displayMode, view: groupIndex, specialties: selectedIds }));
+    } catch {
+      // Private mode / storage blocked: settings just won't be remembered
+    }
+  }, [eventId, displayMode, groupIndex, selectedIds]);
+
+  // Full screen for the hall TV/laptop (the browser's own Esc also leaves it)
+  const [isFullscreen, setIsFullscreen] = useState(() => !!document.fullscreenElement);
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const toggleFullscreen = () => {
+    const request = document.fullscreenElement
+      ? document.exitFullscreen()
+      : document.documentElement.requestFullscreen?.();
+    request?.catch?.((err) => console.error('Fullscreen error:', err));
+  };
+
+  const toggleSpecialty = (id) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setGroupIndex(0);
+  };
 
   // Helper function to determine patient sex
   const getPatientSex = (patient) => {
@@ -179,21 +220,21 @@ const WaitingList = () => {
     return () => clearInterval(interval);
   }, [eventId]);
 
-  // Only specialties opened today (doctor present), or still finishing their queue
-  const specialities = allSpecialities.filter(s => s.queue_open || (waitingList[s.id] || []).length > 0);
-  const specialtyGroups = specialities.length > MAX_COLUMNS
-    ? [specialities.slice(0, Math.ceil(specialities.length / 2)), specialities.slice(Math.ceil(specialities.length / 2))]
-    : [specialities];
-  const visibleSpecialities = specialtyGroups[groupIndex % specialtyGroups.length];
+  // Only specialties opened today (doctor present), or still finishing their queue,
+  // and only those chosen for this screen
+  const isActive = (s) => s.queue_open || (waitingList[s.id] || []).length > 0;
+  const specialities = allSpecialities.filter(s => isActive(s) && (selectedIds.length === 0 || selectedIds.includes(s.id)));
+  const groupCount = Math.max(1, Math.ceil(specialities.length / MAX_COLUMNS));
+  const groupSize = Math.ceil(specialities.length / groupCount);
+  const specialtyGroups = Array.from({ length: groupCount }, (_, i) => specialities.slice(i * groupSize, (i + 1) * groupSize));
+  const currentGroup = groupIndex % specialtyGroups.length;
+  const visibleSpecialities = specialtyGroups[currentGroup];
 
   useEffect(() => {
-    if (specialtyGroups.length < 2) {
-      setGroupIndex(0);
-      return undefined;
-    }
-    const rotation = setInterval(() => setGroupIndex((i) => (i + 1) % 2), ROTATION_MS);
+    if (displayMode !== 'auto' || specialtyGroups.length < 2) return undefined;
+    const rotation = setInterval(() => setGroupIndex((i) => (i + 1) % specialtyGroups.length), ROTATION_MS);
     return () => clearInterval(rotation);
-  }, [specialtyGroups.length]);
+  }, [displayMode, specialtyGroups.length]);
 
   // Manual refresh
   const handleRefresh = () => {
@@ -202,7 +243,7 @@ const WaitingList = () => {
 
   // Get counts for statistics
   const getTotalCount = () => {
-    return Object.values(filteredWaitingList).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+    return specialities.reduce((sum, s) => sum + (filteredWaitingList[s.id]?.length || 0), 0);
   };
 
   const maxRows = Math.max(...visibleSpecialities.map(s => filteredWaitingList[s.id]?.length || 0), 0);
@@ -255,6 +296,18 @@ const WaitingList = () => {
           >
             <RefreshCw className="w-5 h-5 text-blue-600" />
           </button>
+          {document.fullscreenEnabled && (
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+              title={isFullscreen ? 'الخروج من ملء الشاشة' : 'ملء الشاشة'}
+              aria-label={isFullscreen ? 'الخروج من ملء الشاشة' : 'ملء الشاشة'}
+            >
+              {isFullscreen
+                ? <Minimize className="w-5 h-5 text-blue-600" />
+                : <Maximize className="w-5 h-5 text-blue-600" />}
+            </button>
+          )}
         </div>
         <p className="text-gray-600 text-sm font-droid-arabic-kufi mb-2">
           {event?.name || 'الحدث'}
@@ -316,6 +369,93 @@ const WaitingList = () => {
         </div>
       </div>
 
+      {/* Display settings: auto / manual views, specialties shown on this screen */}
+      <div className="w-full max-w-7xl mb-6">
+        <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 space-y-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-gray-600" />
+              <span className="text-gray-700 font-droid-arabic-kufi font-semibold">طريقة العرض:</span>
+            </div>
+            <div className="flex gap-2">
+              {[
+                { value: 'auto', label: 'تلقائي' },
+                { value: 'manual', label: 'يدوي' },
+              ].map((m) => (
+                <button
+                  key={m.value}
+                  onClick={() => setDisplayMode(m.value)}
+                  className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all ${
+                    displayMode === m.value
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {displayMode === 'manual' && specialtyGroups.length > 1 && (
+              <div className="flex flex-wrap justify-center gap-2 border-r pr-4 mr-2">
+                {specialtyGroups.map((group, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setGroupIndex(i)}
+                    title={group.map((s) => s.name).join('، ')}
+                    className={`px-4 py-2 rounded-lg font-droid-arabic-kufi transition-all max-w-xs ${
+                      currentGroup === i
+                        ? 'bg-gray-700 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="block font-semibold">العرض {i + 1}</span>
+                    <span className="block text-xs truncate opacity-80">{group.map((s) => s.name).join('، ')}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {displayMode === 'manual' && specialtyGroups.length < 2 && (
+              <span className="text-sm text-gray-500 font-droid-arabic-kufi">كل التخصصات في عرض واحد</span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2 border-t border-gray-100 pt-4">
+            <div className="flex items-center gap-2 ml-2">
+              <ListFilter className="w-5 h-5 text-gray-600" />
+              <span className="text-gray-700 font-droid-arabic-kufi font-semibold">التخصصات المعروضة:</span>
+            </div>
+            <button
+              onClick={() => { setSelectedIds([]); setGroupIndex(0); }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-droid-arabic-kufi transition-all ${
+                selectedIds.length === 0
+                  ? 'bg-gray-700 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              الكل
+            </button>
+            {allSpecialities.map((s) => {
+              const selected = selectedIds.includes(s.id);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => toggleSpecialty(s.id)}
+                  aria-pressed={selected}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-droid-arabic-kufi transition-all ${
+                    selected
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+                  } ${isActive(s) ? '' : 'opacity-60'}`}
+                  title={isActive(s) ? '' : 'مغلق اليوم، يظهر عند فتحه'}
+                >
+                  {s.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Legend */}
       <div className="w-full max-w-7xl mb-6 flex flex-wrap items-center justify-center gap-6 text-sm font-droid-arabic-kufi">
         <div className="flex items-center gap-2">
@@ -346,7 +486,8 @@ const WaitingList = () => {
           <div className="flex items-center gap-2 border-r pr-6 mr-2">
             <RefreshCw className="w-4 h-4 text-indigo-500" />
             <span className="text-gray-700">
-              التخصصات {groupIndex % 2 + 1} / 2 (تتبدل كل 10 ثوانٍ)
+              التخصصات {currentGroup + 1} / {specialtyGroups.length}{' '}
+              {displayMode === 'auto' ? '(تتبدل كل 10 ثوانٍ)' : '(عرض يدوي)'}
             </span>
           </div>
         )}
@@ -360,7 +501,9 @@ const WaitingList = () => {
               <tr>
                 {specialities.length === 0 ? (
                   <th className="px-6 py-8 text-center text-gray-500 font-droid-arabic-kufi">
-                    لا توجد تخصصات متاحة لهذا الحدث
+                    {selectedIds.length > 0
+                      ? 'لا يوجد تخصص مفتوح اليوم من التخصصات المختارة'
+                      : 'لا توجد تخصصات متاحة لهذا الحدث'}
                   </th>
                 ) : (
                   visibleSpecialities.map((speciality) => {

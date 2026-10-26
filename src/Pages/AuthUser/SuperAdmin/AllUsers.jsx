@@ -21,6 +21,7 @@ const ROLES = [
   { id: 5, name: "RecipientAdmin" },
   { id: 6, name: "Doctor" },
   { id: 7, name: "ContentAdmin" },
+  { id: 8, name: "PatientManager" },
 ];
 
 const ROLE_LABELS = {
@@ -31,6 +32,7 @@ const ROLE_LABELS = {
   5: "مسؤول الإستقبال",
   6: "طبيب",
   7: "مسؤول المحتوى",
+  8: "مسؤول الإنزال",
 };
 const getRoleName = (roleId) => ROLE_LABELS[roleId] || "غير محدد";
 
@@ -226,7 +228,7 @@ export default function AllUsers() {
           { label: "مستخدم", value: users ? all.length : undefined },
           { label: "معيّن لحدث", value: users ? all.filter((u) => u.event_id).length : undefined, tone: "text-st-queue" },
           { label: "بدون حدث", value: users ? all.filter((u) => !u.event_id && u.role_id !== 1).length : undefined, tone: "text-st-pushed" },
-          { label: "مسؤولون", value: users ? all.filter((u) => [3, 4, 5].includes(u.role_id)).length : undefined },
+          { label: "مسؤولون", value: users ? all.filter((u) => [3, 4, 5, 8].includes(u.role_id)).length : undefined },
         ]}
       />
 
