@@ -105,7 +105,7 @@ const truncate = (text, max) => {
  * One row per category, so it stays readable at 360px.
  * bars: [{ key, name, color }]; more than one bar = stacked.
  */
-export function HBarChart({ data, bars, nameKey = 'name', labelWidth = 104, rowHeight = 34 }) {
+export function HBarChart({ data, bars, nameKey = 'name', labelWidth = 104, rowHeight = 34, fontSize = 12, maxBarSize = 22 }) {
   if (!data.length) return null;
   const height = Math.max(140, data.length * rowHeight + 36);
   const stacked = bars.length > 1;
@@ -118,7 +118,7 @@ export function HBarChart({ data, bars, nameKey = 'name', labelWidth = 104, rowH
             type="number"
             reversed
             allowDecimals={false}
-            tick={{ fill: CHART.muted, fontSize: 12 }}
+            tick={{ fill: CHART.muted, fontSize }}
             axisLine={false}
             tickLine={false}
           />
@@ -128,8 +128,8 @@ export function HBarChart({ data, bars, nameKey = 'name', labelWidth = 104, rowH
             orientation="right"
             width={labelWidth}
             interval={0}
-            tickFormatter={(v) => truncate(v, Math.floor(labelWidth / 7))}
-            tick={{ fill: CHART.ink, fontSize: 12 }}
+            tickFormatter={(v) => truncate(v, Math.floor(labelWidth / (fontSize * 0.6)))}
+            tick={{ fill: CHART.ink, fontSize }}
             axisLine={false}
             tickLine={false}
           />
@@ -146,7 +146,7 @@ export function HBarChart({ data, bars, nameKey = 'name', labelWidth = 104, rowH
               fill={bar.color}
               stackId={stacked ? 'a' : undefined}
               radius={!stacked || i === bars.length - 1 ? [4, 0, 0, 4] : 0}
-              maxBarSize={22}
+              maxBarSize={maxBarSize}
               isAnimationActive={false}
             />
           ))}
@@ -220,7 +220,7 @@ export function ResponsiveTable({ columns, rows, rowKey, footer, empty = 'لا �
           <thead>
             <tr className="border-y border-line bg-paper text-muted">
               {columns.map((col) => (
-                <th key={col.key} className={cx('px-4 py-2.5 font-semibold whitespace-nowrap', col.align === 'center' ? 'text-center' : 'text-start')}>
+                <th key={col.key} className={cx('px-3 py-2.5 font-semibold align-bottom leading-snug', col.align === 'center' ? 'text-center' : 'text-start')}>
                   {col.label}
                 </th>
               ))}
@@ -230,7 +230,7 @@ export function ResponsiveTable({ columns, rows, rowKey, footer, empty = 'لا �
             {all.map((row, i) => (
               <tr key={row.__footer ? '__footer' : rowKey(row, i)} className={cx(row.__footer && 'bg-paper font-semibold')}>
                 {columns.map((col) => (
-                  <td key={col.key} className={cx('px-4 py-2.5 text-ink', col.align === 'center' ? 'text-center' : 'text-start', col === primary && 'font-semibold')}>
+                  <td key={col.key} className={cx('px-3 py-2.5 text-ink', col.align === 'center' ? 'text-center' : 'text-start', col === primary && 'font-semibold')}>
                     {cell(col, row)}
                   </td>
                 ))}

@@ -265,7 +265,7 @@ const VisitsStatistics = () => {
                 ]}
             />
 
-            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-start">
+            <div className="space-y-4">
                 <Panel title={`المواعيد حسب الحالة (${totals.total || 0})`}>
                     <ShareBar
                         total={totals.total || 0}
@@ -273,7 +273,7 @@ const VisitsStatistics = () => {
                     />
                 </Panel>
 
-                <Panel title="المواعيد حسب التخصص" className="lg:col-span-2">
+                <Panel title="المواعيد حسب التخصص">
                     {statistics.length === 0 ? (
                         <p className="py-6 text-center text-sm text-muted">لا توجد مواعيد في هذا الحدث بعد.</p>
                     ) : (
@@ -285,6 +285,10 @@ const VisitsStatistics = () => {
                                     ...Object.fromEntries(GROUP_KEYS.map((key) => [key, stat[key] || 0])),
                                 }))}
                                 bars={GROUP_KEYS.map((key) => ({ key, name: GROUP_LABELS[key], color: GROUP_COLORS[key] }))}
+                                labelWidth={190}
+                                rowHeight={44}
+                                fontSize={14}
+                                maxBarSize={30}
                             />
                             <div className="mt-4">
                                 <ResponsiveTable
@@ -298,7 +302,7 @@ const VisitsStatistics = () => {
                     )}
                 </Panel>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 lg:col-span-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <Panel title="المرضى">
                         <dl className="divide-y divide-line">
                             {[

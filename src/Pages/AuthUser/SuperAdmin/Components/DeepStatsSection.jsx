@@ -56,14 +56,14 @@ function Pyramid({ bands }) {
   return (
     <div dir="ltr" className="space-y-1">
       {[...bands].reverse().map((b) => (
-        <div key={b.band} className="grid grid-cols-[1fr_3.5rem_1fr] items-center gap-2 text-xs">
+        <div key={b.band} className="grid grid-cols-[1fr_4.5rem_1fr] items-center gap-2 text-sm">
           <div className="flex items-center justify-end gap-1.5">
             <span className="tabular-nums text-ink">{b.males}</span>
-            <div className="h-4 rounded-s" style={{ width: `${(b.males / max) * 80}%`, backgroundColor: CHART.ink }} />
+            <div className="h-5 rounded-s" style={{ width: `${(b.males / max) * 85}%`, backgroundColor: CHART.ink }} />
           </div>
           <span className="text-center text-muted">{b.band}</span>
           <div className="flex items-center gap-1.5">
-            <div className="h-4 rounded-e" style={{ width: `${(b.females / max) * 80}%`, backgroundColor: CHART.rose }} />
+            <div className="h-5 rounded-e" style={{ width: `${(b.females / max) * 85}%`, backgroundColor: CHART.rose }} />
             <span className="tabular-nums text-ink">{b.females}</span>
           </div>
         </div>
@@ -75,12 +75,12 @@ function Pyramid({ bands }) {
 function Timeline({ days }) {
   const data = days.map((d) => ({ ...d, label: d.day.slice(5) }));
   return (
-    <div dir="ltr" className="w-full" style={{ height: 220 }}>
+    <div dir="ltr" className="w-full" style={{ height: 320 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
           <CartesianGrid vertical={false} stroke={CHART.line} />
-          <XAxis dataKey="label" tick={{ fill: CHART.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-          <YAxis allowDecimals={false} width={32} tick={{ fill: CHART.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
+          <XAxis dataKey="label" tick={{ fill: CHART.muted, fontSize: 14 }} axisLine={false} tickLine={false} />
+          <YAxis allowDecimals={false} width={36} tick={{ fill: CHART.muted, fontSize: 14 }} axisLine={false} tickLine={false} />
           <Tooltip
             cursor={{ fill: CHART.inkFaint }}
             contentStyle={{ direction: 'rtl', borderRadius: 12, border: `1px solid ${CHART.line}`, fontSize: 13 }}
@@ -137,26 +137,32 @@ function Matrix({ matrix }) {
           الأحمر: أكثر من المتوقع، الأزرق: أقل من المتوقع. القيمة خارج ‎±1.96‎ تعني فرقاً ذا دلالة إحصائية (5%) في تلك الخلية.
         </p>
       )}
-      <div className="overflow-x-auto -mx-4 px-4">
-        <table className="w-full text-sm border-separate border-spacing-0.5">
+      {/* Fixed layout: the columns share the full width and their titles wrap, so no scrolling */}
+      <div className="w-full">
+        <table className="w-full table-fixed text-xs sm:text-sm lg:text-base border-separate border-spacing-0.5">
+          <colgroup>
+            <col style={{ width: '18%' }} />
+            {cols.map((col) => <col key={col} />)}
+            <col style={{ width: '9%' }} />
+          </colgroup>
           <thead>
-            <tr className="text-muted">
-              <th className="text-start px-2 py-1.5 font-semibold" />
+            <tr className="text-muted align-bottom">
+              <th className="text-start px-1.5 py-1.5 font-semibold" />
               {cols.map((col) => (
-                <th key={col} className="px-2 py-1.5 font-semibold text-center whitespace-nowrap">{col}</th>
+                <th key={col} className="px-1 py-1.5 font-semibold text-center leading-snug break-words">{col}</th>
               ))}
-              <th className="px-2 py-1.5 font-semibold text-center">المجموع</th>
+              <th className="px-1 py-1.5 font-semibold text-center">المجموع</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, r) => (
               <tr key={row}>
-                <th className="text-start px-2 py-1.5 font-semibold text-ink whitespace-nowrap">{row}</th>
+                <th className="text-start px-1.5 py-1.5 font-semibold text-ink leading-snug break-words">{row}</th>
                 {cols.map((col, c) => (
                   <td
                     key={col}
                     style={shade(cells[r][c], r, c)}
-                    className={cx('text-center px-2 py-1.5 rounded-md tabular-nums', light(cells[r][c], r, c) ? 'text-white' : 'text-ink')}
+                    className={cx('text-center px-1 py-2 rounded-md tabular-nums', light(cells[r][c], r, c) ? 'text-white' : 'text-ink')}
                   >
                     {show(cells[r][c], r, c)}
                     {mode === 'resid' && Math.abs(z(r, c) ?? 0) >= 1.96 && <span aria-label="دال إحصائياً"> *</span>}
@@ -275,7 +281,7 @@ const DeepStatsSection = ({ eventId }) => {
               </Panel>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <div className="grid grid-cols-1 gap-4">
               <Panel title="الجنس حسب القصر">
                 <ChartLegend className="mb-2" items={SEX_LEGEND} />
                 <HBarChart
@@ -284,6 +290,10 @@ const DeepStatsSection = ({ eventId }) => {
                     { key: 'males', name: 'ذكور', color: CHART.ink },
                     { key: 'females', name: 'إناث', color: CHART.rose },
                   ]}
+                  labelWidth={190}
+                  rowHeight={44}
+                  fontSize={14}
+                  maxBarSize={30}
                 />
               </Panel>
               <Panel title="هرم الأعمار">
@@ -319,7 +329,7 @@ const DeepStatsSection = ({ eventId }) => {
               />
             </Panel>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+            <div className="grid grid-cols-1 gap-4">
               {MATRIX_ORDER.map((key) => <Matrix key={key} matrix={s.matrices[key]} />)}
             </div>
           </div>
