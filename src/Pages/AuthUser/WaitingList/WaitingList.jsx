@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useEffect, useState, useContext } from 'react';
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle, Monitor, ListFilter, Maximize, Minimize, Eye, EyeOff } from 'lucide-react';
 
 const apiUrl = API_BASE_URL;
@@ -24,6 +24,10 @@ import { AppContext } from "../../../Context/AppContext";
 const WaitingList = () => {
   const { eventId } = useParams();
   const { user } = useContext(AppContext);
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Back to the page the user came from; home only if this page was opened directly
+  const goBack = () => (location.key === 'default' ? navigate('/') : navigate(-1));
   
   const [event, setEvent] = useState(null);
   const [allSpecialities, setAllSpecialities] = useState([]);
@@ -266,13 +270,14 @@ const WaitingList = () => {
       {/* Back Button */}
       {user &&
       <div className="w-full max-w-7xl mb-4">
-        <Link
-          to={`/`}
+        <button
+          type="button"
+          onClick={goBack}
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 font-droid-arabic-kufi transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          العودة إلى الصفحة الرئيسية
-        </Link>
+          العودة إلى الصفحة السابقة
+        </button>
       </div>}
 
       {/* Error Alert */}
