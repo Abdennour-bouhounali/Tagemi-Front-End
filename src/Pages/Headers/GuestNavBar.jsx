@@ -14,7 +14,8 @@ import {
     Home as HomeIcon,
     Phone,
     Info,
-    Heart
+    Heart,
+    BookOpen
 } from 'lucide-react';
 
 const apiUrl = API_BASE_URL;
@@ -482,6 +483,17 @@ const UserMenu = ({ user, language, handleLogout }) => {
                 </div>
             )}
 
+            {/* Patient journey guide - every signed-in user */}
+            <Link
+                to="/admin/patient-journey"
+                className="px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-[#101E58] bg-white border border-[#101E58]/20 rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi"
+            >
+                <span className="flex items-center gap-1.5 xl:gap-2">
+                    <BookOpen className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+                    <span className="hidden xl:inline">{language === 'en' ? 'Patient journey' : 'دليل رحلة المريض'}</span>
+                </span>
+            </Link>
+
             {/* Logout Button */}
             <button
                 onClick={handleLogout}
@@ -558,6 +570,16 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
                     </div>
                 </div>
             )}
+
+            {/* Patient journey guide - every signed-in user */}
+            <Link
+                to="/admin/patient-journey"
+                onClick={onClick}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-[#101E58] bg-white border border-[#101E58]/20 rounded-xl font-droid-arabic-kufi"
+            >
+                <BookOpen className="w-5 h-5" />
+                <span>{language === 'en' ? 'Patient journey' : 'دليل رحلة المريض'}</span>
+            </Link>
 
             {/* Logout Button */}
             <button

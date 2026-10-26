@@ -1,0 +1,1811 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>رحلة المريض · تجمي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#101E58; --ink-soft:#2A3A7A; --ink-faint:#E7EAF4;
+  --rose:#E03A6F; --rose-soft:#FBE4EC;
+  --paper:#F2F4F9; --card:#FFFFFF; --line:#DCE1EC; --muted:#5E6987;
+  --q:#0F8A6C; --q-bg:#E3F4EE;
+  --hold:#4F5FA3; --hold-bg:#E8EBF7;
+  --push:#B26B00; --push-bg:#FBF0DC;
+  --dil:#0E7490; --dil-bg:#E0F2F6;
+  --done:#5F6B7D; --done-bg:#ECEEF2;
+  --pend:#8A93A8; --pend-bg:#F1F2F6;
+  --err:#C0362C; --err-bg:#FDECEA;
+  --wa:#1F8A4C; --wa-bg:#E7F6EC;
+  --display:'Noto Kufi Arabic','Droid Arabic Kufi','IBM Plex Sans Arabic',sans-serif;
+  --ui:'IBM Plex Sans Arabic',Tahoma,sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.65}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3,h4{font-family:var(--display);margin:0;line-height:1.35}
+.wrap{max-width:1280px;margin:0 auto;padding:0 16px}
+
+/* ---------- top bar ---------- */
+.top{background:var(--ink);color:#fff;position:relative;overflow:hidden}
+.top::after{content:"";position:absolute;inset:auto -60px -120px auto;width:340px;height:340px;border-radius:50%;
+  border:56px solid rgba(255,255,255,.05)}
+.top .wrap{position:relative;z-index:1;padding-top:22px}
+.brand{display:flex;align-items:center;gap:10px;font-size:13px;opacity:.85}
+.brand i{width:28px;height:28px;border-radius:8px;background:var(--rose);display:grid;place-items:center;font-style:normal;font-family:var(--display);font-weight:800}
+.hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin:14px 0 18px}
+.hero h1{font-size:clamp(24px,4vw,36px);font-weight:800}
+.hero p{margin:6px 0 0;max-width:640px;color:#C9D0EA}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tabs button{border:0;background:transparent;color:#C9D0EA;padding:12px 16px;border-radius:12px 12px 0 0;font-weight:600;white-space:nowrap}
+.tabs button[aria-selected=true]{background:var(--paper);color:var(--ink)}
+.tabs button:focus-visible{outline:2px solid var(--rose);outline-offset:-2px}
+
+main{padding:20px 0 48px}
+[hidden]{display:none!important}
+
+/* ---------- journey layout ---------- */
+.journey{display:grid;grid-template-columns:290px 1fr;gap:18px;align-items:start}
+.scen-list{display:flex;flex-direction:column;gap:6px;position:sticky;top:12px}
+.scen-list h2{font-size:13px;color:var(--muted);font-family:var(--ui);font-weight:600;margin:4px 4px 4px}
+.scen{display:flex;gap:10px;align-items:flex-start;text-align:start;width:100%;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:10px 12px;transition:border-color .2s,background .2s}
+.scen:hover{border-color:var(--ink-soft)}
+.scen[aria-current=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.scen .n{flex:none;width:26px;height:26px;border-radius:8px;background:var(--ink-faint);color:var(--ink);display:grid;place-items:center;
+  font-family:var(--display);font-weight:700;font-size:13px}
+.scen[aria-current=true] .n{background:var(--rose);color:#fff}
+.scen b{display:block;font-size:14px;line-height:1.4}
+.scen small{display:block;font-size:12px;color:var(--muted);line-height:1.45;margin-top:2px}
+.scen[aria-current=true] small{color:#C9D0EA}
+
+.player{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;min-width:0}
+
+/* milestones */
+.miles{position:relative;display:grid;grid-template-columns:repeat(6,1fr);padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+.miles::before{content:"";position:absolute;top:31px;inset-inline:calc(100%/12 + 18px);height:3px;background:var(--line);border-radius:3px}
+.miles .bar{position:absolute;top:31px;inset-inline-start:calc(100%/12 + 18px);height:3px;background:var(--ink);border-radius:3px;
+  transition:width .7s cubic-bezier(.2,.7,.2,1);width:0}
+.mile{position:relative;text-align:center;font-size:12px;color:var(--muted);font-weight:600;z-index:1}
+.mile .dot{width:28px;height:28px;margin:0 auto 4px;border-radius:50%;background:var(--card);border:3px solid var(--line);
+  display:grid;place-items:center;transition:all .4s}
+.mile .dot svg{width:13px;height:13px;opacity:.55}
+.mile.past .dot{border-color:var(--ink);background:var(--ink)}
+.mile.past .dot svg{stroke:#fff;opacity:1}
+.mile.now{color:var(--ink)}
+.mile.now .dot{border-color:var(--rose);background:var(--rose);transform:scale(1.18);box-shadow:0 0 0 6px var(--rose-soft)}
+.mile.now .dot svg{stroke:#fff;opacity:1}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 330px;min-height:470px}
+.scene{position:relative;padding:18px;background:
+  radial-gradient(circle at 1px 1px,var(--line) 1px,transparent 0) 0 0/18px 18px,var(--paper);overflow:hidden;min-width:0}
+.narr{border-inline-start:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.actor{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;padding:5px 10px 5px 12px;border-radius:999px;
+  background:var(--ink-faint);color:var(--ink);align-self:flex-start}
+.actor svg{width:16px;height:16px}
+.narr h3{font-size:19px;font-weight:700}
+.narr p{margin:0;color:#2b3557}
+.stepn{font-size:12px;color:var(--muted);font-weight:600}
+.rule{background:var(--ink-faint);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.rule b{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:2px}
+.errbox{background:var(--err-bg);color:var(--err);border-radius:12px;padding:10px 12px;font-size:13.5px;font-weight:600}
+.errbox b{display:block;font-size:12px;opacity:.8;font-weight:600}
+.diff{display:flex;flex-direction:column;gap:6px}
+.diff .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}
+.diff .row .sp{font-weight:600;min-width:84px}
+.arrow{color:var(--muted)}
+
+.controls{display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;font-size:14px}
+.btn:hover{border-color:var(--ink-soft)}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn svg{width:16px;height:16px}
+.btn:focus-visible,.scen:focus-visible,.it:focus-visible{outline:2px solid var(--rose);outline-offset:2px}
+.dots{display:flex;gap:5px;flex:1;justify-content:center;flex-wrap:wrap}
+.dots button{width:9px;height:9px;padding:0;border-radius:9px;border:0;background:var(--line);transition:all .3s}
+.dots button.on{width:26px;background:var(--ink)}
+.dots button.seen{background:var(--ink-soft)}
+.speed{border:1px solid var(--line);border-radius:10px;padding:7px 8px;background:var(--card);font:inherit;font-size:13px}
+.autobar{height:3px;background:var(--rose);width:0}
+
+/* ---------- board (queues) ---------- */
+.board{display:grid;gap:10px;grid-template-columns:repeat(var(--cols,3),minmax(150px,1fr));overflow-x:auto;padding-bottom:4px}
+.col{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:150px}
+.col.entr{background:transparent;border-style:dashed}
+.col-h{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.col-h h4{font-size:13.5px;font-weight:700}
+.col-h .cnt{font-size:11px;color:var(--muted);font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;white-space:nowrap}
+.pill.open{background:var(--q-bg);color:var(--q)}
+.pill.closed{background:var(--done-bg);color:var(--done)}
+.zone{display:flex;flex-direction:column;gap:6px;min-height:8px}
+.zone.flow{flex-direction:row;flex-wrap:wrap;gap:4px}
+.sub{border-radius:10px;padding:7px;display:flex;flex-direction:column;gap:5px}
+.sub > span{font-size:11px;font-weight:600}
+.sub.dilroom{background:var(--dil-bg);border:1px dashed #9fd0dc}
+.sub.dilroom > span{color:var(--dil)}
+.sub.hold > span{color:var(--hold)}
+.sub.done > span{color:var(--done)}
+.sub.hold,.sub.done{padding:0}
+.sub.empty{display:none}
+
+.it{position:relative;will-change:transform}
+.tk{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:10px;min-height:44px;cursor:default}
+.tk .stub{flex:none;width:38px;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:17px;
+  background:var(--q-bg);color:var(--q);position:relative;border-start-start-radius:9px;border-end-start-radius:9px}
+.tk .stub::after{content:"";position:absolute;inset-block:5px;inset-inline-end:-1px;border-inline-end:2px dotted var(--line)}
+.tk .bd{padding:5px 8px;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.tk .bd b{font-size:12.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk .bd b em{font-style:normal;color:var(--muted);font-weight:600;margin-inline-end:4px}
+.tk .tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}
+.tag{font-size:10px;font-weight:700;border-radius:6px;padding:0 5px;line-height:16px}
+.tag.pri{background:var(--rose-soft);color:var(--rose)}
+.tag.push{background:var(--push-bg);color:var(--push)}
+.tag.dil{background:var(--dil-bg);color:var(--dil)}
+.tk.pri .stub{background:var(--rose);color:#fff}
+.tk.push .stub{background:var(--push-bg);color:var(--push)}
+.tk.dil .stub{background:var(--dil);color:#fff;font-size:12px}
+.tk.dilsent .stub{background:var(--dil-bg);color:var(--dil);font-size:12px}
+.tk.focus{border:2px solid var(--ink);box-shadow:0 0 0 4px rgba(16,30,88,.12)}
+.tk.focus::before{content:attr(data-me);position:absolute;top:-9px;inset-inline-end:8px;background:var(--ink);color:#fff;font-size:10px;font-weight:700;
+  padding:0 6px;border-radius:6px;line-height:16px;z-index:2}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:2px 7px;font-size:11.5px;font-weight:600;border:1px solid transparent;cursor:default}
+.chip.hold{background:var(--hold-bg);color:var(--hold)}
+.chip.done{background:var(--done-bg);color:var(--done);text-decoration:line-through;text-decoration-color:rgba(95,107,125,.4)}
+.chip.pend{background:var(--card);color:var(--ink);border-color:var(--line);padding:5px 9px;font-size:12px;display:flex;flex-direction:column;align-items:flex-start;gap:0;line-height:1.45}
+.chip.pend small{color:var(--muted);font-weight:500;font-size:11px}
+.chip.focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(16,30,88,.12)}
+.chip.other{background:var(--pend-bg);color:var(--pend)}
+.sandbox .it{cursor:pointer}
+.sandbox .tk:hover{border-color:var(--ink-soft)}
+.timer{font-variant-numeric:tabular-nums}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,58,111,.55)}100%{box-shadow:0 0 0 12px rgba(224,58,111,0)}}
+.it.flash{animation:pulse .9s ease-out 2}
+
+.pcard{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.pcard h4{font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pcard h4 .av{width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:11px}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px dashed var(--line);font-size:13px}
+.prow:first-of-type{border-top:0}
+.st{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;white-space:nowrap}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st.Pending{background:var(--pend-bg);color:var(--pend)}
+.st.Waiting{background:var(--hold-bg);color:var(--hold)}
+.st.Present{background:var(--q-bg);color:var(--q)}
+.st.Commingsoon{background:var(--push-bg);color:var(--push)}
+.st.DilatationSent,.st.Dilatation{background:var(--dil-bg);color:var(--dil)}
+.st.Completed{background:var(--done-bg);color:var(--done)}
+
+/* ---------- phone & devices ---------- */
+.devrow{display:flex;gap:22px;align-items:center;justify-content:center;flex-wrap:wrap;min-height:430px}
+.phone{width:262px;height:440px;border-radius:36px;background:#0c1333;padding:10px;box-shadow:0 18px 40px -18px rgba(16,30,88,.55);flex:none;position:relative}
+.phone::before{content:"";position:absolute;top:16px;left:50%;transform:translateX(-50%);width:70px;height:18px;background:#0c1333;border-radius:12px;z-index:3}
+.screen{width:100%;height:100%;border-radius:28px;background:#fff;overflow:hidden;display:flex;flex-direction:column;font-size:12.5px;position:relative}
+.sbar{height:38px;flex:none}
+.shead{padding:2px 14px 10px;border-bottom:1px solid var(--line)}
+.shead b{font-family:var(--display);font-size:14px}
+.shead small{display:block;color:var(--muted);font-size:11px}
+.sbody{padding:10px 12px;display:flex;flex-direction:column;gap:7px;flex:1;overflow:hidden}
+.fld{border:1px solid var(--line);border-radius:9px;padding:4px 9px;opacity:0;animation:fin .4s forwards}
+.fld small{display:block;font-size:10px;color:var(--muted);line-height:1.3}
+.fld span{font-weight:600}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sbtn{background:var(--ink);color:#fff;border-radius:10px;text-align:center;padding:8px;font-weight:700;opacity:0;animation:fin .4s forwards}
+.selsp{display:flex;align-items:center;justify-content:space-between;border:1.5px solid var(--ink);border-radius:9px;padding:5px 9px;background:var(--ink-faint);opacity:0;animation:fin .4s forwards}
+.selsp b{font-size:12px}
+.selsp small{font-size:10.5px;color:var(--muted)}
+.selsp.full{border-color:var(--err);background:var(--err-bg)}
+@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tic{margin:6px 4px 0;border-radius:14px;background:var(--ink);color:#fff;display:flex;overflow:hidden;opacity:0;animation:fin .5s .2s forwards}
+.tic .l{flex:1;padding:12px}
+.tic .l small{color:#C9D0EA;font-size:10.5px}
+.tic .l b{font-family:var(--display);font-size:38px;line-height:1.1;display:block}
+.tic .r{width:76px;border-inline-start:2px dashed rgba(255,255,255,.3);display:grid;place-items:center}
+.qr{width:52px;height:52px;background:#fff;border-radius:6px;padding:4px;display:grid;grid-template-columns:repeat(7,1fr);gap:1px}
+.qr i{background:var(--ink);border-radius:1px}
+.qr i.o{background:transparent}
+.arow{display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--line);padding:5px 2px;opacity:0;animation:fin .4s forwards}
+.arow small{color:var(--muted)}
+.note{background:var(--ink-faint);border-radius:9px;padding:6px 9px;font-size:11.5px;opacity:0;animation:fin .4s forwards}
+.wa-head{background:#075E54;color:#fff;padding:2px 12px 10px;display:flex;align-items:center;gap:8px}
+.wa-head .av{width:30px;height:30px;border-radius:50%;background:#fff;color:#075E54;display:grid;place-items:center;font-family:var(--display);font-weight:800}
+.wa-body{flex:1;background:#ECE5DD;padding:10px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.bubble{background:#DCF8C6;border-radius:10px 2px 10px 10px;padding:7px 9px;font-size:11.5px;line-height:1.55;align-self:flex-start;max-width:94%;
+  opacity:0;animation:fin .5s 1.2s forwards;white-space:pre-line}
+.bubble a{color:#0b6bcb;word-break:break-all}
+.typing{align-self:flex-start;background:#fff;border-radius:10px;padding:8px 12px;display:flex;gap:4px;animation:hide 0s 1.2s forwards}
+.typing i{width:6px;height:6px;border-radius:50%;background:#9aa;animation:bl 1s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes bl{50%{opacity:.25}}
+@keyframes hide{to{display:none;opacity:0;height:0;padding:0}}
+.inp{border:1.5px solid var(--ink);border-radius:9px;padding:6px 9px;font-weight:700;font-family:var(--display);letter-spacing:1px;direction:ltr;text-align:right;
+  overflow:hidden;white-space:nowrap}
+.inp span{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;width:0;animation:type 1s steps(var(--n,3)) .3s forwards;border-inline-start:2px solid var(--rose)}
+@keyframes type{to{width:calc(var(--n,3) * 1.05ch + 2px)}}
+.mt{border:1px solid var(--line);border-radius:12px;padding:8px;opacity:0;animation:fin .5s forwards}
+.mt h5{margin:0 0 4px;font-family:var(--display);font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.mt h5 small{font-family:var(--ui);font-weight:600;color:var(--muted);font-size:11px}
+.mtr{display:flex;flex-direction:column;gap:2px;padding:5px 0;border-top:1px dashed var(--line)}
+.mtr:first-of-type{border-top:0}
+.mtr .a{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.mtr .a b{font-size:12px}
+.mtr .pos{display:flex;align-items:baseline;gap:6px;font-size:11px;color:var(--muted)}
+.mtr .pos strong{font-family:var(--display);font-size:22px;color:var(--q);line-height:1.1}
+.mtr .go{font-size:11px;font-weight:600;color:var(--dil)}
+.stars{display:flex;gap:2px;direction:ltr;justify-content:flex-end}
+.stars i{width:14px;height:14px;background:var(--line);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);opacity:1}
+.stars i.f{animation:star .3s forwards}
+@keyframes star{to{background:#F2B01E}}
+.qrow{opacity:0;animation:fin .4s forwards}
+.qrow small{display:block;font-size:11px;font-weight:600;margin-bottom:2px}
+.errscr{margin:auto 4px;border-radius:12px;background:var(--err-bg);color:var(--err);padding:12px;font-weight:600;opacity:0;animation:fin .5s .5s forwards}
+.errscr small{display:block;font-weight:700;font-size:10.5px;opacity:.8;margin-bottom:3px}
+.okscr{border-radius:12px;background:var(--q-bg);color:var(--q);padding:10px;font-weight:600;opacity:0;animation:fin .5s .5s forwards}
+.warnscr{border-radius:12px;background:var(--push-bg);color:var(--push);padding:10px;font-weight:600;opacity:0;animation:fin .5s .9s forwards}
+
+/* reception scanner */
+.tablet{width:300px;height:420px;border-radius:26px;background:#0c1333;padding:10px;box-shadow:0 18px 40px -18px rgba(16,30,88,.55);flex:none}
+.viewf{position:relative;height:210px;margin:10px 12px 0;border-radius:14px;background:#1b2550;overflow:hidden;display:grid;place-items:center}
+.viewf .card{width:120px;height:150px;background:#fff;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  transform:rotate(-6deg) translateY(160px);animation:cardin .9s .2s cubic-bezier(.2,.7,.2,1) forwards}
+.viewf .card .qr{width:70px;height:70px}
+.viewf .card b{font-family:var(--display);font-size:16px}
+@keyframes cardin{to{transform:rotate(-3deg) translateY(0)}}
+.viewf .corner{position:absolute;inset:22px;border:3px solid transparent;border-radius:12px;
+  background:linear-gradient(#fff,#fff) top left/24px 3px no-repeat,linear-gradient(#fff,#fff) top left/3px 24px no-repeat,
+  linear-gradient(#fff,#fff) top right/24px 3px no-repeat,linear-gradient(#fff,#fff) top right/3px 24px no-repeat,
+  linear-gradient(#fff,#fff) bottom left/24px 3px no-repeat,linear-gradient(#fff,#fff) bottom left/3px 24px no-repeat,
+  linear-gradient(#fff,#fff) bottom right/24px 3px no-repeat,linear-gradient(#fff,#fff) bottom right/3px 24px no-repeat;background-origin:border-box}
+.viewf .laser{position:absolute;left:30px;right:30px;height:2px;background:var(--rose);box-shadow:0 0 12px var(--rose);top:30px;animation:laser 1.2s .9s 2 ease-in-out}
+@keyframes laser{50%{top:180px}}
+.toast{margin:10px 12px 0;border-radius:12px;padding:9px 11px;font-weight:600;font-size:12.5px;opacity:0;animation:fin .5s 2.6s forwards}
+.toast.ok{background:var(--q-bg);color:var(--q)}
+.toast.bad{background:var(--err-bg);color:var(--err)}
+.toast small{display:block;font-weight:500;color:var(--ink);opacity:.75;font-size:11.5px}
+.or{display:flex;align-items:center;gap:8px;margin:10px 12px 0;color:var(--muted);font-size:11px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* hall tv */
+.tv{width:min(290px,100%);aspect-ratio:4/3;background:#0c1333;border-radius:16px;padding:12px;box-shadow:0 18px 40px -18px rgba(16,30,88,.55)}
+.tv .in{height:100%;border-radius:8px;background:#fff;display:grid;grid-template-columns:repeat(var(--cols,2),1fr);gap:8px;padding:10px}
+.tv .c{border-radius:8px;background:var(--paper);padding:8px;display:flex;flex-direction:column;gap:5px}
+.tv .c h5{margin:0;font-family:var(--display);font-size:13px;text-align:center;background:var(--ink);color:#fff;border-radius:6px;padding:3px}
+.tv .c .nm{display:flex;justify-content:space-between;font-family:var(--display);font-weight:700;font-size:13px;background:#fff;border-radius:6px;padding:2px 8px;opacity:0;animation:fin .4s forwards}
+.tv .c .nm.me{background:var(--ink-faint);outline:2px solid var(--ink)}
+.tv .c .nm small{font-size:11px;color:var(--muted)}
+
+/* referral sheet */
+.sheetmock{width:min(360px,100%);background:#fff;border-radius:18px 18px 0 0;align-self:flex-end;box-shadow:0 -10px 30px -12px rgba(16,30,88,.35);padding:14px;
+  animation:up .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes up{from{transform:translateY(60px);opacity:0}}
+.sheetmock h5{margin:0 0 8px;font-family:var(--display);font-size:14px}
+.opt{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:6px;font-weight:600;font-size:13px}
+.opt small{font-weight:500;color:var(--muted);font-size:11.5px}
+.opt.no{opacity:.55;background:var(--paper)}
+.opt.yes{border-color:var(--q);background:var(--q-bg)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;width:100%}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;opacity:0;animation:fin .5s forwards}
+.stat small{display:block;color:var(--muted);font-weight:600;font-size:12px}
+.stat b{font-family:var(--display);font-size:30px;line-height:1.2}
+.stat em{font-style:normal;font-size:12px;color:var(--muted)}
+.outc{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
+.outc table{width:100%;border-collapse:collapse;font-size:13px}
+.outc th{font-size:11.5px;color:var(--muted);text-align:start;font-weight:600;padding:4px 6px}
+.outc td{padding:6px;border-top:1px dashed var(--line)}
+.summary{width:100%;display:flex;flex-direction:column;gap:10px}
+.sumcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;opacity:0;animation:fin .5s forwards}
+.sumcard h4{font-size:15px;margin-bottom:6px}
+.trail{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* ---------- sandbox ---------- */
+.sb-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.sb-top .sp{flex:1}
+.sb-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+.sb-board{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+.sb-side{display:flex;flex-direction:column;gap:14px;position:sticky;top:12px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
+.panel h3{font-size:14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.log{display:flex;flex-direction:column;gap:6px;max-height:330px;overflow:auto}
+.log .e{border-radius:10px;padding:7px 9px;font-size:12.5px;background:var(--paper);animation:fin .3s}
+.log .e.ok{background:var(--q-bg)}
+.log .e.bad{background:var(--err-bg);color:var(--err)}
+.log .e b{display:block;font-size:11px;opacity:.75}
+.log .e i{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
+.log .e.bad i{color:var(--err);opacity:.8}
+.colbtns{display:flex;gap:4px;flex-wrap:wrap}
+.mini{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:2px 8px;font-size:11.5px;font-weight:600}
+.mini:hover{border-color:var(--ink-soft)}
+.mini.on{background:var(--q-bg);color:var(--q);border-color:transparent}
+.mini.off{background:var(--done-bg);color:var(--done);border-color:transparent}
+.hint{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.mt-live{font-size:12.5px}
+.mt-live .mt{animation:none;opacity:1}
+
+/* sheet (modal) */
+.ov{position:fixed;inset:0;background:rgba(12,19,51,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;animation:fo .2s}
+@keyframes fo{from{opacity:0}}
+.sheet{background:#fff;width:min(460px,100%);border-radius:20px 20px 0 0;padding:16px 16px 20px;max-height:86vh;overflow:auto;animation:up .3s cubic-bezier(.2,.7,.2,1)}
+@media (min-width:700px){.ov{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{font-size:16px}
+.sheet .sub2{color:var(--muted);font-size:12.5px;margin:2px 0 10px}
+.act{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:start;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;margin-top:7px}
+.act:hover:not(:disabled){border-color:var(--ink)}
+.act:disabled{opacity:.5;cursor:not-allowed}
+.act .ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--ink-faint)}
+.act .ic svg{width:16px;height:16px}
+.act b{display:block;font-size:14px}
+.act small{display:block;color:var(--muted);font-size:12px;line-height:1.5}
+.act .who{font-size:11px;font-weight:600;color:var(--ink-soft)}
+
+/* ---------- reference ---------- */
+.ref{display:flex;flex-direction:column;gap:22px}
+.ref section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.ref h2{font-size:18px;margin-bottom:4px}
+.ref .lead{color:var(--muted);margin:0 0 14px;font-size:14px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.scard{border:1px solid var(--line);border-radius:14px;padding:12px}
+.scard code{font-size:11px;color:var(--muted);direction:ltr;display:inline-block}
+.scard p{margin:6px 0 0;font-size:13.5px}
+.scard .by{font-size:12px;color:var(--ink-soft);font-weight:600;margin-top:6px}
+.diagram{width:100%;overflow-x:auto}
+.diagram svg{min-width:720px;width:100%;height:auto;display:block}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.rcard{border:1px solid var(--line);border-radius:14px;padding:12px}
+.rcard h4{font-size:14.5px;display:flex;align-items:center;gap:8px}
+.rcard h4 .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--ink-faint)}
+.rcard h4 .ic svg{width:16px;height:16px}
+.rcard ul{margin:8px 0 0;padding-inline-start:18px;font-size:13.5px}
+.rcard .scr{font-size:11.5px;color:var(--muted);margin-top:6px}
+.nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.num{border-radius:14px;background:var(--paper);padding:12px}
+.num b{font-family:var(--display);font-size:30px;color:var(--ink);line-height:1.2;display:block}
+.num span{font-size:13.5px}
+
+/* ---------- responsive ---------- */
+@media (max-width:1080px){
+  .stage{grid-template-columns:1fr}
+  .narr{border-inline-start:0;border-top:1px solid var(--line)}
+  .sb-grid{grid-template-columns:1fr}
+  .sb-side{position:static}
+}
+@media (max-width:860px){
+  .journey{grid-template-columns:1fr}
+  .scen-list{position:static;flex-direction:row;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;scrollbar-width:none;
+    margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px}
+  .scen-list::-webkit-scrollbar{display:none}
+  .scen-list h2{display:none}
+  .scen{flex:none;width:220px;scroll-snap-align:start}
+}
+@media (max-width:560px){
+  body{font-size:14.5px}
+  .wrap{padding:0 12px}
+  .top .wrap{padding-top:14px}
+  .brand{display:none}
+  .hero{margin:0 0 12px}
+  .hero h1{font-size:22px}
+  .hero p{font-size:13px;line-height:1.6}
+  .tabs{gap:2px}
+  .tabs button{flex:1;padding:10px 6px;font-size:13px;white-space:normal;line-height:1.35}
+  main{padding:12px 0 32px}
+  .scen-list{margin-inline:-12px;padding-inline:12px;scroll-padding-inline:12px}
+  .scen{width:200px}
+  .player{border-radius:14px}
+  .narr{padding:14px}
+  .narr h3{font-size:17px}
+  .controls{gap:8px}
+  .controls .btn{padding:8px 10px}
+  .sb-board,.panel,.ref section{padding:12px;border-radius:14px}
+  .ref{gap:14px}
+  .sgrid,.rgrid,.nums{grid-template-columns:1fr}
+  .tv{width:100%}
+  .miles{padding:14px 8px 10px}
+  .miles::before,.miles .bar{top:27px}
+  .mile{font-size:10px}
+  .mile .dot{width:22px;height:22px}
+  .scene{padding:12px}
+  .devrow{min-height:0}
+  .phone{transform:scale(.92);transform-origin:top center;margin-bottom:-34px}
+  .controls{padding:10px 12px}
+  .controls .lbl{display:none}
+  .board{grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+  .col{min-width:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><i>ت</i> مؤسسة تجمي للتنمية الإنسانية · دليل منصة الحملات الطبية</div>
+    <div class="hero">
+      <div>
+        <h1>رحلة المريض، من الحجز إلى التقييم</h1>
+        <p>دليل تفاعلي يشرح ما يحدث للمريض في كل مرحلة، ومن يقوم بكل خطوة، وكيف تتصرف الطوابير في كل الحالات: عدة تخصصات، التمدد، الإنزال، الحالات الخاصة، الإحالة والأخطاء.</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="أقسام الدليل">
+      <button role="tab" aria-selected="true" aria-controls="tab-journey" id="t-journey">الرحلة خطوة بخطوة</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-sandbox" id="t-sandbox">جرّب بنفسك</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-ref" id="t-ref">الحالات والأدوار</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ============ JOURNEY ============ -->
+  <section id="tab-journey" role="tabpanel" aria-labelledby="t-journey">
+    <div class="journey">
+      <div class="scen-list" id="scenList" aria-label="السيناريوهات"><h2>اختر حالة</h2></div>
+      <div class="player">
+        <div class="miles" id="miles"><div class="bar" id="mileBar"></div></div>
+        <div class="stage">
+          <div class="scene" id="scene" aria-live="polite"></div>
+          <div class="narr" id="narr"></div>
+        </div>
+        <div class="autobar" id="autobar"></div>
+        <div class="controls">
+          <button class="btn" id="prevBtn" aria-label="الخطوة السابقة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg><span class="lbl">السابق</span></button>
+          <button class="btn pri" id="playBtn" aria-label="تشغيل تلقائي"></button>
+          <div class="dots" id="dots"></div>
+          <select class="speed" id="speed" aria-label="سرعة التشغيل">
+            <option value="1.5">بطيء</option>
+            <option value="1" selected>عادي</option>
+            <option value="0.6">سريع</option>
+          </select>
+          <button class="btn pri" id="nextBtn" aria-label="الخطوة التالية"><span class="lbl">التالي</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SANDBOX ============ -->
+  <section id="tab-sandbox" role="tabpanel" aria-labelledby="t-sandbox" hidden>
+    <div class="sb-top">
+      <button class="btn pri" id="sbBook">+ حجز مريض جديد</button>
+      <button class="btn" id="sbBookOther">+ مريض موعده يوم آخر</button>
+      <button class="btn" id="sbReset">إعادة من البداية</button>
+      <span class="sp"></span>
+    </div>
+    <p class="hint">اضغط على أي مريض لترى الأزرار المتاحة له في التطبيق. كل زر يطبّق نفس قواعد الطابور الموجودة في الخادم، والأخطاء هي نفس الرسائل التي يراها الطاقم.</p>
+    <div class="sb-grid">
+      <div class="sb-board sandbox"><div class="board" id="sbBoard"></div></div>
+      <div class="sb-side">
+        <div class="panel"><h3>صفحة «دوري» <small style="font-family:var(--ui);font-weight:500;color:var(--muted);font-size:11.5px">لآخر مريض اخترته</small></h3><div id="sbTurn" class="mt-live"></div></div>
+        <div class="panel"><h3>سجل العمليات</h3><div class="log" id="sbLog"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REFERENCE ============ -->
+  <section id="tab-ref" role="tabpanel" aria-labelledby="t-ref" hidden>
+    <div class="ref" id="refRoot"></div>
+  </section>
+</main>
+
+<div id="sheetRoot"></div>
+
+<script>
+/* =====================================================================
+   Queue engine: a faithful copy of app/Services/QueueService.php
+   ===================================================================== */
+const QUEUE = ['Present', 'Commingsoon'];
+const DIL = ['DilatationSent', 'Dilatation'];
+const ACTIVE = QUEUE.concat(DIL);
+const PUSH_DOWN_PLACES = 5;
+const TRANSFER_POSITION = 3;
+const PROTECTED_PLACES = 5; // first places of a queue never move when another specialty opens
+
+const STATUS_LABELS = {
+  Pending: 'لم يحضر بعد', Waiting: 'في الانتظار', Present: 'في الطابور', Commingsoon: 'تم إنزاله',
+  DilatationSent: 'متجه إلى التمدد', Dilatation: 'في التمدد', Completed: 'أنهى الفحص',
+};
+
+class RuleError extends Error {}
+
+class Engine {
+  constructor() { this.specs = []; this.appts = []; this.seq = 1; this.tick = 1; }
+  addSpec(k, name, o = {}) {
+    this.specs.push({ k, name, dil: !!o.dil, open: o.open !== false, today: o.today !== false });
+    return this;
+  }
+  spec(k) { return this.specs.find(s => s.k === k); }
+  book(pid, name, keys, o = {}) {
+    keys.forEach((k, i) => this.appts.push({
+      id: this.seq++, pid, name, es: k, status: 'Pending', order: 0, pri: false, special: false,
+      so: i === 0 ? 1 : 0, today: o.today !== false, date: o.date || null, sentAt: 0, startedAt: 0, checkedAt: 0,
+    }));
+    return this;
+  }
+  get(id) { return this.appts.find(a => a.id === id); }
+  find(pid, k) { return this.appts.find(a => a.pid === pid && a.es === k); }
+  queue(k) {
+    return this.appts.filter(a => a.es === k && a.today && QUEUE.includes(a.status))
+      .sort((a, b) => a.order - b.order || a.id - b.id);
+  }
+  head(k) { return this.queue(k)[0]; }
+  pos(a) { const i = this.queue(a.es).indexOf(a); return i < 0 ? null : i + 1; }
+  qlen(k) { return this.queue(k).length; }
+  // The candidate whose OPEN specialty has the shortest queue; ties keep the primary specialty
+  leastBusy(list) {
+    let best = null;
+    list.filter(a => this.spec(a.es).open).forEach(a => { if (!best || this.qlen(a.es) < this.qlen(best.es)) best = a; });
+    return best;
+  }
+  todays(pid) {
+    return this.appts.filter(a => a.pid === pid && a.today).sort((a, b) => b.so - a.so || a.id - b.id);
+  }
+  dilList(k) {
+    return this.appts.filter(a => a.es === k && a.today && DIL.includes(a.status)).sort((a, b) => a.sentAt - b.sentAt || a.id - b.id);
+  }
+
+  // Reception check-in (QR scan or typed number): least busy open specialty; none open -> all wait, returns null
+  checkIn(pid, firstId = null, priority = false) {
+    let t = this.todays(pid);
+    if (!t.length) {
+      const all = this.appts.filter(a => a.pid === pid);
+      if (!all.length) throw new RuleError('لا يوجد مريض بهذا الرقم في هذا الحدث');
+      throw new RuleError('ليس للمريض موعد اليوم. مواعيده: ' + [...new Set(all.map(a => a.date))].join('، '));
+    }
+    if (t.some(a => a.status !== 'Pending')) throw new RuleError('المريض مسجل حضوره اليوم مسبقاً');
+    const at = this.tick++;
+    t.forEach(a => (a.checkedAt = at));
+    const special = priority || t.some(a => a.special);
+    const pref = firstId ? t.find(a => a.id === firstId) : null;
+    const first = pref && this.spec(pref.es).open ? pref : this.leastBusy(t);
+    t.forEach(o => { if (o !== first) this.setWaiting(o); });
+    if (!first) return null;
+    first.status = 'Present';
+    this.place(first, null, special);
+    return first;
+  }
+  // "إجتاز"
+  complete(a) {
+    this.leaveQueue(a, 'Completed');
+    return this.promoteNext(a.pid);
+  }
+  // "إنزال": back PUSH_DOWN_PLACES places, losing priority
+  pushDown(list) {
+    const groups = {};
+    list.forEach(a => (groups[a.es] = groups[a.es] || []).push(a));
+    Object.keys(groups).forEach(k => {
+      const ids = groups[k].map(a => a.id);
+      const q = this.queue(k);
+      let lastPri = -1;
+      q.forEach((a, i) => { if (a.pri && !ids.includes(a.id)) lastPri = i; });
+      const ordered = q.map((a, i) => ({ a, key: ids.includes(a.id) ? Math.max(i + PUSH_DOWN_PLACES, lastPri) + 0.5 : i }))
+        .sort((x, y) => x.key - y.key).map(x => x.a);
+      ordered.forEach((a, i) => {
+        if (ids.includes(a.id)) { a.status = 'Commingsoon'; a.pri = false; }
+        a.order = i + 1;
+      });
+    });
+  }
+  sendDil(a) {
+    this.assert(a, QUEUE, 'المريض ليس في قائمة الانتظار');
+    if (!this.spec(a.es).dil) throw new RuleError('هذا التخصص ليس له قاعة تمدد');
+    a.sentAt = this.tick++; a.startedAt = 0;
+    this.leaveQueue(a, 'DilatationSent');
+  }
+  receiveDil(a) {
+    this.assert(a, ['DilatationSent'], 'المريض ليس في الطريق إلى التمدد');
+    a.status = 'Dilatation'; a.startedAt = Date.now();
+  }
+  finishDil(a) {
+    this.assert(a, DIL, 'المريض ليس في التمدد');
+    a.status = 'Present';
+    this.place(a, null, true);
+  }
+  markSpecial(a) {
+    if (!a.today) throw new RuleError('هذا الموعد ليس اليوم');
+    const t = this.todays(a.pid);
+    const notIn = t.every(x => x.status === 'Pending');
+    if (!notIn && !this.spec(a.es).open) throw new RuleError('هذا التخصص غير مفتوح اليوم، اختر تخصصاً مفتوحاً');
+    t.forEach(x => (x.special = true));
+    if (notIn) return this.checkIn(a.pid, a.id, true) || a;
+    if (a.status === 'Completed') throw new RuleError('تم فحص المريض في هذا التخصص مسبقاً');
+    if (t.some(x => DIL.includes(x.status) && x !== a)) throw new RuleError('المريض في التمدد حالياً، أنهِ التمدد أولاً');
+    t.forEach(x => { if (x !== a && QUEUE.includes(x.status)) this.setWaiting(x); });
+    a.status = 'Present';
+    this.place(a, null, true);
+    return a;
+  }
+  referCheck(cur, k) {
+    const target = this.spec(k);
+    if (!target.open) return 'هذا التخصص مغلق حالياً';
+    if (this.appts.some(a => a.pid === cur.pid && a.es === k)) return 'المريض مسجل في هذا التخصص مسبقاً';
+    if (!target.today) return 'هذا التخصص لا يعمل اليوم';
+    return null;
+  }
+  // Specialty officer: "إرسال إلى تخصص آخر"
+  refer(cur, k) {
+    this.assert(cur, QUEUE, 'المريض ليس في قائمة الانتظار');
+    const why = this.referCheck(cur, k);
+    if (why) throw new RuleError(why);
+    const n = {
+      id: this.seq++, pid: cur.pid, name: cur.name, es: k, status: 'Present', order: 0, pri: false,
+      special: cur.special, so: 0, today: true, date: cur.date, sentAt: 0, startedAt: 0, referred: true,
+    };
+    this.appts.push(n);
+    this.setWaiting(cur);
+    this.place(n, TRANSFER_POSITION, n.special);
+    return n;
+  }
+  // Special-cases admin: change the specialty of an appointment
+  transfer(a, k) {
+    if (a.status === 'Completed') throw new RuleError('تم فحص المريض في هذا التخصص، لا يمكن نقله');
+    if (a.status === 'Dilatation') throw new RuleError('المريض في التمدد، لا يمكن نقله الآن');
+    if (this.appts.some(x => x.pid === a.pid && x.es === k)) throw new RuleError('المريض مسجل في هذا التخصص مسبقاً');
+    const prev = a.status, old = a.es;
+    a.es = k; a.order = 0;
+    this.renumber(old);
+    a.pri = false;
+    if (!a.today) { a.status = 'Pending'; return; }
+    const others = this.todays(a.pid).filter(x => x !== a);
+    const otherActive = others.some(x => ACTIVE.includes(x.status));
+    const wasActive = QUEUE.includes(prev);
+    if (otherActive && !wasActive) { a.status = 'Waiting'; return; }
+    others.filter(x => x.status === 'Pending').forEach(x => this.setWaiting(x));
+    const at = this.tick++;
+    others.concat([a]).forEach(x => (x.checkedAt = x.checkedAt || at));
+    // Closed specialty: it waits, the patient goes to an open one if any
+    if (!this.spec(k).open) { a.status = 'Waiting'; this.promoteNext(a.pid); return; }
+    a.status = 'Present';
+    this.place(a, TRANSFER_POSITION, false);
+  }
+  // Super admin: the doctor arrived. Idle patients join in arrival order, then patients
+  // from the back of longer queues move while it brings them closer to the front.
+  openSpec(k) {
+    this.spec(k).open = true;
+    const waiting = this.appts.filter(a => a.es === k && a.today && a.status === 'Waiting')
+      .sort((a, b) => a.checkedAt - b.checkedAt || a.id - b.id);
+    let sent = 0;
+    const cands = [];
+    waiting.forEach(a => {
+      const active = this.todays(a.pid).find(x => ACTIVE.includes(x.status));
+      if (!active) { a.status = 'Present'; this.place(a, null, a.special); sent++; }
+      else if (QUEUE.includes(active.status) && !active.pri) cands.push([a, active]);
+    });
+    const moved = [];
+    while (cands.length) {
+      let bi = -1, bp = 0, bl = 0;
+      cands.forEach(([, act], i) => { const p = this.pos(act) || 0, l = this.qlen(act.es); if (p > bp || (p === bp && l > bl)) { bi = i; bp = p; bl = l; } });
+      if (bi < 0 || bp <= Math.max(PROTECTED_PLACES, this.qlen(k) + 1)) break;
+      const [a, act] = cands.splice(bi, 1)[0];
+      this.setWaiting(act);
+      a.status = 'Present';
+      this.place(a, null, false);
+      moved.push(a);
+    }
+    // Moved patients keep their arrival order among themselves
+    const places = moved.map(a => a.order).sort((x, y) => x - y);
+    [...moved].sort((x, y) => x.checkedAt - y.checkedAt || x.id - y.id).forEach((a, i) => (a.order = places[i]));
+    return { sent, moved: moved.length };
+  }
+  // The doctor left: no new patients; the current queue is still served
+  closeSpec(k) { this.spec(k).open = false; }
+
+  promoteNext(pid) {
+    const t = this.todays(pid);
+    if (t.some(a => ACTIVE.includes(a.status))) return null;
+    const next = this.leastBusy(t.filter(a => a.status === 'Waiting'));
+    if (!next) return null;
+    next.status = 'Present';
+    this.place(next, null, next.special);
+    return next;
+  }
+  place(a, position, priority) {
+    const q = this.queue(a.es).filter(x => x !== a);
+    let last = -1; q.forEach((x, i) => { if (x.pri) last = i; });
+    const after = last + 1;
+    let idx;
+    if (priority) idx = after;
+    else if (position !== null) idx = Math.min(Math.max(position - 1, after), q.length);
+    else idx = q.length;
+    a.pri = priority;
+    q.splice(idx, 0, a);
+    q.forEach((x, i) => (x.order = i + 1));
+  }
+  leaveQueue(a, status) {
+    const was = QUEUE.includes(a.status);
+    a.status = status; a.order = 0; a.pri = false;
+    if (was) this.renumber(a.es);
+  }
+  renumber(k) { this.queue(k).forEach((x, i) => (x.order = i + 1)); }
+  setWaiting(a) { this.leaveQueue(a, 'Waiting'); }
+  assert(a, allowed, msg) { if (!allowed.includes(a.status)) throw new RuleError(msg); }
+}
+
+/* =====================================================================
+   Icons & roles
+   ===================================================================== */
+const I = {
+  user: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
+  desk: '<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  steth: '<path d="M6 3v6a6 6 0 0 0 12 0V3"/><path d="M12 15v2a4 4 0 0 0 8 0v-3"/><circle cx="20" cy="12" r="2"/>',
+  drop: '<path d="M12 2.7s7 7.3 7 12.3a7 7 0 0 1-14 0c0-5 7-12.3 7-12.3z"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  cpu: '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/>',
+  check: '<path d="M5 12l5 5 9-10"/>',
+  down: '<path d="M12 4v14M6 12l6 6 6-6"/>',
+  send: '<path d="M4 12h14M13 6l6 6-6 6"/>',
+  swap: '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+  door: '<path d="M14 3H6v18h8"/><path d="M10 12h11M17 8l4 4-4 4"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  play: '<path d="M7 4l13 8-13 8z"/>',
+  pause: '<path d="M7 4v16M17 4v16"/>',
+};
+const svg = (k, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
+
+const ROLES = {
+  patient: { label: 'المريض', icon: 'user', bg: '#FBE4EC', fg: '#B42656' },
+  reception: { label: 'مسؤول الاستقبال', icon: 'desk', bg: '#E3F4EE', fg: '#0F8A6C' },
+  officer: { label: 'مسؤول التخصص', icon: 'steth', bg: '#E8EBF7', fg: '#4F5FA3' },
+  manager: { label: 'مسؤول الإنزال', icon: 'down', bg: '#FBF0DC', fg: '#8A5300' },
+  dil: { label: 'مسؤول قاعة التمدد', icon: 'drop', bg: '#E0F2F6', fg: '#0E7490' },
+  special: { label: 'مسؤول الحالات الخاصة', icon: 'star', bg: '#FBF0DC', fg: '#B26B00' },
+  system: { label: 'المنصة تلقائياً', icon: 'cpu', bg: '#E7EAF4', fg: '#101E58' },
+  admin: { label: 'المدير العام', icon: 'chart', bg: '#E7EAF4', fg: '#101E58' },
+};
+const actorBadge = r => { const R = ROLES[r]; return `<span class="actor" style="background:${R.bg};color:${R.fg}">${svg(R.icon)}${R.label}</span>`; };
+
+const MILES = [
+  { t: 'الحجز', i: 'pen' }, { t: 'التذكير', i: 'chat' }, { t: 'الاستقبال', i: 'desk' },
+  { t: 'الطابور', i: 'clock' }, { t: 'الفحص', i: 'steth' }, { t: 'التقييم', i: 'star' },
+];
+
+/* =====================================================================
+   Board renderer with FLIP animation (tickets glide between queues)
+   ===================================================================== */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmtTimer = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+
+function boardItems(e, focus) {
+  const items = [];
+  const byPid = {};
+  e.appts.filter(a => a.today).forEach(a => (byPid[a.pid] = byPid[a.pid] || []).push(a));
+  // Patients who have not arrived wait at the door, one chip per patient
+  Object.values(byPid).forEach(list => {
+    if (list.every(a => a.status === 'Pending')) {
+      const a = list[0];
+      items.push({ k: 'p' + a.pid, pid: a.pid, zone: 'entr', order: a.pid, mode: 'chip pend' + (a.pid === focus ? ' focus' : ''),
+        html: `<span>#${a.pid} ${esc(a.name)}</span><small>${list.length > 1 ? `${list.length} تخصصات` : esc(e.spec(a.es).name)}</small>`, st: 'Pending' });
+    }
+  });
+  // Booked for another day: shown at the door too, faded
+  const otherDay = {};
+  e.appts.filter(a => !a.today).forEach(a => (otherDay[a.pid] = a));
+  Object.values(otherDay).forEach(a => {
+    if (byPid[a.pid]) return;
+    items.push({ k: 'p' + a.pid, pid: a.pid, zone: 'entr', order: a.pid + 1e6, mode: 'chip pend other' + (a.pid === focus ? ' focus' : ''),
+      html: `<span>#${a.pid} ${esc(a.name)}</span><small>موعده ${esc(a.date)}</small>`, st: 'Other' });
+  });
+  e.appts.filter(a => a.today && a.status !== 'Pending').forEach(a => {
+    const me = a.pid === focus;
+    const base = { k: 'a' + a.id, pid: a.pid, id: a.id, st: a.status + (a.pri ? '+' : '') };
+    const name = `<b><em>#${a.pid}</em>${esc(a.name)}</b>`;
+    if (QUEUE.includes(a.status)) {
+      const p = e.pos(a);
+      const tags = [a.pri ? '<span class="tag pri">أولوية</span>' : '', a.status === 'Commingsoon' ? '<span class="tag push">تم إنزاله</span>' : '', a.referred ? '<span class="tag dil" style="background:var(--hold-bg);color:var(--hold)">محال</span>' : ''].join('');
+      items.push({ ...base, zone: 'q-' + a.es, order: a.order, mode: 'tk' + (a.pri ? ' pri' : '') + (a.status === 'Commingsoon' ? ' push' : '') + (me ? ' focus' : ''),
+        html: `<div class="stub">${p}</div><div class="bd">${name}${tags ? `<div class="tags">${tags}</div>` : ''}</div>`, me });
+    } else if (DIL.includes(a.status)) {
+      const inRoom = a.status === 'Dilatation';
+      items.push({ ...base, zone: 'd-' + a.es, order: a.sentAt, mode: 'tk ' + (inRoom ? 'dil' : 'dilsent') + (me ? ' focus' : ''),
+        html: `<div class="stub">${inRoom ? `<span class="timer" data-start="${a.startedAt}">${fmtTimer(Date.now() - a.startedAt)}</span>` : svg('send', 2.4).replace('<svg', '<svg style="width:16px;height:16px;transform:scaleX(-1)"')}</div><div class="bd">${name}<div class="tags"><span class="tag dil">${inRoom ? 'في القاعة' : 'قادم'}</span></div></div>`, me });
+    } else if (a.status === 'Waiting') {
+      items.push({ ...base, zone: 'h-' + a.es, order: a.id, mode: 'chip hold' + (me ? ' focus' : ''), html: `#${a.pid} ${esc(a.name)}` });
+    } else if (a.status === 'Completed') {
+      items.push({ ...base, zone: 'c-' + a.es, order: a.id, mode: 'chip done' + (me ? ' focus' : ''), html: `#${a.pid} ${esc(a.name)}` });
+    }
+  });
+  return items;
+}
+
+function buildBoardSkeleton(root, e, { entrance = true, sandbox = false } = {}) {
+  const cols = e.specs.length + (entrance ? 1 : 0);
+  root.style.setProperty('--cols', cols);
+  let h = '';
+  if (entrance) h += `<div class="col entr"><div class="col-h"><h4>عند الباب</h4><span class="cnt" data-cnt="entr"></span></div>
+      <div class="sub"><span style="color:var(--muted)">حجزوا ولم يُسجَّل حضورهم</span><div class="zone" data-zone="entr"></div></div></div>`;
+  e.specs.forEach(s => {
+    h += `<div class="col" data-col="${s.k}">
+      <div class="col-h"><h4>${esc(s.name)}</h4><span class="cnt" data-cnt="${s.k}"></span></div>
+      <div class="colbtns" data-state="${s.k}"></div>
+      <div class="zone" data-zone="q-${s.k}"></div>
+      ${s.dil ? `<div class="sub dilroom"><span>${svg('drop').replace('<svg', '<svg style="width:12px;height:12px;vertical-align:-1px"')} قاعة التمدد</span><div class="zone" data-zone="d-${s.k}"></div></div>` : ''}
+      <div class="sub hold" data-sub="h-${s.k}"><span>في الانتظار (تخصص آخر أولاً أو الطبيب لم يصل)</span><div class="zone flow" data-zone="h-${s.k}"></div></div>
+      <div class="sub done" data-sub="c-${s.k}"><span>أنهوا الفحص</span><div class="zone flow" data-zone="c-${s.k}"></div></div>
+    </div>`;
+  });
+  root.innerHTML = h;
+  root._els = new Map();
+}
+
+function renderBoard(root, e, { focus = null, animate = true, sandbox = false, flash = [] } = {}) {
+  const prev = new Map();
+  const pidRect = {};
+  root._els.forEach((el, k) => {
+    const r = el.getBoundingClientRect();
+    prev.set(k, r);
+    const pid = el._pid;
+    if (!pidRect[pid] || el.classList.contains('tk') || el.classList.contains('pend')) pidRect[pid] = r;
+  });
+  const items = boardItems(e, focus);
+  const zones = {};
+  items.forEach(it => (zones[it.zone] = zones[it.zone] || []).push(it));
+  const seen = new Set();
+  const changed = [];
+  root.querySelectorAll('[data-zone]').forEach(z => {
+    const list = (zones[z.dataset.zone] || []).sort((a, b) => a.order - b.order);
+    list.forEach(it => {
+      let el = root._els.get(it.k);
+      const isNew = !el;
+      if (isNew) {
+        el = document.createElement('div');
+        root._els.set(it.k, el);
+        el._pid = it.pid;
+        if (sandbox) { el.tabIndex = 0; el.setAttribute('role', 'button'); }
+      }
+      el.className = 'it ' + it.mode;
+      if (it.me) el.dataset.me = 'أنت هنا'; else delete el.dataset.me;
+      if (el._html !== it.html) { el.innerHTML = it.html; el._html = it.html; }
+      if (!isNew && el._st !== it.st) changed.push(el);
+      el._st = it.st;
+      el.dataset.k = it.k;
+      el._item = it;
+      z.appendChild(el);
+      seen.add(it.k);
+    });
+  });
+  root._els.forEach((el, k) => { if (!seen.has(k)) { el.remove(); root._els.delete(k); } });
+  // empty sub-sections hidden
+  root.querySelectorAll('[data-sub]').forEach(s => s.classList.toggle('empty', !(zones[s.dataset.sub] || []).length));
+  const entr = root.querySelector('.col.entr');
+  if (entr && !sandbox) {
+    const show = (zones.entr || []).length > 0;
+    entr.style.display = show ? '' : 'none';
+    root.style.setProperty('--cols', e.specs.length + (show ? 1 : 0));
+  }
+  root.querySelectorAll('[data-cnt]').forEach(c => {
+    const k = c.dataset.cnt;
+    c.textContent = k === 'entr' ? `${(zones.entr || []).length}` : `${(zones['q-' + k] || []).length} في الطابور`;
+  });
+  root.querySelectorAll('[data-state]').forEach(b => {
+    const s = e.spec(b.dataset.state);
+    b.innerHTML = sandbox
+      ? `<button class="mini ${s.open ? 'on' : 'off'}" data-toggle="${s.k}" title="المدير العام يفتح الطابور عند وصول الطبيب">${s.open ? 'الطابور مفتوح' : 'الطابور مغلق'}</button><button class="mini" data-passhead="${s.k}">إجتاز الأول</button>`
+      : (s.open ? '' : '<span class="pill closed">الطابور مغلق، الطبيب لم يصل</span>');
+    b.style.display = b.innerHTML ? '' : 'none';
+  });
+  if (!animate) return;
+  root._els.forEach((el, k) => {
+    const now = el.getBoundingClientRect();
+    const old = prev.get(k) || pidRect[el._pid];
+    if (old) {
+      const dx = old.left - now.left, dy = old.top - now.top;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        el.animate([{ transform: `translate(${dx}px,${dy}px)`, zIndex: 5 }, { transform: 'none', zIndex: 5 }],
+          { duration: 750, easing: 'cubic-bezier(.2,.7,.2,1)' });
+      }
+    } else {
+      el.animate([{ opacity: 0, transform: 'scale(.85)' }, { opacity: 1, transform: 'none' }], { duration: 450, easing: 'ease-out' });
+    }
+  });
+  changed.concat(flash.map(k => root._els.get(k)).filter(Boolean)).forEach(el => {
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  });
+}
+setInterval(() => document.querySelectorAll('.timer[data-start]').forEach(t => (t.textContent = fmtTimer(Date.now() - +t.dataset.start))), 1000);
+
+function patientCard(e, pid) {
+  const t = e.appts.filter(a => a.pid === pid);
+  if (!t.length) return '';
+  const name = t[0].name;
+  const rows = e.todays(pid).map(a => {
+    const p = QUEUE.includes(a.status) ? e.pos(a) : null;
+    const extra = p ? `المرتبة ${p} · قبله ${p - 1}` : a.status === 'Waiting' ? (e.spec(a.es).open ? 'ينتظر انتهاء تخصصه الحالي' : 'ينتظر وصول الطبيب') : a.status === 'DilatationSent' ? 'في الطريق إلى قاعة التمدد' : a.status === 'Dilatation' ? 'القطرات تعمل' : '';
+    return `<div class="prow"><span><b>${esc(e.spec(a.es).name)}</b>${a.so ? ' <small style="color:var(--muted)">(الرئيسي)</small>' : ''}${a.referred ? ' <small style="color:var(--muted)">(محال)</small>' : ''}</span>
+      <span style="display:flex;gap:8px;align-items:center"><small style="color:var(--muted)">${extra}</small><span class="st ${a.status}">${STATUS_LABELS[a.status]}${a.pri && QUEUE.includes(a.status) ? ' · أولوية' : ''}</span></span></div>`;
+  }).join('');
+  return `<div class="pcard"><h4><span class="av">${esc(name[0])}</span>بطاقة ${esc(name)} #${pid} · مواعيد اليوم</h4>${rows}</div>`;
+}
+
+/* =====================================================================
+   Device mockups (patient phone, reception scanner, hall screen)
+   ===================================================================== */
+const QR = (() => { // a fixed decorative QR pattern
+  const bits = '1111111100000110111011011101101110110000011111111'.split('');
+  return `<div class="qr">${bits.map(b => `<i class="${b === '1' ? '' : 'o'}"></i>`).join('')}</div>`;
+})();
+const phone = (inner) => `<div class="phone"><div class="screen"><div class="sbar"></div>${inner}</div></div>`;
+const delay = (i, base = .15, step = .22) => `style="animation-delay:${(base + i * step).toFixed(2)}s"`;
+
+function scrBooking(d) {
+  const f = [
+    ['الاسم', d.first], ['اللقب', d.last], ['تاريخ الميلاد', d.birth], ['الولاية · البلدية', d.place], ['الهاتف', d.phone], ['هاتف ثانٍ', d.phone2],
+  ];
+  let i = 0;
+  const fields = `<div class="two">${f.map(([l, v]) => `<div class="fld" ${delay(i++)}><small>${l}</small><span>${esc(v)}</span></div>`).join('')}</div>`;
+  const sps = d.specs.map(s => `<div class="selsp ${s.full ? 'full' : ''}" ${delay(i++)}><b>${esc(s.name)}</b><small>${esc(s.when)}</small></div>`).join('');
+  return phone(`<div class="shead"><b>حجز موعد</b><small>${esc(d.event)}</small></div>
+    <div class="sbody">${fields}
+      <div style="font-size:11px;font-weight:600;color:var(--muted);opacity:0;animation:fin .3s forwards" ${delay(i++)}>التخصصات (${d.specs.length} من ${d.max})</div>
+      ${sps}
+      ${d.docs ? `<div class="note" ${delay(i++)}>📎 ${d.docs}</div>` : ''}
+      <div class="sbtn" ${delay(i++)}>تأكيد الحجز</div>
+    </div>`);
+}
+function scrBooked(d) {
+  return phone(`<div class="shead"><b>تم حجز موعدك بنجاح!</b><small>${esc(d.event)}</small></div>
+    <div class="sbody">
+      <div class="tic"><div class="l"><small>رقم المريض</small><b>${d.pid}</b><small>${esc(d.name)}</small></div><div class="r">${QR}</div></div>
+      ${d.rows.map((r, i) => `<div class="arow" ${delay(i, .7)}><b>${esc(r[0])}</b><small>${esc(r[1])}</small></div>`).join('')}
+      ${d.warn ? `<div class="warnscr">${esc(d.warn)}</div>` : ''}
+      <div class="note" ${delay(d.rows.length + 1, .7)}>احتفظ برقم المريض: تحتاجه يوم الفحص وفي صفحة «دوري».</div>
+    </div>`);
+}
+function scrWhatsApp(d) {
+  return phone(`<div class="wa-head"><span class="av">ت</span><div><b style="font-size:13px">مؤسسة تجمي</b><small style="display:block;font-size:10px;opacity:.8">واتساب</small></div></div>
+    <div class="wa-body"><div class="typing"><i></i><i></i><i></i></div><div class="bubble">${d.html}</div></div>`);
+}
+function scrMyTurn(d) {
+  const blocks = d.patients.map((p, pi) => `<div class="mt" ${delay(pi, 1.3, .3)}><h5>${esc(p.first)} <small>رقم المريض ${p.pid}</small></h5>
+    ${p.rows.map(r => `<div class="mtr"><div class="a"><b>${esc(r.spec)}</b><span class="st ${r.status}">${r.label}</span></div>
+      ${r.pos ? `<div class="pos"><strong>${r.pos}</strong> دورك · قبلك ${r.pos - 1}${r.pri ? ' · <span style="color:var(--rose);font-weight:700">أولوية</span>' : ''}</div>` : ''}
+      ${r.go ? `<div class="go">${r.go}</div>` : ''}${r.when ? `<div class="pos">${r.when}</div>` : ''}</div>`).join('')}
+  </div>`).join('');
+  return phone(`<div class="shead"><b>دوري</b><small>اكتب رقم المريض أو رقم الهاتف</small></div>
+    <div class="sbody"><div class="inp" style="--n:${d.query.length}"><span>${esc(d.query)}</span></div>${blocks}
+    <div style="font-size:10.5px;color:var(--muted);text-align:center;opacity:0;animation:fin .3s 2s forwards">آخر تحديث ${d.at || '10:42'}</div></div>`);
+}
+function turnData(e, pid) {
+  const list = e.appts.filter(a => a.pid === pid);
+  return {
+    first: list[0].name.split(' ')[0], pid,
+    rows: list.map(a => {
+      const p = a.today && QUEUE.includes(a.status) ? e.pos(a) : null;
+      return {
+        spec: e.spec(a.es).name, status: a.status, label: { Pending: 'لم يحضر بعد', Waiting: 'في الانتظار', Present: 'في الطابور', Commingsoon: 'في الطابور', DilatationSent: 'التمدد', Dilatation: 'التمدد', Completed: 'أنهى الفحص' }[a.status],
+        pos: p, pri: a.pri,
+        go: a.status === 'DilatationSent' ? 'توجّه إلى قاعة التمدد' : a.status === 'Dilatation' ? 'أنت في قاعة التمدد، انتظر حتى ينادى عليك' : a.status === 'Waiting' ? (e.spec(a.es).open ? 'سيبدأ بعد انتهاء تخصصك الحالي' : 'في انتظار وصول الطبيب، ستُوجَّه إليه عند فتح التخصص') : '',
+        when: !a.today ? `موعده ${a.date}` : '',
+      };
+    }),
+  };
+}
+function scrEvaluation() {
+  const qs = ['تنظيم الفعالية بشكل عام', 'جودة الفحوصات الطبية', 'أداء الأطباء والكادر', 'التسجيل عبر المنصة', 'تنظيم الفعالية بالمنصة'];
+  const val = [5, 4, 5, 4, 5];
+  return phone(`<div class="shead"><b>تقييم تجربتك</b><small>5 أسئلة + اقتراحات</small></div>
+    <div class="sbody">${qs.map((q, i) => `<div class="qrow" ${delay(i, .2, .35)}><small>${q}</small><div class="stars">${[1, 2, 3, 4, 5].map(s => `<i class="${s <= val[i] ? 'f' : ''}" style="animation-delay:${(.5 + i * .35 + s * .07).toFixed(2)}s"></i>`).join('')}</div></div>`).join('')}
+      <div class="fld" ${delay(5, .2, .35)}><small>ما هي الفحوصات التي تقترحها مستقبلاً؟</small><span>طب العيون للأطفال</span></div>
+      <div class="sbtn" ${delay(6, .2, .35)}>إرسال التقييم</div></div>`);
+}
+function scrError(title, d) {
+  return phone(`<div class="shead"><b>${esc(title)}</b><small>${esc(d.sub || '')}</small></div>
+    <div class="sbody">${(d.fields || []).map((f, i) => `<div class="fld" ${delay(i)}><small>${f[0]}</small><span>${esc(f[1])}</span></div>`).join('')}
+      ${d.ok ? `<div class="okscr">${esc(d.ok)}</div>` : ''}
+      <div class="errscr" ${d.ok ? 'style="animation-delay:1.1s;margin-top:0"' : ''}><small>${esc(d.code || '')}</small>${esc(d.msg)}</div></div>`);
+}
+function scanner(d) {
+  return `<div class="tablet"><div class="screen"><div class="shead" style="padding-top:12px"><b>الحضور</b><small>مسح QR أو كتابة رقم المريض</small></div>
+    <div class="viewf"><div class="card">${QR.replace('class="qr"', 'class="qr" style="width:70px;height:70px"')}<b>#${d.pid}</b></div><div class="corner"></div><div class="laser"></div></div>
+    <div class="or">أو</div>
+    <div style="margin:0 12px"><div class="inp" style="--n:${String(d.pid).length}"><span>${d.pid}</span></div></div>
+    <div class="toast ${d.bad ? 'bad' : 'ok'}">${esc(d.msg)}${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</div>
+  </div></div>`;
+}
+function hallTv(e, focus, keys) {
+  // Closed specialties are hidden, unless they still finish their queue
+  const specs = keys.map(k => e.spec(k)).filter(s => s.open || e.qlen(s.k));
+  return `<div class="tv" style="--cols:${specs.length}"><div class="in">${specs.map((s, si) => `<div class="c"><h5>${esc(s.name)}</h5>
+    ${e.queue(s.k).slice(0, 6).map((a, i) => `<div class="nm ${a.pid === focus ? 'me' : ''}" ${delay(i + si * 2, .1, .12)}><span>${i + 1}</span><span>${a.pid}</span><small>${esc(a.name.split(' ')[0])}</small></div>`).join('')}
+  </div>`).join('')}</div></div>`;
+}
+function referSheet(e, cur, keys, pick) {
+  return `<div class="sheetmock"><h5>إرسال إلى تخصص آخر · #${cur.pid} ${esc(cur.name)}</h5>
+    ${keys.map(k => { const why = k === cur.es ? 'التخصص الحالي' : e.referCheck(cur, k); const s = e.spec(k);
+      return `<div class="opt ${why ? 'no' : k === pick ? 'yes' : ''}"><span>${esc(s.name)}</span><small>${why || (k === pick ? 'سيُختار' : 'متاح')}</small></div>`; }).join('')}
+    <div style="font-size:11.5px;color:var(--muted);margin-top:8px">تظهر فقط التخصصات العاملة اليوم والمفتوحة (وصل طبيبها)، والتي ليس للمريض موعد فيها.</div></div>`;
+}
+
+/* =====================================================================
+   Scenarios
+   ===================================================================== */
+const EVENT = 'حملة الفحوصات الطبية المجانية';
+const amina = { first: 'أمينة', last: 'بن علي', birth: '1968-04-12', place: 'الجزائر · باب الوادي', phone: '0555 12 34 56', phone2: '0661 98 76 54', event: EVENT };
+const remind = (name, rows) => `السلام عليكم ${name}،\n\nنذكر سيادتكم المحترمة ${rows.length > 1 ? 'بمواعيد' : 'بموعد'} الفحوصات الطبية:\n<b>${EVENT}</b>\n${rows.map((r, i) => `${i + 1}. التخصص: ${r[0]}\n   ${r[1]}`).join('\n')}\n\n<b>الحضور بمحرم إجباري بالنسبة للنساء</b>\n\nنرجو الحضور ربع ساعة قبل الموعد لضمان السيرورة الحسنة للفحوصات.\n\nفريق مؤسسة تجمي للتنمية الإنسانية`;
+const evalMsg = name => `<a>https://tagemi-foundation.org/evaluation/12/5481</a>\n\nالسلام عليكم ورحمة الله وبركاته ${name}،\n\nنسأل الله الشفاء لكم ولجميع مرضى المسلمين.\n\nنرجو منكم تقييم تجربتكم من خلال الرابط أعلاه.\n\nتقييمكم يساعدنا على تحسين حملاتنا الطبية مستقبلا.`;
+
+// background patients: book and check them in
+function crowd(e, k, people) { people.forEach(([pid, name]) => { e.book(pid, name, [k]); e.checkIn(pid); }); }
+const passHead = k => e => e.complete(e.head(k));
+const passN = (k, n) => Array.from({ length: n }, () => passHead(k));
+const done = (e, pid) => e.appts.filter(a => a.pid === pid).map(a => [e.spec(a.es).name, STATUS_LABELS[a.status]]);
+
+const SCENARIOS = [
+  {
+    id: 'basic', title: 'المسار العادي', sub: 'تخصص واحد، من الحجز إلى التقييم', focus: 128,
+    setup(e) {
+      e.addSpec('dent', 'طب الأسنان').addSpec('intern', 'الطب الداخلي');
+      crowd(e, 'dent', [[121, 'يوسف'], [122, 'خديجة'], [123, 'محمد']]);
+      crowd(e, 'intern', [[124, 'فاطمة'], [125, 'عمر']]);
+      e.book(128, 'أمينة', ['dent']);
+      e.book(126, 'سارة', ['intern']);
+    },
+    steps: [
+      { m: 0, who: 'patient', title: 'الحجز عبر الاستمارة',
+        text: 'تفتح أمينة صفحة الحملة وتملأ الاستمارة: الاسم واللقب، تاريخ الميلاد، الولاية والبلدية، رقمَي هاتف، الجنس والأمراض المزمنة إن وجدت. ثم تختار التخصص واليوم والساعة المتاحة.',
+        rule: 'يمكن إرفاق حتى 5 وثائق طبية (PDF، صور، Word) بحجم أقصى 10 ميغا لكل ملف. لا يقبل الحجز إلا إذا كانت الحملة نشطة وغير مؤرشفة.',
+        scene: () => scrBooking({ ...amina, max: 3, specs: [{ name: 'طب الأسنان', when: 'السبت 25 أكتوبر · 09:00' }], docs: 'تحليل الدم.pdf' }) },
+      { m: 0, who: 'system', title: 'رقم المريض',
+        text: 'يُحفظ الحجز وتحصل أمينة على رقم مريض واحد (#128) يجمع كل مواعيدها في هذه الحملة. حالة موعدها الآن «لم يحضر بعد».',
+        rule: 'رقم المريض هو مفتاح كل شيء بعدها: رمز QR، تسجيل الحضور، وصفحة «دوري».',
+        scene: () => scrBooked({ event: EVENT, pid: 128, name: 'أمينة بن علي', rows: [['طب الأسنان', 'السبت 25 أكتوبر · 09:00']] }) },
+      { m: 1, who: 'reception', title: 'تذكير عبر واتساب',
+        text: 'قبل يوم الفحص يفتح مسؤول الاستقبال قائمة المرضى ويرسل لكل واحد رسالة تذكير جاهزة بمواعيده. يُسجَّل التذكير، فتعرف الإحصائيات من ذُكّر ومن لم يُذكَّر بعد.',
+        scene: () => scrWhatsApp({ html: remind('أمينة بن علي', [['طب الأسنان', 'التاريخ: 2026-10-25 · التوقيت: 09:00']]) }) },
+      { m: 2, who: 'reception', title: 'تسجيل الحضور يوم الفحص', board: false,
+        text: 'عند الباب يمسح مسؤول الاستقبال رمز QR أو يكتب رقم المريض. تنتقل أمينة إلى «في الطابور» وتأخذ آخر مكان في طابور طب الأسنان.',
+        rule: 'لا يشارك في طوابير اليوم إلا الموعد المحجوز لتاريخ اليوم (بتوقيت الجزائر).',
+        act: e => e.checkIn(128),
+        scene: e => scanner({ pid: 128, msg: 'تم تسجيل حضور المريض #128، يتوجه إلى طب الأسنان', sub: `مرتبته في الطابور: ${e.pos(e.find(128, 'dent'))}` }) },
+      { m: 3, who: 'officer', title: 'شاشة طابور التخصص', board: true,
+        text: 'هذا ما يراه مسؤول التخصص على هاتفه: الطابور مرتب 1، 2، 3… ومن حجزوا ولم يحضروا بعد ينتظرون «عند الباب». كل حركة تظهر على كل الشاشات خلال ثوانٍ.' },
+      { m: 3, who: 'patient', title: 'صفحة «دوري»',
+        text: 'في القاعة ملصق QR يفتح صفحة «دوري». تكتب أمينة رقمها أو رقم هاتفها فترى مكانها وعدد من قبلها. تظهر الأسماء الأولى فقط حفاظاً على الخصوصية.',
+        rule: 'يُطابَق الهاتف بآخر 9 أرقام: 0555 12 34 56 و ‎+213 555 12 34 56 رقم واحد.',
+        scene: e => `<div class="devrow">${scrMyTurn({ query: '128', patients: [turnData(e, 128)] })}${hallTv(e, 128, ['dent', 'intern'])}</div>`,
+        note: 'وعلى شاشة القاعة الكبيرة تُعرض الطوابير للجميع: تتبدل العروض تلقائياً أو يختار المسؤول عرضاً يدوياً، ولكل شاشة تخصصاتها، مع زر ملء الشاشة.' },
+      { m: 3, who: 'officer', title: 'الطابور يتقدّم', board: true,
+        text: 'كلما أنهى مريض فحصه ضغط مسؤول التخصص «إجتاز»، فيخرج من الطابور ويتقدم كل من بعده مكاناً.',
+        acts: passN('dent', 3) },
+      { m: 4, who: 'officer', title: 'الفحص ثم «إجتاز»', board: true,
+        text: 'يأتي دور أمينة، يفحصها الطبيب ويضغط المسؤول «إجتاز». ليس لها تخصص آخر اليوم، فتكتمل زيارتها.',
+        rule: 'رسالة التطبيق: «أنهى المريض كل تخصصاته لهذا اليوم».',
+        act: e => e.complete(e.find(128, 'dent')) },
+      { m: 5, who: 'reception', title: 'رابط التقييم',
+        text: 'بعد الفحص يرسل الاستقبال رابط التقييم عبر واتساب. تجيب أمينة عن خمسة أسئلة بالنجوم وتكتب اقتراحاتها، ويطلع عليها المدير العام في صفحة التقييمات.',
+        scene: () => `<div class="devrow">${scrWhatsApp({ html: evalMsg('أمينة بن علي') })}${scrEvaluation()}</div>` },
+      { m: 5, who: 'system', title: 'انتهت الرحلة',
+        text: 'هذه هي الرحلة الأساسية. السيناريوهات التالية تشرح كل ما يمكن أن يتغير في الطريق.',
+        scene: e => summary(e, 128, ['حجزت', 'ذُكّرت', 'سجّلت حضورها', 'انتظرت 3 مرضى', 'فُحصت', 'قيّمت التجربة']) },
+    ],
+  },
+  {
+    id: 'open', title: 'فتح الطوابير عند وصول الأطباء', sub: 'المدير العام يفتح التخصص، والمنصة توزّع المرضى', focus: 128,
+    setup(e) {
+      e.addSpec('eye', 'تصحيح النظر', { open: false }).addSpec('dent', 'طب الأسنان', { open: false }).addSpec('card', 'أمراض القلب', { open: false });
+      e.book(128, 'أمينة', ['eye', 'dent']);
+      e.book(121, 'يوسف', ['eye']);
+      e.book(131, 'خديجة', ['card']);
+      [[122, 'محمد'], [123, 'فاطمة'], [124, 'عمر'], [125, 'سارة'], [126, 'علي'], [127, 'ليلى']].forEach(([pid, name]) => e.book(pid, name, ['eye', 'dent']));
+      e.book(130, 'حمزة', ['eye', 'dent']);
+      e.book(132, 'نور', ['eye', 'dent']);
+    },
+    steps: [
+      { m: 2, who: 'admin', title: 'بداية اليوم: كل الطوابير مغلقة', board: true,
+        text: 'كل يوم فحص يبدأ والتخصصات مغلقة، لأن الأطباء لم يصلوا بعد. التخصص المغلق لا يُرسَل إليه أي مريض، ولا يظهر على شاشة القاعة.',
+        rule: 'الفتح صالح ليوم واحد فقط: في اليوم التالي تعود كل التخصصات مغلقة تلقائياً.' },
+      { m: 2, who: 'reception', title: 'الحضور قبل وصول الطبيب', board: true,
+        text: 'تصل أمينة ثم يوسف وخديجة. يُسجَّل حضورهم عادياً، لكن لا يوجد تخصص مفتوح لهم، فيبقون «في الانتظار» ويُحفظ وقت وصول كل واحد.',
+        rule: 'رسالة الاستقبال: «تم تسجيل حضور المريض، لا يوجد تخصص مفتوح له حالياً، سيُوجَّه عند وصول الطبيب».',
+        acts: [e => e.checkIn(128), e => e.checkIn(121), e => e.checkIn(131)] },
+      { m: 3, who: 'admin', title: 'وصل طبيب تصحيح النظر', board: true,
+        text: 'يرى المدير العام الطبيب في قاعته، فيضغط «افتح الطابور» في صفحة طابور التخصص، أو من قائمة الأحداث (⋮ ← «فتح الطوابير عند وصول الأطباء»). يُرسَل إليه فوراً من ينتظره، بترتيب وصولهم: أمينة ثم يوسف.',
+        rule: 'فتح التخصص وإغلاقه من صلاحية المدير العام فقط.',
+        act: e => e.openSpec('eye') },
+      { m: 2, who: 'reception', title: 'الأسنان ما زال مغلقاً', board: true,
+        text: 'يصل ستة مرضى حجزوا تصحيح النظر والأسنان. الأسنان مغلق، فيدخلون كلهم طابور تصحيح النظر ويطول الطابور.',
+        acts: [122, 123, 124, 125, 126, 127].map(pid => e => e.checkIn(pid)) },
+      { m: 3, who: 'admin', title: 'فُتح الأسنان: إعادة التوزيع', board: true,
+        text: 'وصل طبيب الأسنان ففتح المدير التخصص. من حجزوا الأسنان وهم في آخر طابور تصحيح النظر ينتقلون إليه ما دام ذلك يقرّبهم من الدور، ويحافظون على ترتيب وصولهم. أما أصحاب المراتب الأولى فيبقون.',
+        rule: 'أول 5 مراتب من كل طابور وأصحاب الأولوية لا يُنقلون أبداً. التخصص الذي غادره المريض يعود «في الانتظار» ليُفحص فيه لاحقاً.',
+        act: e => e.openSpec('dent') },
+      { m: 2, who: 'reception', title: 'الحضور يذهب إلى الأقل انتظاراً', board: true, focus: 130,
+        text: 'يصل حمزة وقد حجز التخصصين. تختار المنصة الطابور المفتوح الأقصر، فيذهب إلى الأسنان.',
+        act: e => e.checkIn(130) },
+      { m: 3, who: 'patient', title: 'ماذا يرى المرضى', focus: 131,
+        text: 'شاشة القاعة تعرض التخصصات المفتوحة فقط. وخديجة التي حجزت القلب ترى في «دوري» أنها في انتظار وصول الطبيب.',
+        scene: e => `<div class="devrow">${scrMyTurn({ query: '131', patients: [turnData(e, 131)] })}${hallTv(e, 128, ['eye', 'dent', 'card'])}</div>` },
+      { m: 4, who: 'admin', title: 'غادر طبيب تصحيح النظر', board: true, focus: 132,
+        text: 'عند إغلاق التخصص لا يُرسل إليه مرضى جدد، لكن من في طابوره يُفحصون، ويبقى على شاشة القاعة حتى يفرغ طابوره. نور التي وصلت بعد الإغلاق تذهب إلى الأسنان.',
+        acts: [e => e.closeSpec('eye'), e => e.checkIn(132)] },
+    ],
+  },
+  {
+    id: 'multi', title: 'عدة تخصصات', sub: 'تخصص نشط واحد، والباقي ينتظر تلقائياً', focus: 128,
+    setup(e) {
+      e.addSpec('intern', 'الطب الداخلي').addSpec('dent', 'طب الأسنان').addSpec('card', 'أمراض القلب');
+      crowd(e, 'intern', [[121, 'يوسف'], [122, 'خديجة']]);
+      crowd(e, 'dent', [[123, 'محمد'], [124, 'فاطمة'], [125, 'عمر']]);
+      crowd(e, 'card', [[126, 'سارة'], [127, 'علي'], [129, 'ليلى'], [130, 'حمزة']]);
+      e.book(128, 'أمينة', ['intern', 'dent', 'card']);
+    },
+    steps: [
+      { m: 0, who: 'patient', title: 'اختيار عدة تخصصات',
+        text: 'في الاستمارة نفسها تختار أمينة ثلاثة تخصصات، لكل واحد يومه وساعته. التخصص الذي تختاره أولاً هو التخصص الرئيسي، ويُقدَّم إذا تساوت الطوابير يوم الفحص.',
+        rule: 'الحد الأقصى لعدد التخصصات يحدده إعداد الحملة. إذا امتلأت ساعة أحد التخصصات أثناء الحجز يُحجز الباقي ويظهر تنبيه بالتخصص الذي لم يُحجز.',
+        scene: () => scrBooking({ ...amina, max: 3, specs: [{ name: 'الطب الداخلي', when: 'السبت · 09:00' }, { name: 'طب الأسنان', when: 'السبت · 10:00' }, { name: 'أمراض القلب', when: 'السبت · 11:00' }] }) },
+      { m: 2, who: 'reception', title: 'الحضور: الطابور الأقل انتظاراً', board: true,
+        text: 'عند تسجيل الحضور تختار المنصة من بين تخصصاتها المفتوحة الطابورَ الأقصر: الطب الداخلي (2 فقط، مقابل 3 في الأسنان و4 في القلب). أما الأسنان والقلب فيصبحان «في الانتظار».',
+        rule: 'المريض نشط في تخصص واحد فقط في كل لحظة، فلا يُنادى عليه في قاعتين معاً. عند تساوي الطوابير يُقدَّم التخصص الرئيسي.',
+        act: e => e.checkIn(128) },
+      { m: 3, who: 'officer', title: 'ينتظر في الطب الداخلي', board: true,
+        text: 'يتقدم طابور الطب الداخلي. لاحظ أن أمينة لا تظهر في طابوري الأسنان والقلب بعد.',
+        acts: passN('intern', 2) },
+      { m: 4, who: 'system', title: 'بعد «إجتاز» تنتقل تلقائياً', board: true,
+        text: 'بمجرد ضغط «إجتاز» في الطب الداخلي تختار المنصة التخصص التالي الأقل انتظاراً: الأسنان (3) قبل القلب (4). يوضع موعد الأسنان في آخر طابوره دون أي تدخل من الاستقبال.',
+        rule: 'التخصص التالي = التخصص المفتوح ذو الطابور الأقصر في تلك اللحظة. التخصص المغلق (طبيبه لم يصل) يُتخطّى.',
+        act: e => e.complete(e.find(128, 'intern')) },
+      { m: 3, who: 'patient', title: '«دوري» يعرض كل التخصصات',
+        text: 'في صفحة «دوري» ترى أمينة الآن ما أنهته، ومكانها في الأسنان، والقلب الذي ينتظر.',
+        scene: e => scrMyTurn({ query: '0555123456', patients: [turnData(e, 128)] }) },
+      { m: 4, who: 'officer', title: 'الأسنان ثم القلب', board: true,
+        text: 'تُفحص في الأسنان، فينتقل القلب تلقائياً إلى الطابور، وتعاد نفس الحركة.',
+        acts: [...passN('dent', 3), e => e.complete(e.find(128, 'dent'))] },
+      { m: 4, who: 'officer', title: 'أنهت كل تخصصاتها', board: true,
+        text: 'بعد آخر «إجتاز» تكتمل زيارتها. في الإحصائيات تُحسب أمينة مريضة واحدة وثلاثة مواعيد، وتُعدّ «أنهت» فقط عندما تكتمل كل مواعيدها.',
+        acts: [...passN('card', 4), e => e.complete(e.find(128, 'card'))] },
+    ],
+  },
+  {
+    id: 'dil', title: 'التمدد (تصحيح النظر)', sub: 'قطرات توسيع الحدقة ثم العودة بأولوية', focus: 128,
+    setup(e) {
+      e.addSpec('eye', 'تصحيح النظر', { dil: true }).addSpec('dent', 'طب الأسنان');
+      crowd(e, 'eye', [[121, 'يوسف'], [128, 'أمينة'], [123, 'محمد'], [124, 'فاطمة'], [125, 'عمر'], [129, 'ليلى']]);
+      crowd(e, 'dent', [[126, 'سارة'], [127, 'علي']]);
+      e.complete(e.head('eye'));
+      e.sendDil(e.find(129, 'eye')); e.receiveDil(e.find(129, 'eye'));
+      e.find(129, 'eye').startedAt = Date.now() - 14 * 60000;
+    },
+    steps: [
+      { m: 3, who: 'officer', title: 'في طابور تصحيح النظر', board: true,
+        text: 'أمينة أول الطابور. هذا التخصص له «قاعة تمدد» تابعة له، وفيها الآن ليلى منذ ربع ساعة تقريباً.' },
+      { m: 4, who: 'officer', title: 'الطبيب يطلب التمدد', board: true,
+        text: 'يحتاج الطبيب توسيع حدقة العين بالقطرات قبل الفحص. يضغط المسؤول «تمدد»: تخرج أمينة من الطابور وتصبح «متجهة إلى التمدد»، ويتقدم من بعدها.',
+        rule: 'زر التمدد يظهر فقط في التخصصات التي فُعّلت لها قاعة تمدد.',
+        act: e => e.sendDil(e.find(128, 'eye')) },
+      { m: 3, who: 'patient', title: '«دوري» يوجّهها',
+        text: 'إن فتحت أمينة صفحة «دوري» الآن تقرأ: «توجّه إلى قاعة التمدد».',
+        scene: e => scrMyTurn({ query: '128', patients: [turnData(e, 128)] }) },
+      { m: 4, who: 'dil', title: 'الوصول إلى قاعة التمدد', board: true,
+        text: 'مسؤول قاعة التمدد يرى قائمتين: «قادمون» و«في القاعة». حين تصل أمينة يضغط «وصل» فيبدأ عدّاد الوقت حتى تعمل القطرات.',
+        act: e => e.receiveDil(e.find(128, 'eye')) },
+      { m: 3, who: 'officer', title: 'الطابور لا يتوقف', board: true,
+        text: 'أثناء انتظار القطرات يستمر الفحص في التخصص بشكل عادي.',
+        acts: passN('eye', 2) },
+      { m: 4, who: 'dil', title: 'انتهى تمدد ليلى أولاً', board: true,
+        text: 'المسؤول يضغط «انتهى» لليلى، فتعود إلى رأس الطابور بأولوية.',
+        act: e => e.finishDil(e.find(129, 'eye')) },
+      { m: 4, who: 'dil', title: 'ثم أمينة: خلف ليلى', board: true,
+        text: 'عند انتهاء تمدد أمينة تعود بأولوية أيضاً، لكن خلف أصحاب الأولوية الموجودين قبلها (ليلى). لا تتخطى أحداً عاد قبلها.',
+        rule: 'الأولوية = كتلة في رأس الطابور بترتيب الوصول: الحالات الخاصة والعائدون من التمدد.',
+        act: e => e.finishDil(e.find(128, 'eye')) },
+      { m: 4, who: 'officer', title: 'الفحص بعد التمدد', board: true,
+        text: 'تُفحص ليلى ثم أمينة، ويضغط المسؤول «إجتاز» لكل منهما.',
+        acts: [passHead('eye'), e => e.complete(e.find(128, 'eye'))] },
+    ],
+  },
+  {
+    id: 'push', title: 'الإنزال: غائب عند النداء', sub: 'يرجع 5 مراتب بدل أن يفقد دوره', focus: 128,
+    setup(e) {
+      e.addSpec('dent', 'طب الأسنان');
+      crowd(e, 'dent', [[128, 'أمينة'], [121, 'يوسف'], [122, 'خديجة'], [123, 'محمد'], [124, 'فاطمة'], [125, 'عمر'], [126, 'سارة'], [127, 'علي'], [129, 'ليلى']]);
+      e.book(130, 'حمزة', ['dent']);
+    },
+    steps: [
+      { m: 3, who: 'officer', title: 'نودي عليها ولم تحضر', board: true,
+        text: 'أمينة في المرتبة الأولى، لكنها خرجت لحظة النداء. بدل أن تنتظر القاعة أو تفقد أمينة دورها، يُنزلها مسؤول التخصص أو مسؤول الإنزال.' },
+      { m: 3, who: 'manager', title: 'إنزال 5 مراتب', board: true,
+        text: 'يضغط مسؤول الإنزال «إنزال» على بطاقة أمينة، أو يضغط «مسح للإنزال» ويمسح رمز QR الخاص بها. يختار عدد المراتب (5 افتراضياً)، فتنزل أمينة وتظهر بعلامة «تم إنزاله». يبقى ترتيب الآخرين كما هو ويتقدمون مكاناً.',
+        rule: 'مسؤول الإنزال يرى الطوابير مثل مسؤول التخصص، لكن إجراءه الوحيد هو «إنزال»: لا يستطيع «إجتاز» ولا التمدد ولا الإحالة.',
+        act: e => e.pushDown([e.find(128, 'dent')]) },
+      { m: 3, who: 'manager', title: 'إنزال عدة مرضى معاً', board: true,
+        text: 'يمكن تحديد عدة مرضى غائبين وإنزالهم دفعة واحدة. كل واحد يرجع 5 مراتب، ويحافظ الباقون على ترتيبهم.',
+        rule: 'من له أولوية ويُنزَل يفقد أولويته، ولا يوضع أبداً داخل كتلة الأولوية.',
+        act: e => e.pushDown([e.find(121, 'dent'), e.find(122, 'dent')]) },
+      { m: 4, who: 'officer', title: 'تعود حين يصل دورها', board: true,
+        text: 'المريض المُنزَل يبقى في الطابور نفسه. عندما يصل دور أمينة من جديد تُفحص ويضغط المسؤول «إجتاز» كالعادة.',
+        acts: [...passN('dent', 4), e => e.complete(e.find(128, 'dent'))] },
+    ],
+  },
+  {
+    id: 'special', title: 'الحالات الخاصة', sub: 'أولوية طوال اليوم لكبار السن والحالات الحرجة', focus: 130,
+    setup(e) {
+      e.addSpec('intern', 'الطب الداخلي').addSpec('dent', 'طب الأسنان');
+      crowd(e, 'intern', [[121, 'يوسف'], [122, 'خديجة'], [123, 'محمد'], [124, 'فاطمة'], [125, 'عمر']]);
+      crowd(e, 'dent', [[126, 'سارة'], [127, 'علي'], [133, 'نبيل'], [134, 'هدى'], [135, 'كمال'], [136, 'رانية']]);
+      e.book(130, 'الحاج سليمان', ['intern', 'dent']); e.checkIn(130);
+      e.book(131, 'الحاجة زينب', ['dent']);
+      e.book(132, 'رضا', ['dent', 'intern']); e.checkIn(132);
+    },
+    steps: [
+      { m: 3, who: 'officer', title: 'مريض لا يستطيع الانتظار', board: true,
+        text: 'الحاج سليمان مسنّ وله تخصصان، وهو السادس في طابور الطب الداخلي.' },
+      { m: 3, who: 'special', title: 'تحديده «حالة خاصة»', board: true,
+        text: 'يفتح مسؤول الحالات الخاصة موعده ويضغط «حالة خاصة»، فينتقل إلى رأس الطابور بعلامة «أولوية».',
+        rule: 'الأولوية تشمل كل مواعيد المريض لهذا اليوم، لا هذا التخصص فقط.',
+        act: e => e.markSpecial(e.find(130, 'intern')) },
+      { m: 2, who: 'special', title: 'حالة خاصة لم تُسجّل حضورها', board: true,
+        text: 'الحاجة زينب وصلت ولم يُسجَّل حضورها بعد. تحديدها «حالة خاصة» يسجّل حضورها فوراً ويبدأ بهذا التخصص، في رأس طابور الأسنان.',
+        act: e => e.markSpecial(e.find(131, 'dent')) },
+      { m: 4, who: 'system', title: 'الأولوية تبقى في التخصص التالي', board: true,
+        text: 'يُفحص الحاج سليمان في الطب الداخلي، فينتقل موعد الأسنان تلقائياً، وبأولوية: يدخل كتلة الأولوية خلف الحاجة زينب التي سبقته إليها.',
+        act: e => e.complete(e.find(130, 'intern')) },
+      { m: 3, who: 'special', title: 'تقديم تخصص على آخر', board: true, focus: 132,
+        text: 'رضا في طابور الأسنان، لكن حالته تستدعي الطب الداخلي فوراً. تحديد موعد الطب الداخلي «حالة خاصة» يجعله التخصص النشط في الرأس، ويعيد الأسنان إلى «في الانتظار».',
+        act: e => e.markSpecial(e.find(132, 'intern')) },
+      { m: 3, who: 'special', title: 'متى يُرفض؟', board: true, focus: 132,
+        text: 'لا يمكن تحديد حالة خاصة على تخصص فُحص فيه المريض، ولا أثناء وجوده في التمدد في تخصص آخر، ولا على موعد ليس اليوم، ولا على تخصص مغلق لمريض سجّل حضوره (أما من لم يسجّل حضوره فيُسجَّل وينتظر بأولوية حتى يُفتح تخصصه).',
+        error: ['تم فحص المريض في هذا التخصص مسبقاً', 'المريض في التمدد حالياً، أنهِ التمدد أولاً', 'هذا الموعد ليس اليوم', 'هذا التخصص غير مفتوح اليوم، اختر تخصصاً مفتوحاً'] },
+    ],
+  },
+  {
+    id: 'refer', title: 'الإحالة إلى تخصص آخر', sub: 'الطبيب يطلب تخصصاً لم يحجزه المريض', focus: 128,
+    setup(e) {
+      e.addSpec('intern', 'الطب الداخلي').addSpec('card', 'أمراض القلب').addSpec('dent', 'طب الأسنان', { open: false }).addSpec('eye', 'تصحيح النظر', { dil: true, today: false });
+      crowd(e, 'intern', [[128, 'أمينة'], [121, 'يوسف'], [122, 'خديجة']]);
+      crowd(e, 'card', [[123, 'محمد'], [124, 'فاطمة'], [125, 'عمر'], [126, 'سارة']]);
+    },
+    steps: [
+      { m: 4, who: 'officer', title: 'الطبيب يريد رأي القلب', board: true,
+        text: 'أثناء فحص أمينة في الطب الداخلي يطلب الطبيب فحص القلب، وهو تخصص لم تحجزه.' },
+      { m: 4, who: 'officer', title: 'قائمة التخصصات المتاحة',
+        text: 'يضغط المسؤول «إرسال إلى تخصص آخر». الأسنان مغلق (طبيبه لم يصل بعد)، وتصحيح النظر لا يعمل اليوم، فيبقى القلب.',
+        rule: 'لا يُحال المريض إلا إلى تخصص فتحه المدير العام اليوم.',
+        scene: e => `<div class="devrow" style="align-items:flex-end">${referSheet(e, e.find(128, 'intern'), ['intern', 'card', 'dent', 'eye'], 'card')}</div>` },
+      { m: 3, who: 'system', title: 'موعد جديد في المرتبة الثالثة', board: true,
+        text: 'يُنشأ لها موعد جديد في القلب في أقرب ساعة اليوم، وتدخل المرتبة الثالثة في طابوره بدل آخره. ويعود الطب الداخلي إلى «في الانتظار».',
+        rule: 'المرتبة الثالثة لا تتخطى أصحاب الأولوية الموجودين. وإن كان المريض حالة خاصة يدخل كتلة الأولوية.',
+        act: e => e.refer(e.find(128, 'intern'), 'card') },
+      { m: 4, who: 'system', title: 'ثم العودة إلى الطب الداخلي', board: true,
+        text: 'بعد «إجتاز» في القلب يعود الطب الداخلي إلى الطابور تلقائياً، في آخره، كأي تخصص ينتقل إليه المريض.',
+        acts: [...passN('card', 2), e => e.complete(e.find(128, 'card'))] },
+    ],
+  },
+  {
+    id: 'transfer', title: 'تصحيح التخصص', sub: 'مسؤول الحالات الخاصة ينقل الموعد', focus: 128,
+    setup(e) {
+      e.addSpec('dent', 'طب الأسنان').addSpec('ent', 'أنف وأذن وحنجرة');
+      crowd(e, 'dent', [[121, 'يوسف'], [122, 'خديجة']]);
+      crowd(e, 'ent', [[123, 'محمد'], [124, 'فاطمة'], [125, 'عمر'], [126, 'سارة']]);
+      e.book(128, 'أمينة', ['dent']); e.checkIn(128);
+    },
+    steps: [
+      { m: 3, who: 'officer', title: 'حُجز التخصص الخطأ', board: true,
+        text: 'أمينة حجزت طب الأسنان، لكن شكواها ألم في الأذن. التصحيح من صلاحية مسؤول الحالات الخاصة.' },
+      { m: 3, who: 'special', title: 'نقل الموعد', board: true,
+        text: 'ينقل المسؤول موعدها إلى «أنف وأذن وحنجرة» (أقرب ساعة متاحة أو ساعة يختارها). لأنها كانت في الطابور، تدخل الطابور الجديد في المرتبة الثالثة.',
+        rule: 'إن كان الموعد المنقول ليوم آخر يبقى «لم يحضر بعد». وإن كان للمريض تخصص نشط آخر، يصبح المنقول «في الانتظار».',
+        act: e => e.transfer(e.find(128, 'dent'), 'ent') },
+      { m: 4, who: 'special', title: 'متى يُرفض النقل؟', board: true,
+        text: 'لا يُنقل موعد فُحص فيه المريض، ولا موعد مريض داخل قاعة التمدد، ولا إلى تخصص للمريض موعد فيه.',
+        error: ['تم فحص المريض في هذا التخصص، لا يمكن نقله', 'المريض في التمدد، لا يمكن نقله الآن', 'المريض مسجل في هذا التخصص مسبقاً'] },
+    ],
+  },
+  {
+    id: 'errors', title: 'أخطاء الحجز والحضور', sub: 'ماذا يرى المريض والاستقبال', focus: null,
+    setup(e) { e.addSpec('dent', 'طب الأسنان'); },
+    steps: [
+      { m: 0, who: 'patient', title: 'حجز مكرر',
+        text: 'نفس الاسم الكامل ونفس تاريخ الميلاد في نفس الحملة يعني نفس الشخص. يُرفض الحجز الثاني ويُذكَّر المريض برقمه.',
+        scene: () => scrError('حجز موعد', { sub: EVENT, fields: [['الاسم واللقب', 'أمينة بن علي'], ['تاريخ الميلاد', '1968-04-12']], code: '409', msg: 'لديك موعد مسبق في هذا الحدث. رقم المريض: 128' }) },
+      { m: 0, who: 'patient', title: 'تخصص ممتلئ',
+        text: 'إذا امتلأت ساعة أحد التخصصات بين لحظة اختيارها ولحظة التأكيد، يُحجز الباقي ويظهر تنبيه. وإن امتلأت كلها يُرفض الحجز.',
+        scene: () => `<div class="devrow">${scrBooked({ event: EVENT, pid: 133, name: 'يوسف قاسمي', rows: [['طب الأسنان', 'السبت · 09:00']], warn: 'تنبيه: التخصصات التالية كانت ممتلئة ولم يتم حجزها: تصحيح النظر' })}${scrError('حجز موعد', { code: '409', msg: 'جميع المواعيد المطلوبة ممتلئة.' })}</div>` },
+      { m: 0, who: 'patient', title: 'الحملة غير متاحة',
+        text: 'لا يُقبل الحجز في حملة موقوفة أو مؤرشفة.',
+        scene: () => `<div class="devrow">${scrError('حجز موعد', { code: '403', msg: 'الحدث غير نشط حالياً.' })}${scrError('حجز موعد', { code: '403', msg: 'الحدث مؤرشف ولا يمكن الحجز فيه.' })}</div>` },
+      { m: 2, who: 'reception', title: 'جاء في غير يومه',
+        text: 'يُسجَّل الحضور فقط لمواعيد اليوم. إن جاء المريض في يوم آخر يخبره التطبيق بتواريخ مواعيده.',
+        scene: () => scanner({ pid: 140, bad: true, msg: 'ليس للمريض موعد اليوم. مواعيده: 2026-10-26' }) },
+      { m: 2, who: 'reception', title: 'تسجيل الحضور مرتين',
+        text: 'إن مُسح رمز المريض مرة ثانية لا يتغير شيء في الطوابير.',
+        scene: () => scanner({ pid: 128, bad: true, msg: 'المريض مسجل حضوره اليوم مسبقاً' }) },
+      { m: 2, who: 'reception', title: 'رقم غير موجود',
+        text: 'رقم خاطئ أو من حملة أخرى.',
+        scene: () => scanner({ pid: 9999, bad: true, msg: 'لا يوجد مريض بهذا الرقم في هذا الحدث' }) },
+      { m: 3, who: 'patient', title: '«دوري» لم يجد المريض',
+        text: 'في صفحة «دوري» يظهر للمريض ما يجب أن يتحقق منه.',
+        scene: () => `<div class="devrow">${scrError('دوري', { fields: [['رقم المريض', '1280']], code: '404', msg: 'لم نجد مريضاً بهذا الرقم في هذه الحملة. تأكد من رقم المريض.' })}${scrError('دوري', { fields: [['رقم الهاتف', '0555 00 00 00']], code: '404', msg: 'لم نجد موعداً بهذا الرقم في هذه الحملة. تأكد من رقم الهاتف الذي حجزت به.' })}</div>` },
+    ],
+  },
+  {
+    id: 'family', title: 'عائلة برقم هاتف واحد', sub: 'أب يحجز لأبنائه ويتابعهم معاً', focus: 141,
+    setup(e) {
+      e.addSpec('dent', 'طب الأسنان').addSpec('eye', 'تصحيح النظر', { dil: true }).addSpec('intern', 'الطب الداخلي');
+      crowd(e, 'dent', [[121, 'يوسف'], [122, 'خديجة']]);
+      crowd(e, 'eye', [[123, 'محمد']]);
+      e.book(141, 'عبد الله مرابط', ['eye', 'dent']); e.checkIn(141);
+      e.book(142, 'مريم مرابط', ['dent']); e.checkIn(142);
+      e.book(143, 'نور مرابط', ['intern'], { today: false, date: '2026-10-26' });
+      e.sendDil(e.find(141, 'eye'));
+    },
+    steps: [
+      { m: 3, who: 'patient', title: 'رقم هاتف واحد، عدة مرضى',
+        text: 'حجز الأب لأبنائه الثلاثة برقم هاتفه. في «دوري» يكتب رقم الهاتف فيرى كل واحد منهم: عبد الله متجه إلى التمدد، مريم في الطابور، ونور موعدها يوم آخر.',
+        rule: 'تظهر الأسماء الأولى فقط، والأسماء المركّبة (عبد الله، أبو بكر) تبقى كاملة. حتى 6 مرضى لكل رقم.',
+        scene: e => scrMyTurn({ query: '0661987654', patients: [141, 142, 143].map(p => { const d = turnData(e, p); if (p === 141) d.first = 'عبد الله'; return d; }) }) },
+      { m: 3, who: 'officer', title: 'ونفس الشيء على الطوابير', board: true,
+        text: 'لكل فرد رقم مريض مستقل وطوابيره الخاصة، فلا يؤثر أحدهم على دور الآخر.' },
+    ],
+  },
+  {
+    id: 'end', title: 'نهاية اليوم والنتائج', sub: 'من فُحص، من لم يحضر، ومن حضر ولم يُفحص', focus: null,
+    setup(e) {
+      e.addSpec('intern', 'الطب الداخلي').addSpec('dent', 'طب الأسنان').addSpec('card', 'أمراض القلب');
+      e.book(128, 'أمينة', ['intern', 'dent']); e.checkIn(128); e.complete(e.find(128, 'intern')); e.complete(e.find(128, 'dent'));
+      e.book(121, 'يوسف', ['dent', 'card']); e.checkIn(121); e.complete(e.find(121, 'dent'));
+      e.book(122, 'خديجة', ['card']);
+      e.book(123, 'محمد', ['intern']); e.checkIn(123); e.complete(e.find(123, 'intern'));
+    },
+    steps: [
+      { m: 5, who: 'officer', title: 'آخر صورة للطوابير', board: true,
+        text: 'انتهى اليوم: أمينة ومحمد أنهوا، يوسف أنهى الأسنان وبقي في طابور القلب، وخديجة لم تحضر.' },
+      { m: 5, who: 'admin', title: 'كيف تُحسب النتائج',
+        text: 'كل موعد يُصنَّف في النهاية إلى واحد من ثلاثة: «فُحص»، «لم يحضر» (بقي لم يحضر بعد)، أو «حضر ولم يُفحص» (في الانتظار أو في الطابور أو التمدد عند الإغلاق). والمريض يُحسب مرة واحدة مهما كان عدد تخصصاته.',
+        rule: 'نفس التعريف تستعمله كل الشاشات والتقارير، فتتطابق الأرقام في كل مكان.',
+        scene: e => stats(e) },
+      { m: 5, who: 'admin', title: 'الأرشيف والتقرير',
+        text: 'يؤرشف المدير العام الحملة، فتبقى إحصائياتها متاحة: حسب التخصص، الحالة، العمر والجنس، والولايات. ثم يكتب تقرير الحملة ويعتمده، ويراجع التقييمات ويعالجها.',
+        scene: () => `<div class="stats">${[['الإحصائيات', 'حسب التخصص والحالة'], ['الديموغرافيا', 'العمر والجنس'], ['الجغرافيا', 'الولايات والبلديات'], ['التقرير', 'يُكتب ثم يُعتمد'], ['التقييمات', 'تُراجع وتُعالج']].map((x, i) => `<div class="stat" ${delay(i, .1, .15)}><small>${x[0]}</small><b style="font-size:17px">${x[1]}</b></div>`).join('')}</div>` },
+    ],
+  },
+];
+
+function summary(e, pid, trail) {
+  return `<div class="summary"><div class="sumcard"><h4>رحلة أمينة #${pid}</h4><div class="trail">${trail.map((t, i) => `<span class="st Completed" style="opacity:0;animation:fin .4s ${(.2 + i * .2).toFixed(1)}s forwards">${t}</span>`).join('<span class="arrow">←</span>')}</div></div>
+    <div class="sumcard" style="animation-delay:.6s"><h4>الحالات التي مرّت بها</h4><div class="trail">${['Pending', 'Present', 'Completed'].map(s => `<span class="st ${s}">${STATUS_LABELS[s]}</span>`).join('<span class="arrow">←</span>')}</div></div></div>`;
+}
+function stats(e) {
+  const byPid = {};
+  e.appts.forEach(a => (byPid[a.pid] = byPid[a.pid] || []).push(a));
+  const out = s => s === 'Completed' ? ['فُحص', 'Completed'] : s === 'Pending' ? ['لم يحضر', 'Pending'] : ['حضر ولم يُفحص', 'Waiting'];
+  const pts = Object.values(byPid);
+  const c = { total: e.appts.length, arrived: pts.filter(r => r.some(a => a.status !== 'Pending')).length, finished: pts.filter(r => r.every(a => a.status === 'Completed')).length };
+  const cards = [['المرضى', pts.length, `${c.total} مواعيد`], ['حضروا', c.arrived, 'مريض'], ['أنهوا كل فحوصاتهم', c.finished, 'مريض'], ['لم يحضروا', pts.length - c.arrived, 'مريض']];
+  return `<div style="width:100%"><div class="stats">${cards.map((x, i) => `<div class="stat" ${delay(i, .1, .15)}><small>${x[0]}</small><b>${x[1]}</b> <em>${x[2]}</em></div>`).join('')}</div>
+    <div class="outc"><table><thead><tr><th>المريض</th><th>التخصص</th><th>الحالة عند الإغلاق</th><th>النتيجة</th></tr></thead><tbody>
+    ${e.appts.map(a => `<tr><td>#${a.pid} ${esc(a.name)}</td><td>${esc(e.spec(a.es).name)}</td><td><span class="st ${a.status}">${STATUS_LABELS[a.status]}</span></td><td><span class="st ${out(a.status)[1]}">${out(a.status)[0]}</span></td></tr>`).join('')}
+    </tbody></table></div></div>`;
+}
+
+/* =====================================================================
+   Player
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const sceneEl = $('#scene'), narrEl = $('#narr');
+const P = { si: 0, step: -1, engine: null, playing: false, timer: null, seen: new Set() };
+
+function initMiles() {
+  $('#miles').insertAdjacentHTML('beforeend', MILES.map((m, i) => `<div class="mile" data-m="${i}"><div class="dot">${svg(m.i, 2.4)}</div>${m.t}</div>`).join(''));
+}
+function setMile(m) {
+  document.querySelectorAll('.mile').forEach((el, i) => { el.classList.toggle('past', i < m); el.classList.toggle('now', i === m); });
+  $('#mileBar').style.width = `calc((100% - 100%/6 - 36px) * ${m / 5})`;
+}
+function initList() {
+  const list = $('#scenList');
+  SCENARIOS.forEach((s, i) => list.insertAdjacentHTML('beforeend',
+    `<button class="scen" data-i="${i}"><span class="n">${i + 1}</span><span><b>${s.title}</b><small>${s.sub}</small></span></button>`));
+  list.addEventListener('click', ev => { const b = ev.target.closest('.scen'); if (b) loadScenario(+b.dataset.i); });
+}
+
+function freshEngine(s) { const e = new Engine(); s.setup(e); return e; }
+function stepActs(st) { return st.acts || (st.act ? [st.act] : []); }
+function snapshot(e, pid) { const o = {}; e.appts.filter(a => a.pid === pid).forEach(a => (o[a.es] = a.status)); return o; }
+
+function loadScenario(i) {
+  stop();
+  P.si = i; P.step = -1; P.seen = new Set(); P.engine = null;
+  document.querySelectorAll('.scen').forEach((b, j) => b.setAttribute('aria-current', j === i ? 'true' : 'false'));
+  const s = SCENARIOS[i];
+  $('#dots').innerHTML = s.steps.map((_, j) => `<button aria-label="الخطوة ${j + 1}" data-j="${j}"></button>`).join('');
+  P.boardMounted = false;
+  goTo(0);
+}
+
+let runToken = 0;
+async function goTo(j) {
+  const s = SCENARIOS[P.si];
+  j = Math.max(0, Math.min(s.steps.length - 1, j));
+  const token = ++runToken;
+  const forward = j === P.step + 1 && P.engine;
+  if (!forward) {
+    P.engine = freshEngine(s);
+    for (let k = 0; k < j; k++) stepActs(s.steps[k]).forEach(f => f(P.engine));
+  }
+  P.step = j; P.seen.add(j);
+  const st = s.steps[j];
+  const focus = st.focus !== undefined ? st.focus : s.focus;
+  const before = focus ? snapshot(P.engine, focus) : null;
+  const e = P.engine;
+  updateChrome(s, j);
+  setMile(st.m);
+
+  const acts = stepActs(st);
+  if (st.board) {
+    mountBoard(e, focus, !forward);
+    renderNarr(st, before, focus, acts.length > 0);
+    for (let k = 0; k < acts.length; k++) {
+      await wait(k === 0 ? 550 : 850);
+      if (token !== runToken) return;
+      acts[k](e);
+      renderBoard(sceneEl.querySelector('.board'), e, { focus });
+      sceneEl.querySelector('.pcard-slot').innerHTML = focus ? patientCard(e, focus) : '';
+    }
+    if (acts.length) { await wait(400); if (token !== runToken) return; renderNarr(st, before, focus, false); }
+  } else {
+    acts.forEach(f => f(e));
+    P.boardMounted = false;
+    sceneEl.innerHTML = `<div class="devrow">${st.scene(e)}</div>${st.note ? `<p style="text-align:center;color:var(--muted);font-size:13px;margin:10px 0 0">${st.note}</p>` : ''}`;
+    renderNarr(st, before, focus, false);
+  }
+  if (P.playing) schedule();
+}
+function mountBoard(e, focus, reset) {
+  if (!P.boardMounted || reset) {
+    sceneEl.innerHTML = '<div class="board"></div><div class="pcard-slot"></div>';
+    const b = sceneEl.querySelector('.board');
+    buildBoardSkeleton(b, e, { entrance: true });
+    renderBoard(b, e, { focus, animate: false });
+    P.boardMounted = true;
+  } else {
+    renderBoard(sceneEl.querySelector('.board'), e, { focus });
+  }
+  sceneEl.querySelector('.pcard-slot').innerHTML = focus ? patientCard(e, focus) : '';
+}
+function renderNarr(st, before, focus, pending) {
+  const s = SCENARIOS[P.si];
+  let diff = '';
+  if (before && !pending) {
+    const after = snapshot(P.engine, focus);
+    const rows = Object.keys(after).filter(k => before[k] !== after[k]).map(k =>
+      `<div class="row"><span class="sp">${esc(P.engine.spec(k).name)}</span>${before[k] ? `<span class="st ${before[k]}">${STATUS_LABELS[before[k]]}</span><span class="arrow">←</span>` : '<span class="st Pending" style="opacity:.6">موعد جديد</span><span class="arrow">←</span>'}<span class="st ${after[k]}">${STATUS_LABELS[after[k]]}</span></div>`);
+    if (rows.length) diff = `<div class="diff"><span class="stepn">ما تغيّر في حالة ${esc(P.engine.appts.find(a => a.pid === focus).name)}</span>${rows.join('')}</div>`;
+  }
+  narrEl.innerHTML = `<span class="stepn">${s.title} · الخطوة ${P.step + 1} من ${s.steps.length}</span>
+    ${actorBadge(st.who)}
+    <h3>${st.title}</h3><p>${st.text}</p>
+    ${st.rule ? `<div class="rule"><b>القاعدة</b>${st.rule}</div>` : ''}
+    ${st.error ? `<div class="errbox"><b>رسائل الرفض</b>${st.error.map(m => `<div>• ${m}</div>`).join('')}</div>` : ''}
+    ${diff}`;
+}
+function updateChrome(s, j) {
+  $('#prevBtn').disabled = j === 0 && P.si === 0;
+  const last = j === s.steps.length - 1;
+  $('#nextBtn').querySelector('.lbl').textContent = last ? (P.si < SCENARIOS.length - 1 ? 'الحالة التالية' : 'من البداية') : 'التالي';
+  document.querySelectorAll('#dots button').forEach((d, k) => { d.classList.toggle('on', k === j); d.classList.toggle('seen', P.seen.has(k) && k !== j); });
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function next() {
+  const s = SCENARIOS[P.si];
+  if (P.step < s.steps.length - 1) goTo(P.step + 1);
+  else loadScenario((P.si + 1) % SCENARIOS.length), P.playing && play();
+}
+function prev() {
+  if (P.step > 0) goTo(P.step - 1);
+  else if (P.si > 0) { loadScenario(P.si - 1); goTo(SCENARIOS[P.si].steps.length - 1); }
+}
+function schedule() {
+  clearTimeout(P.timer);
+  const st = SCENARIOS[P.si].steps[P.step];
+  const words = (st.text + ' ' + (st.rule || '')).split(/\s+/).length;
+  const ms = (4200 + words * 230 + stepActs(st).length * 850) * +$('#speed').value;
+  const bar = $('#autobar');
+  bar.getAnimations().forEach(a => a.cancel());
+  bar.animate([{ width: '0%' }, { width: '100%' }], { duration: ms, fill: 'forwards' });
+  P.timer = setTimeout(next, ms);
+}
+function play() { P.playing = true; setPlayBtn(); schedule(); }
+function stop() { P.playing = false; clearTimeout(P.timer); $('#autobar').getAnimations().forEach(a => a.cancel()); setPlayBtn(); }
+function setPlayBtn() { $('#playBtn').innerHTML = P.playing ? `${svg('pause', 2.4)}<span class="lbl">إيقاف</span>` : `${svg('play', 2.4)}<span class="lbl">تشغيل تلقائي</span>`; }
+
+$('#nextBtn').onclick = () => { next(); if (P.playing) schedule(); };
+$('#prevBtn').onclick = () => { prev(); if (P.playing) schedule(); };
+$('#playBtn').onclick = () => (P.playing ? stop() : play());
+$('#speed').onchange = () => P.playing && schedule();
+$('#dots').onclick = ev => { const b = ev.target.closest('button'); if (b) goTo(+b.dataset.j); };
+document.addEventListener('keydown', ev => {
+  if ($('#tab-journey').hidden || document.querySelector('.ov') || /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
+  if (ev.key === 'ArrowLeft') { next(); ev.preventDefault(); }
+  if (ev.key === 'ArrowRight') { prev(); ev.preventDefault(); }
+  if (ev.key === ' ' && ev.target === document.body) { P.playing ? stop() : play(); ev.preventDefault(); }
+});
+
+/* =====================================================================
+   Sandbox
+   ===================================================================== */
+const SB = { e: null, pid: 150, sel: null };
+const FIRST = ['أحمد', 'مريم', 'إبراهيم', 'نور', 'حمزة', 'زينب', 'الطاهر', 'سعاد', 'بلال', 'هاجر', 'رضا', 'آمال', 'كريم', 'وفاء', 'أنس', 'سلمى', 'عبد الله', 'رقية'];
+function sbSetup() {
+  const e = new Engine();
+  e.addSpec('intern', 'الطب الداخلي').addSpec('eye', 'تصحيح النظر', { dil: true }).addSpec('dent', 'طب الأسنان').addSpec('card', 'أمراض القلب');
+  crowd(e, 'intern', [[121, 'يوسف'], [122, 'خديجة']]);
+  e.book(123, 'محمد', ['eye', 'dent']); e.checkIn(123);
+  crowd(e, 'eye', [[124, 'فاطمة'], [125, 'عمر']]);
+  crowd(e, 'dent', [[126, 'سارة'], [127, 'علي'], [129, 'ليلى']]);
+  crowd(e, 'card', [[130, 'حمزة']]);
+  e.book(128, 'أمينة', ['intern', 'dent', 'card']);
+  e.book(131, 'الحاج سليمان', ['card', 'intern']);
+  e.book(132, 'نور', ['eye']);
+  e.book(140, 'بلال', ['dent'], { today: false, date: '2026-10-26' });
+  SB.e = e; SB.pid = 150; SB.sel = 128;
+  const b = $('#sbBoard');
+  buildBoardSkeleton(b, e, { entrance: true, sandbox: true });
+  renderBoard(b, e, { animate: false, sandbox: true, focus: SB.sel });
+  $('#sbLog').innerHTML = '';
+  sbLog('ok', 'system', 'جاهز', 'أمينة (#128) عند الباب ولها 3 تخصصات. ابدأ بتسجيل حضورها.');
+  sbTurn();
+}
+function sbRender(flash = []) { renderBoard($('#sbBoard'), SB.e, { sandbox: true, focus: SB.sel, flash }); sbTurn(); }
+function sbTurn() {
+  const e = SB.e, pid = SB.sel;
+  if (!pid || !e.appts.some(a => a.pid === pid)) { $('#sbTurn').innerHTML = '<p class="hint">اختر مريضاً.</p>'; return; }
+  const d = turnData(e, pid);
+  $('#sbTurn').innerHTML = `<div class="mt"><h5>${esc(d.first)} <small>رقم المريض ${pid}</small></h5>${d.rows.map(r => `<div class="mtr"><div class="a"><b>${esc(r.spec)}</b><span class="st ${r.status}">${r.label}</span></div>
+    ${r.pos ? `<div class="pos"><strong>${r.pos}</strong> دورك · قبلك ${r.pos - 1}${r.pri ? ' · <span style="color:var(--rose);font-weight:700">أولوية</span>' : ''}</div>` : ''}${r.go ? `<div class="go">${r.go}</div>` : ''}${r.when ? `<div class="pos">${r.when}</div>` : ''}</div>`).join('')}</div>`;
+}
+function sbLog(kind, who, title, msg, why) {
+  const R = ROLES[who];
+  $('#sbLog').insertAdjacentHTML('afterbegin', `<div class="e ${kind}"><b>${R.label}</b>${esc(title)}${msg ? ` · ${esc(msg)}` : ''}${why ? `<i>${why}</i>` : ''}</div>`);
+}
+function sbDo(who, title, fn, okMsg, why) {
+  try {
+    const r = fn(SB.e);
+    const m = typeof okMsg === 'function' ? okMsg(r) : okMsg;
+    sbLog('ok', who, title, m, why);
+  } catch (err) {
+    if (!(err instanceof RuleError)) throw err;
+    sbLog('bad', who, title, err.message, 'رُفضت العملية ولم يتغير شيء.');
+  }
+  closeSheet();
+  sbRender();
+}
+const nm = a => `#${a.pid} ${a.name}`;
+function sbActions(it) {
+  const e = SB.e;
+  const acts = [];
+  if (it.k[0] === 'p') {
+    const pid = it.pid;
+    const list = e.appts.filter(a => a.pid === pid);
+    const t = e.todays(pid);
+    acts.push({ who: 'reception', icon: 'desk', t: 'تسجيل الحضور', d: 'مسح QR أو كتابة الرقم. يدخل تخصصه المفتوح الأقل انتظاراً، والباقي ينتظر.',
+      run: () => sbDo('reception', `تسجيل حضور #${pid}`, e => e.checkIn(pid), a => a ? `تم تسجيل حضور المريض #${pid}، يتوجه إلى ${e.spec(a.es).name} (المرتبة ${e.pos(a)})` : `تم تسجيل حضور المريض #${pid}، لا يوجد تخصص مفتوح له حالياً، سيُوجَّه عند وصول الطبيب`) });
+    (t.length ? t : list).forEach(a => acts.push({ who: 'special', icon: 'star', t: `حالة خاصة: البدء بـ ${e.spec(a.es).name}`, d: 'يُسجَّل حضوره الآن ويدخل رأس طابور هذا التخصص بأولوية طوال اليوم.',
+      run: () => sbDo('special', `حالة خاصة ${nm(a)}`, e => e.markSpecial(a), 'تم تحديد المريض كحالة خاصة (أولوية)') }));
+    return { title: `#${pid} ${list[0].name}`, sub: list.map(a => `${e.spec(a.es).name}${a.today ? '' : ` (${a.date})`}`).join('، '), acts };
+  }
+  const a = e.get(it.id);
+  const S = e.spec(a.es);
+  if (QUEUE.includes(a.status)) {
+    acts.push({ who: 'officer', icon: 'check', t: 'إجتاز', d: 'انتهى الفحص. ينتقل المريض تلقائياً إلى تخصصه التالي إن وُجد.',
+      run: () => sbDo('officer', `إجتاز ${nm(a)}`, e => e.complete(a), n => n ? `تم الفحص، انتقل المريض إلى ${e.spec(n.es).name} (المرتبة ${e.pos(n)})` : 'أنهى المريض كل تخصصاته لهذا اليوم') });
+    acts.push({ who: 'manager', icon: 'down', t: `إنزال ${PUSH_DOWN_PLACES} مراتب`, d: 'غائب عند النداء. يبقى في الطابور ويفقد الأولوية إن كانت له. (مسؤول التخصص أو مسؤول الإنزال)',
+      run: () => sbDo('manager', `إنزال ${nm(a)}`, e => e.pushDown([a]), `تم إنزال المريض ${PUSH_DOWN_PLACES} مراتب`) });
+    if (S.dil) acts.push({ who: 'officer', icon: 'drop', t: 'إرسال إلى التمدد', d: 'يخرج من الطابور إلى قاعة التمدد، ثم يعود إلى الرأس بأولوية.',
+      run: () => sbDo('officer', `تمدد ${nm(a)}`, e => e.sendDil(a), 'المريض متجه إلى قاعة التمدد') });
+    acts.push({ who: 'officer', icon: 'send', t: 'إرسال إلى تخصص آخر…', d: 'تخصص لم يحجزه المريض. يدخل طابوره في المرتبة الثالثة.', sub: 'refer' });
+  } else if (a.status === 'DilatationSent') {
+    acts.push({ who: 'dil', icon: 'door', t: 'وصل إلى القاعة', d: 'يبدأ عدّاد وقت القطرات.',
+      run: () => sbDo('dil', `وصول ${nm(a)}`, e => e.receiveDil(a), 'المريض في قاعة التمدد') });
+    acts.push({ who: 'dil', icon: 'check', t: 'انتهى التمدد', d: 'يعود إلى رأس طابور التخصص بأولوية.',
+      run: () => sbDo('dil', `انتهاء تمدد ${nm(a)}`, e => e.finishDil(a), () => `عاد إلى ${S.name} في المرتبة ${e.pos(a)} بأولوية`) });
+  } else if (a.status === 'Dilatation') {
+    acts.push({ who: 'dil', icon: 'check', t: 'انتهى التمدد', d: 'يعود إلى رأس طابور التخصص، خلف أصحاب الأولوية الموجودين.',
+      run: () => sbDo('dil', `انتهاء تمدد ${nm(a)}`, e => e.finishDil(a), () => `عاد إلى ${S.name} في المرتبة ${e.pos(a)} بأولوية`) });
+  }
+  if (a.status !== 'Completed') {
+    acts.push({ who: 'special', icon: 'star', t: 'حالة خاصة', d: 'أولوية طوال اليوم. هذا التخصص يصبح النشط، في رأس الطابور.',
+      run: () => sbDo('special', `حالة خاصة ${nm(a)}`, e => e.markSpecial(a), 'تم تحديد المريض كحالة خاصة (أولوية)') });
+    acts.push({ who: 'special', icon: 'swap', t: 'تغيير التخصص…', d: 'تصحيح موعد حُجز في التخصص الخطأ.', sub: 'transfer' });
+  }
+  return { title: `${nm(a)} · ${S.name}`, sub: `الحالة: ${STATUS_LABELS[a.status]}${a.pri ? ' · أولوية' : ''}${QUEUE.includes(a.status) ? ` · المرتبة ${e.pos(a)}` : ''}`, acts, a };
+}
+function openSheet(it) {
+  const m = sbActions(it);
+  const R = document.getElementById('sheetRoot');
+  R.innerHTML = `<div class="ov"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
+    <h3>${esc(m.title)}</h3><div class="sub2">${esc(m.sub)}</div>
+    ${m.acts.length ? m.acts.map((x, i) => `<button class="act" data-i="${i}"><span class="ic" style="background:${ROLES[x.who].bg};color:${ROLES[x.who].fg}">${svg(x.icon)}</span><span><span class="who">${ROLES[x.who].label}</span><b>${x.t}</b><small>${x.d}</small></span></button>`).join('')
+      : '<p class="hint">لا توجد إجراءات: أنهى المريض الفحص في هذا التخصص.</p>'}
+    <button class="btn" style="width:100%;justify-content:center;margin-top:12px" data-close>إغلاق</button></div></div>`;
+  const ov = R.firstElementChild;
+  ov.addEventListener('click', ev => {
+    if (ev.target === ov || ev.target.closest('[data-close]')) return closeSheet();
+    const b = ev.target.closest('.act'); if (!b) return;
+    const x = m.acts[+b.dataset.i];
+    if (x.sub) return openPicker(m.a, x.sub);
+    x.run();
+  });
+  ov.querySelector('.act, [data-close]').focus();
+}
+function openPicker(a, kind) {
+  const e = SB.e;
+  const R = document.getElementById('sheetRoot');
+  const opts = e.specs.filter(s => s.k !== a.es).map(s => {
+    let why = null;
+    if (kind === 'refer') why = e.referCheck(a, s.k);
+    else if (e.appts.some(x => x.pid === a.pid && x.es === s.k)) why = 'المريض مسجل في هذا التخصص مسبقاً';
+    return { s, why };
+  });
+  R.innerHTML = `<div class="ov"><div class="sheet" role="dialog" aria-modal="true">
+    <h3>${kind === 'refer' ? 'إرسال إلى تخصص آخر' : 'تغيير التخصص'}</h3>
+    <div class="sub2">${esc(nm(a))} · من ${esc(e.spec(a.es).name)}. ${kind === 'refer' ? 'يُنشأ موعد جديد اليوم ويعود الحالي إلى «في الانتظار».' : 'يُنقل الموعد نفسه إلى التخصص الجديد.'}</div>
+    ${opts.map((o, i) => `<button class="act" data-i="${i}" ${o.why ? 'disabled' : ''}><span class="ic">${svg(kind === 'refer' ? 'send' : 'swap')}</span><span><b>${esc(o.s.name)}</b><small>${o.why || 'متاح · المرتبة الثالثة في طابوره'}</small></span></button>`).join('')}
+    <button class="btn" style="width:100%;justify-content:center;margin-top:12px" data-close>رجوع</button></div></div>`;
+  const ov = R.firstElementChild;
+  ov.addEventListener('click', ev => {
+    if (ev.target === ov || ev.target.closest('[data-close]')) return closeSheet();
+    const b = ev.target.closest('.act'); if (!b || b.disabled) return;
+    const k = opts[+b.dataset.i].s.k;
+    if (kind === 'refer') sbDo('officer', `إحالة ${nm(a)}`, e => e.refer(a, k), n => `أُرسل إلى ${e.spec(k).name} في المرتبة ${e.pos(n)}`, 'التخصص السابق عاد إلى «في الانتظار».');
+    else sbDo('special', `تغيير تخصص ${nm(a)}`, e => e.transfer(a, k), () => `نُقل إلى ${e.spec(k).name}${QUEUE.includes(a.status) ? ` في المرتبة ${e.pos(a)}` : ` (${STATUS_LABELS[a.status]})`}`);
+  });
+  ov.querySelector('.act:not(:disabled), [data-close]').focus();
+}
+function closeSheet() { document.getElementById('sheetRoot').innerHTML = ''; }
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); });
+
+$('#sbBoard').addEventListener('click', ev => {
+  const tg = ev.target.closest('[data-toggle]');
+  if (tg) {
+    const s = SB.e.spec(tg.dataset.toggle);
+    if (s.open) {
+      SB.e.closeSpec(s.k);
+      sbLog('ok', 'admin', s.name, 'أُغلق التخصص، لن يُرسل إليه مرضى جدد');
+    } else {
+      const r = SB.e.openSpec(s.k);
+      sbLog('ok', 'admin', s.name, `فُتح التخصص${r.sent + r.moved ? `، أُرسل إليه ${r.sent + r.moved} مريض${r.moved ? ` (${r.moved} من طوابير أخرى)` : ''}` : ''}`);
+    }
+    return sbRender();
+  }
+  const ph = ev.target.closest('[data-passhead]');
+  if (ph) {
+    const a = SB.e.head(ph.dataset.passhead);
+    if (!a) return sbLog('bad', 'officer', 'إجتاز الأول', 'الطابور فارغ');
+    SB.sel = a.pid;
+    return sbDo('officer', `إجتاز ${nm(a)}`, e => e.complete(a), n => n ? `تم الفحص، انتقل المريض إلى ${SB.e.spec(n.es).name} (المرتبة ${SB.e.pos(n)})` : 'أنهى المريض كل تخصصاته لهذا اليوم');
+  }
+  const it = ev.target.closest('.it');
+  if (it) { SB.sel = it._pid; sbRender(); openSheet(it._item); }
+});
+$('#sbBoard').addEventListener('keydown', ev => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList.contains('it')) { ev.preventDefault(); ev.target.click(); }
+});
+$('#sbBook').onclick = () => {
+  const e = SB.e, pid = SB.pid++;
+  const keys = e.specs.map(s => s.k).sort(() => Math.random() - .5).slice(0, 1 + Math.floor(Math.random() * 3));
+  const name = FIRST[pid % FIRST.length];
+  e.book(pid, name, keys);
+  SB.sel = pid;
+  sbLog('ok', 'patient', `حجز جديد #${pid}`, `${name}: ${keys.map(k => e.spec(k).name).join('، ')}`, 'تم حجز موعدك بنجاح!');
+  sbRender(['p' + pid]);
+};
+$('#sbBookOther').onclick = () => {
+  const e = SB.e, pid = SB.pid++;
+  const name = FIRST[pid % FIRST.length];
+  e.book(pid, name, ['dent'], { today: false, date: '2026-10-27' });
+  SB.sel = pid;
+  sbLog('ok', 'patient', `حجز #${pid}`, `${name}: طب الأسنان يوم 2026-10-27`, 'جرّب تسجيل حضوره اليوم.');
+  sbRender(['p' + pid]);
+};
+$('#sbReset').onclick = sbSetup;
+
+/* =====================================================================
+   Reference
+   ===================================================================== */
+function buildRef() {
+  const S = [
+    ['Pending', 'حجز ولم يُسجَّل حضوره بعد. إن بقي هكذا حتى النهاية يُحسب «لم يحضر».', 'الحجز'],
+    ['Waiting', 'حضر، لكنه الآن في تخصص آخر، أو طبيب هذا التخصص لم يصل بعد. ينتقل إلى هنا تلقائياً.', 'الاستقبال · المنصة'],
+    ['Present', 'في طابور هذا التخصص، بمرتبة 1، 2، 3…', 'الاستقبال · المنصة'],
+    ['Commingsoon', 'في الطابور بعد إنزاله (5 مراتب افتراضياً) لأنه كان غائباً عند النداء.', 'مسؤول التخصص · مسؤول الإنزال'],
+    ['DilatationSent', 'خرج من الطابور ومتجه إلى قاعة التمدد.', 'مسؤول التخصص'],
+    ['Dilatation', 'داخل قاعة التمدد، والعدّاد يعمل.', 'مسؤول قاعة التمدد'],
+    ['Completed', 'فُحص في هذا التخصص. انتهى هذا الموعد.', 'مسؤول التخصص'],
+  ];
+  const roles = [
+    ['patient', ['يحجز عبر الاستمارة ويحصل على رقم مريض', 'يتابع دوره في صفحة «دوري» (رقم المريض أو الهاتف)', 'يقيّم التجربة عبر الرابط'], 'استمارة الحجز · دوري · التقييم'],
+    ['reception', ['يسجّل الحضور بمسح QR أو كتابة الرقم', 'يرسل تذكيرات واتساب وروابط التقييم', 'يطبع بطاقة المريض بتخصصاته ورمز QR'], 'تبويب «الحضور» و«مسح QR»'],
+    ['officer', ['إجتاز، إنزال (فرداً أو مجموعة)، تمدد', 'إرسال إلى تخصص آخر مفتوح', 'كل إجراء بالزر أو بمسح QR: «مسح للإجتياز»، «مسح للإنزال»، أو مسح يفتح كل إجراءات المريض', 'ملاحظات، تحميل CSV، ويرى إن كان الطابور مفتوحاً (دون تغييره)'], 'تبويب «التخصصات» ← طابور التخصص'],
+    ['manager', ['يرى الطوابير مثل مسؤول التخصص', 'إجراؤه الوحيد: إنزال (فرداً أو مجموعة)، بالزر أو بـ«مسح للإنزال»', 'لا يستطيع إجتاز، ولا التمدد، ولا الإحالة، ولا الملاحظات'], 'تبويب «التخصصات» ← طابور التخصص'],
+    ['dil', ['يستقبل القادمين: «وصل»', 'يتابع عدّاد كل مريض', '«انتهى» يعيده إلى الرأس بأولوية', 'زر «مسح QR»: يسجّل الوصول للقادم، أو انتهاء التمدد لمن في القاعة'], 'قاعة التمدد التابعة للتخصص'],
+    ['special', ['يحدد «حالة خاصة» (أولوية طوال اليوم)', 'يغيّر تخصص موعد ويحذف المواعيد', 'يضيف مواعيد لعدة مرضى، ويرى شاشة الطوابير'], 'الحضور · الطوابير · إضافة مواعيد'],
+    ['admin', ['يوم الفحص: يفتح طابور التخصص عند وصول طبيبه، ويغلقه عند مغادرته', 'ينشئ الحملات والتخصصات والأيام والساعات', 'يدير حسابات الطاقم لكل حملة', 'الإحصائيات، الأرشيف، التقارير والتقييمات'], 'الأحداث (⋮ ← فتح الطوابير) · المستخدمون · التقييمات'],
+  ];
+  const nums = [
+    ['5', 'مراتب ينزلها المريض عند «إنزال» افتراضياً (يُختار من 1 إلى 30)'], ['3', 'المرتبة التي يدخلها المريض المحال أو المنقول'], ['1', 'تخصص نشط واحد للمريض في كل لحظة'],
+    ['الأقصر', 'يذهب المريض إلى تخصصه المفتوح ذي الطابور الأقصر'], ['5', 'أول مراتب الطابور لا تُنقل عند فتح تخصص آخر'],
+    ['اليوم', 'فقط مواعيد تاريخ اليوم تدخل الطوابير (توقيت الجزائر)'], ['9', 'آخر أرقام الهاتف تُستعمل للمطابقة في «دوري»'],
+    ['6', 'مرضى كحد أقصى يظهرون لرقم هاتف واحد'], ['5 × 10MB', 'وثائق طبية مرفقة عند الحجز'],
+  ];
+  $('#refRoot').innerHTML = `
+  <section><h2>خريطة الحالات</h2><p class="lead">كل موعد (مريض × تخصص) يمر بهذه الحالات. الأسهم هي الأزرار التي تنقله.</p>
+    <div class="diagram">${diagram()}</div></section>
+  <section><h2>قاموس الحالات</h2><p class="lead">نفس الأسماء والألوان المستعملة في كل شاشات التطبيق.</p>
+    <div class="sgrid">${S.map(([k, d, by]) => `<div class="scard"><span class="st ${k}">${STATUS_LABELS[k]}</span> <code>${k}</code><p>${d}</p><div class="by">يضعه: ${by}</div></div>`).join('')}</div></section>
+  <section><h2>من يفعل ماذا</h2><p class="lead">كل حساب يرى فقط حملته وأدوات دوره.</p>
+    <div class="rgrid">${roles.map(([r, l, scr]) => { const R = ROLES[r]; return `<div class="rcard"><h4><span class="ic" style="background:${R.bg};color:${R.fg}">${svg(R.icon)}</span>${R.label}</h4><ul>${l.map(x => `<li>${x}</li>`).join('')}</ul><div class="scr">الشاشة: ${scr}</div></div>`; }).join('')}</div></section>
+  <section><h2>شاشة القاعة الكبيرة</h2><p class="lead">تُفتح على حاسوب أو تلفاز في القاعة ليرى المرضى أول 10 في كل تخصص.</p>
+    <div class="rgrid">${[
+      ['العرض', ['حتى 5 تخصصات في عرض واحد، وإن زادت قُسّمت إلى عدة عروض', '«تلقائي»: تتبدل العروض كل 10 ثوانٍ', '«يدوي»: يختار المسؤول العرض الذي يبقى ظاهراً']],
+      ['التخصصات المعروضة', ['يختار كل جهاز التخصصات التي يعرضها، أو «الكل»', 'يُحفظ الاختيار في الجهاز نفسه، فلكل شاشة تخصصاتها', 'التخصص المغلق يظهر عند فتحه']],
+      ['ملء الشاشة', ['زر بجانب التحديث يفتح ملء الشاشة ويغلقه', 'زر Esc يخرج منه أيضاً', 'التحديث تلقائي كل 10 ثوانٍ']],
+    ].map(([h, l]) => `<div class="rcard"><h4>${h}</h4><ul>${l.map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></section>
+  <section><h2>أرقام تحكم الطابور</h2><p class="lead">قواعد ثابتة في الخادم.</p>
+    <div class="nums">${nums.map(([n, t]) => `<div class="num"><b>${n}</b><span>${t}</span></div>`).join('')}</div></section>
+  <section><h2>ترتيب الطابور في جملة واحدة</h2>
+    <p style="margin:0">أصحاب <b style="color:var(--rose)">الأولوية</b> (الحالات الخاصة والعائدون من التمدد) في الرأس بترتيب وصولهم، ثم الباقون بترتيب دخولهم. المحال أو المنقول يدخل المرتبة 3 دون تخطي كتلة الأولوية، والمُنزَل يرجع 5 مراتب ولا يدخل كتلة الأولوية أبداً. ولا يُرسَل أحد إلى تخصص مغلق: يذهب المريض إلى تخصصه المفتوح الأقل انتظاراً، وعند فتح تخصص جديد ينتقل إليه من في آخر الطوابير الطويلة.</p></section>`;
+}
+function diagram() {
+  const N = {
+    Pending: [780, 60], Waiting: [780, 330], Present: [470, 195], Commingsoon: [470, 345],
+    DilatationSent: [160, 60], Dilatation: [160, 195], Completed: [160, 330],
+  };
+  const C = { Pending: ['#F1F2F6', '#8A93A8'], Waiting: ['#E8EBF7', '#4F5FA3'], Present: ['#E3F4EE', '#0F8A6C'], Commingsoon: ['#FBF0DC', '#B26B00'], DilatationSent: ['#E0F2F6', '#0E7490'], Dilatation: ['#E0F2F6', '#0E7490'], Completed: ['#ECEEF2', '#5F6B7D'] };
+  // [from, to, label, bend, label dx, label dy]
+  const E = [
+    ['Pending', 'Present', 'تسجيل الحضور', -18, 0, -4],
+    ['Pending', 'Waiting', 'الحضور: بقية التخصصات', 0, 0, 0],
+    ['Waiting', 'Present', 'انتهى تخصصه / فُتح التخصص', -30, 0, 14],
+    ['Present', 'Waiting', 'إحالة / حالة خاصة / إعادة توزيع', -30, 10, 0],
+    ['Present', 'Commingsoon', 'إنزال', -22, -6, 0],
+    ['Commingsoon', 'Present', 'يصل دوره', -22, 6, 0],
+    ['Present', 'DilatationSent', 'تمدد', 18, 0, -4],
+    ['DilatationSent', 'Dilatation', 'وصل', 0, 0, 0],
+    ['Dilatation', 'Present', 'انتهى: الرأس بأولوية', 0, 0, -4],
+    ['Present', 'Completed', 'إجتاز', -18, 0, 10],
+  ];
+  const W = 140, H = 46;
+  const trim = (px, py, qx, qy) => { const vx = qx - px, vy = qy - py; const t = Math.min(Math.abs((W / 2 + 6) / (vx || 1e-6)), Math.abs((H / 2 + 6) / (vy || 1e-6))); return [px + vx * t, py + vy * t]; };
+  const edge = ([a, b, label, bend, ldx, ldy]) => {
+    const [x1, y1] = N[a], [x2, y2] = N[b];
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+    const cx = (x1 + x2) / 2 - dy / len * bend * 2, cy = (y1 + y2) / 2 + dx / len * bend * 2;
+    const [sx, sy] = trim(x1, y1, cx, cy), [ex, ey] = trim(x2, y2, cx, cy);
+    const lx = (sx + 2 * cx + ex) / 4 + ldx, ly = (sy + 2 * cy + ey) / 4 + ldy;
+    return `<path d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" fill="none" stroke="#5E6987" stroke-width="1.6" marker-end="url(#ah)"/>
+      <text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" font-size="12.5" fill="#2A3A7A" font-weight="600" style="paint-order:stroke;stroke:#fff;stroke-width:6px;stroke-linejoin:round">${label}</text>`;
+  };
+  return `<svg viewBox="0 0 940 390" role="img" aria-label="مخطط انتقال حالات الموعد" font-family="IBM Plex Sans Arabic, sans-serif" direction="rtl">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5E6987"/></marker></defs>
+    ${E.map(edge).join('')}
+    ${Object.entries(N).map(([k, [x, y]]) => `<g><rect x="${x - W / 2}" y="${y - H / 2}" width="${W}" height="${H}" rx="12" fill="${C[k][0]}" stroke="${C[k][1]}" stroke-width="1.5"/>
+      <text x="${x}" y="${y - 2}" text-anchor="middle" font-size="14" font-weight="700" fill="${C[k][1]}">${STATUS_LABELS[k]}</text>
+      <text x="${x}" y="${y + 14}" text-anchor="middle" font-size="10" fill="#5E6987" direction="ltr">${k}</text></g>`).join('')}
+  </svg>`;
+}
+
+/* =====================================================================
+   Tabs & boot
+   ===================================================================== */
+document.querySelectorAll('[role=tab]').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach(x => x.setAttribute('aria-selected', x === t ? 'true' : 'false'));
+  document.querySelectorAll('[role=tabpanel]').forEach(p => (p.hidden = p.id !== t.getAttribute('aria-controls')));
+  if (t.id !== 't-journey') stop();
+  if (t.id === 't-sandbox' && !SB.e) sbSetup();
+}));
+initMiles();
+initList();
+setPlayBtn();
+buildRef();
+loadScenario(0);
+</script>
+</body>
+</html>

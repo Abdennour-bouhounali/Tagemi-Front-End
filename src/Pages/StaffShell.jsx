@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../config/environment';
 import React, { useContext, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Globe, ChevronLeft } from 'lucide-react';
+import { LogOut, Globe, ChevronLeft, BookOpen } from 'lucide-react';
 import { AppContext } from '../Context/AppContext';
 import { ToastProvider, Sheet, SheetAction, Button, cx } from '../Components/ui';
 import { ROLE_NAMES, staffHome, staffMoreLinks, staffTabs } from '../utils/staffNav';
@@ -121,6 +121,7 @@ export default function StaffShell() {
                 {link.label}
               </SheetAction>
             ))}
+            <SheetAction icon={BookOpen} onClick={() => { setMoreOpen(false); navigate('/admin/patient-journey'); }}>دليل رحلة المريض</SheetAction>
             <SheetAction icon={Globe} onClick={() => { setMoreOpen(false); navigate('/home'); }}>موقع المؤسسة</SheetAction>
             <SheetAction icon={LogOut} tone="text-red-700" onClick={logout}>تسجيل الخروج</SheetAction>
           </div>

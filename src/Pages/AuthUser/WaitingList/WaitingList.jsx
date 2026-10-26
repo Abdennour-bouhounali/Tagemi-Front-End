@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle, Monitor, ListFilter, Maximize, Minimize } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, Clock, Users, User, UserCircle, Monitor, ListFilter, Maximize, Minimize, Eye, EyeOff } from 'lucide-react';
 
 const apiUrl = API_BASE_URL;
 
@@ -39,14 +39,16 @@ const WaitingList = () => {
   const [displayMode, setDisplayMode] = useState(() => loadSettings(eventId).mode || 'auto');
   // Specialties this screen shows; empty = all of them
   const [selectedIds, setSelectedIds] = useState(() => loadSettings(eventId).specialties || []);
+  // Filters, display settings and legend can be hidden to leave only the lists
+  const [showControls, setShowControls] = useState(() => loadSettings(eventId).controls !== false);
 
   useEffect(() => {
     try {
-      localStorage.setItem(settingsKey(eventId), JSON.stringify({ mode: displayMode, view: groupIndex, specialties: selectedIds }));
+      localStorage.setItem(settingsKey(eventId), JSON.stringify({ mode: displayMode, view: groupIndex, specialties: selectedIds, controls: showControls }));
     } catch {
       // Private mode / storage blocked: settings just won't be remembered
     }
-  }, [eventId, displayMode, groupIndex, selectedIds]);
+  }, [eventId, displayMode, groupIndex, selectedIds, showControls]);
 
   // Full screen for the hall TV/laptop (the browser's own Esc also leaves it)
   const [isFullscreen, setIsFullscreen] = useState(() => !!document.fullscreenElement);
@@ -315,8 +317,17 @@ const WaitingList = () => {
         <p className="text-gray-500 text-xs font-droid-arabic-kufi">
           عرض أول 10 مرضى من كل تخصص
         </p>
+        <button
+          onClick={() => setShowControls(!showControls)}
+          aria-expanded={showControls}
+          className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-droid-arabic-kufi bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+        >
+          {showControls ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {showControls ? 'إخفاء الإعدادات' : 'إظهار الإعدادات'}
+        </button>
       </div>
 
+      {showControls && (<>
       {/* Sex Filter */}
       <div className="w-full max-w-7xl mb-6">
         <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
@@ -492,6 +503,8 @@ const WaitingList = () => {
           </div>
         )}
       </div>
+
+      </>)}
 
       {/* Table Container */}
       <div className="overflow-x-auto w-full px-4 sm:px-6 lg:px-8">

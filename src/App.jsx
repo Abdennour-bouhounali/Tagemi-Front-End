@@ -49,6 +49,7 @@ const EvaluationForm = lazy(() => import('./Pages/Common/EvaluationForm'));
 const EvaluationsAdmin = lazy(() => import('./Pages/AuthUser/SuperAdmin/EvaluationsAdmin'));
 const EvaluationStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics'));
 const MyTurn = lazy(() => import('./Pages/GuestUser/MyTurn'));
+const PatientJourney = lazy(() => import('./Pages/AuthUser/PatientJourney/PatientJourney'));
 
 export default function App() {
   const [specialities, setSpecialities] = useState([]);
@@ -108,6 +109,8 @@ export default function App() {
             <Route path="/admin" element={<StaffShell />}>
               <Route path="stations/:eventId" element={guard([1, 4, 6, 8], <StationsPicker />)} />
               <Route path="no-event" element={<NoEvent />} />
+              {/* Guide for every signed-in user */}
+              <Route path="patient-journey" element={<PatientJourney />} />
               {/* Event Management Routes */}
               <Route path="event-tracking/:eventId" element={guard([1], <EventTracking />)} />
               <Route path="check-presence/:eventId" element={guard([1, 3, 5], <CheckPresence />)} />
