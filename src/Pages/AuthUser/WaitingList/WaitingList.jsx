@@ -294,7 +294,7 @@ const WaitingList = () => {
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-3 mb-2">
           <h1 className="text-3xl font-bold text-[#003366] font-droid-arabic-kufi">
-            قائمة الإنتظار الكبيرة
+            قائمة الإنتظار
           </h1>
           <button
             onClick={handleRefresh}
