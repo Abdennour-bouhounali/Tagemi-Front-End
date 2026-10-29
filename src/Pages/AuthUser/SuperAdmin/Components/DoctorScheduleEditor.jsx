@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { CalendarPlus, Clock, Plus, Trash2, TriangleAlert, UserPlus } from 'lucide-react';
 import { Button, IconButton, SearchField, Sheet, TextInput, cx } from '../../../../Components/ui';
+import DoctorFormSheet, { DoctorCredentialsSheet } from './DoctorFormSheet';
 import { wilayaName, SECTOR_LABELS } from '../../../../utils/doctors';
 import {
   intervalInfo, dayVisits, doctorVisits, scheduleVisits, overlapIndex, hourlyByDate, toMinutes, toTime,
@@ -10,6 +10,11 @@ import {
 const DEFAULT_INTERVAL = { start_time: '08:00', end_time: '12:00', visit_minutes: 20 };
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 /** Next interval of a day: starts where the last one ends, same visit length. */
 function nextInterval(intervals) {
@@ -60,17 +65,19 @@ function IntervalRow({ interval, overlaps, onChange, onRemove, canRemove }) {
   );
 }
 
-/** Sheet listing the active doctors of the specialty not yet added. */
-function AddDoctorSheet({ open, onClose, doctors, onPick }) {
+/** Sheet listing the active doctors of the specialty not yet added; can register a new one. */
+function AddDoctorSheet({ open, onClose, doctors, onPick, onCreateNew }) {
   const [query, setQuery] = useState('');
   const list = doctors.filter((d) => !query.trim() || d.full_name.includes(query.trim()) || String(d.phone).includes(query.trim()));
   return (
-    <Sheet open={open} onClose={onClose} title="أضف طبيبًا">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="أضف طبيبًا"
+      footer={<Button variant="secondary" icon={UserPlus} block onClick={onCreateNew}>طبيب غير موجود؟ أضف طبيبًا جديدًا</Button>}
+    >
       {doctors.length === 0 ? (
-        <p className="text-sm text-muted py-6 text-center">
-          لا يوجد طبيب آخر نشط في هذا التخصص.{' '}
-          <Link to="/admin/doctors" className="text-ink font-semibold underline">سجّل الأطباء</Link>
-        </p>
+        <p className="text-sm text-muted py-6 text-center">لا يوجد طبيب آخر نشط في هذا التخصص. أضفه من الزر أدناه دون مغادرة الحدث.</p>
       ) : (
         <>
           <SearchField value={query} onChange={setQuery} placeholder="ابحث بالاسم أو الهاتف" className="mb-3" />
@@ -99,9 +106,12 @@ function AddDoctorSheet({ open, onClose, doctors, onPick }) {
  * the specialty's `schedule` sent to the API as-is:
  * [{ doctor_id, days: [{ day_date, intervals: [{ id?, start_time, end_time, visit_minutes }] }] }]
  * busy: [{ doctor_id, day_date, event_id, event_name }] from other events (warning only).
+ * onDoctorCreated(doctor): a doctor registered from here, for the parent's doctors list.
  */
-export default function DoctorScheduleEditor({ value, onChange, specialtyId, doctors, busy = [], defaultDate, formatDay }) {
+export default function DoctorScheduleEditor({ value, onChange, specialtyId, specialties = [], doctors, onDoctorCreated, busy = [], defaultDate, formatDay }) {
   const [adding, setAdding] = useState(false);
+  const [creating, setCreating] = useState(null); // {} while the new-doctor form is open
+  const [credentials, setCredentials] = useState(null);
 
   const byId = (id) => doctors.find((d) => d.id === id);
   const available = doctors.filter((d) => d.is_active && String(d.specialty_id) === String(specialtyId) && !value.some((e) => e.doctor_id === d.id));
@@ -187,6 +197,9 @@ export default function DoctorScheduleEditor({ value, onChange, specialtyId, doc
                           onClick={() => patchEntry(i, { days: entry.days.filter((_, idx) => idx !== j) })} />
                       </div>
                       {duplicate && <p className="text-xs text-red-700">هذا اليوم مكرر لنفس الطبيب.</p>}
+                      {day.day_date && day.day_date < todayIso() && (
+                        <p className="text-xs text-st-pushed">هذا التاريخ مضى، تأكّد منه.</p>
+                      )}
                       {elsewhere.map((b) => (
                         <p key={b.event_id} className="flex items-start gap-1.5 rounded-lg bg-st-pushed-bg px-2 py-1.5 text-xs text-st-pushed">
                           <TriangleAlert className="w-4 h-4 shrink-0" />
@@ -242,7 +255,27 @@ export default function DoctorScheduleEditor({ value, onChange, specialtyId, doc
         </div>
       )}
 
-      <AddDoctorSheet open={adding} onClose={() => setAdding(false)} doctors={available} onPick={addDoctor} />
+      <AddDoctorSheet
+        open={adding}
+        onClose={() => setAdding(false)}
+        doctors={available}
+        onPick={addDoctor}
+        onCreateNew={() => { setAdding(false); setCreating({}); }}
+      />
+
+      {/* New doctor without leaving the event form: added to this specialty right away */}
+      <DoctorFormSheet
+        open={creating}
+        onClose={() => setCreating(null)}
+        specialties={specialties}
+        lockedSpecialtyId={specialtyId}
+        onSaved={(doctor, creds) => {
+          onDoctorCreated?.(doctor);
+          addDoctor(doctor);
+          setCredentials(creds);
+        }}
+      />
+      <DoctorCredentialsSheet credentials={credentials} onClose={() => setCredentials(null)} />
     </div>
   );
 }

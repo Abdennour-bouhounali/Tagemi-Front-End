@@ -631,7 +631,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
             </div>
 
             {/* Custom CSS for Quill Editor */}
-            <style jsx global>{`
+            <style>{`
                 .ql-container {
                     min-height: 250px;
                     font-family: inherit;

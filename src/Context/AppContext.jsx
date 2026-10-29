@@ -11,15 +11,22 @@ export default function AppProvider({ children }) {
     const [startDay, setStartDay] = useState(0);
 
     async function getUser() {
-        const res = await fetch(`${apiUrl}/api/user`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
+        try {
+            const res = await fetch(`${apiUrl}/api/user`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                }
+            });
+            if (res.status === 401) {
+                // Expired or revoked token: drop it so the app shows the login page
+                localStorage.removeItem('token');
+                setToken(null);
+                return;
             }
-        });
-        const data = await res.json();
-        if (res.ok) {
-            setUser(data);
-            console.log('User data with specialties:', data);
+            if (res.ok) setUser(await res.json());
+        } catch {
+            // Network error: keep the token, the next load retries
         }
     }
 

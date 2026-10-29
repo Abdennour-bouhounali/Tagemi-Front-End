@@ -8,7 +8,7 @@ export const ROLE_NAMES = {
   5: 'مسؤول الاستقبال',
   6: 'طبيب',
   7: 'مسؤول المحتوى',
-  8: 'مسؤول الإنزال',
+  8: 'مسؤول القاعة الصغرى',
 };
 
 /** Where each role lands after login (and on the app's home tab). */
@@ -38,7 +38,7 @@ export function staffTabs(user) {
   switch (user.role_id) {
     case 1:
       return [
-        { key: 'events', label: 'الأحداث', icon: CalendarDays, to: '/admin/manage-events', match: ['/admin/manage-events', '/admin/event-', '/admin/archived', '/admin/appointment-distribution', '/admin/check-presence', '/admin/stations', '/admin/dilatation', '/admin/big-list'] },
+        { key: 'events', label: 'الأحداث', icon: CalendarDays, to: '/admin/manage-events', match: ['/admin/manage-events', '/admin/event-', '/admin/archived', '/admin/appointment-distribution', '/admin/check-presence', '/admin/stations', '/admin/dilatation', '/admin/big-list', '/admin/doctors-today'] },
         { key: 'users', label: 'المستخدمون', icon: Users, to: '/admin/users', match: ['/admin/users'] },
         { key: 'evaluations', label: 'التقييمات', icon: MessageSquareHeart, to: '/admin/evaluations', match: ['/admin/evaluation'] },
         more,

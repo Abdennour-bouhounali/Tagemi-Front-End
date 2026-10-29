@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../config/environment';
-import React, { useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -7,6 +7,7 @@ import {
   Upload, FileText, X, Printer, Download, Info, Ticket as TicketIcon, Check,
 } from 'lucide-react';
 import { writePrintDocument, escapeHtml } from '../../../utils/safeHtml';
+import { newIdempotencyKey } from '../../../utils/idempotency';
 import logo from './tagemi_logo.png';
 import { AppContext } from '../../../Context/AppContext';
 import algeriaLocations from '../../../data/algeria_locations.json';
@@ -71,6 +72,13 @@ const placesLeft = (n) => {
   if (n === 2) return 'بقي مكانان';
   if (n >= 3 && n <= 10) return `بقيت ${n} أماكن`;
   return `بقي ${n} مكاناً`;
+};
+
+// Patients are asked to come one hour before the hour they booked
+const arrivalTime = (time) => {
+  const [h, m] = String(time || '').split(':').map((n) => parseInt(n, 10));
+  if (Number.isNaN(h)) return '';
+  return `${String(Math.max(0, h - 1)).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
 };
 
 // ==================== SMALL PARTS ====================
@@ -499,6 +507,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
               <div class="row"><span class="k">التخصص</span><span class="v">${e(apt.specialty)}</span></div>
               <div class="row"><span class="k">التاريخ</span><span class="v">${e(apt.date)}</span></div>
               <div class="row"><span class="k">الساعة</span><span class="v">${e(apt.time)}</span></div>
+              <div class="row"><span class="k">الحضور</span><span class="v">على الساعة ${e(arrivalTime(apt.time))} (ساعة قبل موعدك)</span></div>
             </div>
           `).join('')}
         </div>
@@ -569,6 +578,11 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
                       <span className="inline-flex items-center gap-1"><CalendarDays className="w-4 h-4" />{apt.date}</span>
                       <span className="inline-flex items-center gap-1"><Clock className="w-4 h-4" /><span dir="ltr">{apt.time}</span></span>
                     </p>
+                    {arrivalTime(apt.time) && (
+                      <p className="mt-1 text-sm font-semibold text-ink">
+                        احضر على الساعة <span dir="ltr">{arrivalTime(apt.time)}</span>، أي ساعة قبل موعدك.
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -600,7 +614,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
             <h2 className="font-display text-lg text-ink mb-3">ماذا أفعل يوم الزيارة</h2>
             <ol className="space-y-3 text-base text-ink">
               {[
-                'احضر قبل موعدك بـ 15 دقيقة.',
+                'احضر قبل موعدك بساعة (ساعة الحضور مكتوبة تحت كل موعد).',
                 `اذهب إلى الاستقبال واعرض رقم المريض ${patientId} أو رمز QR.`,
                 'أحضر معك تقاريرك وتحاليلك السابقة إن وُجدت.',
                 'انتظر في القاعة وتابع دورك على الشاشة أو من هاتفك.',
@@ -645,6 +659,8 @@ const RegisterVisitInner = () => {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const submissionKey = useRef(newIdempotencyKey());
   const [availableSlots, setAvailableSlots] = useState({});
   const [slotsLoading, setSlotsLoading] = useState({});
   const [acceptedRules, setAcceptedRules] = useState(false);
@@ -964,6 +980,9 @@ const RegisterVisitInner = () => {
       return;
     }
 
+    // A second tap before the button re-renders must not send a second booking
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     setSubmitNotice(null);
 
@@ -989,7 +1008,8 @@ const RegisterVisitInner = () => {
         formDataToSend.append(`medical_documents[${index}]`, file);
       });
 
-      const headers = {};
+      // Same key while retrying after a lost answer: the server books once
+      const headers = { 'Idempotency-Key': submissionKey.current };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch(`${apiUrl}/api/appointment/${eventId}`, {
@@ -997,6 +1017,8 @@ const RegisterVisitInner = () => {
         headers,
         body: formDataToSend,
       });
+      // An answer came: a corrected new attempt is a new submission
+      submissionKey.current = newIdempotencyKey();
 
       if (!res.ok) {
         let errorData = {};
@@ -1037,6 +1059,7 @@ const RegisterVisitInner = () => {
       console.error('Submission error:', error);
       toast(error.message || 'حدث خطأ أثناء إرسال الحجز. يرجى المحاولة مرة أخرى.', 'error');
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };

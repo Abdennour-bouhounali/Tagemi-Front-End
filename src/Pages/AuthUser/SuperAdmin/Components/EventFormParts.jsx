@@ -7,7 +7,7 @@ import {
   Button, IconButton, Sheet, SearchField, Field, TextInput, SelectInput, EmptyState, cx, useToast,
 } from '../../../../Components/ui';
 import { csvSafe } from '../../../../utils/safeHtml';
-import { scheduleError, scheduleVisits } from '../../../../utils/schedule';
+import { scheduleError, scheduleVisits, doctorVisits } from '../../../../utils/schedule';
 import DoctorScheduleEditor from './DoctorScheduleEditor';
 
 // ------------------------------------------------------------ Confirm sheet
@@ -195,6 +195,7 @@ export function validateSpecialties(list, specialtyName, doctorName = (id) => `#
     const spec = list[i];
     const label = spec.id ? specialtyName(spec.id) : `التخصص رقم ${i + 1}`;
     if (!spec.id) return `اختر اسم التخصص رقم ${i + 1}`;
+    if (list.some((other, j) => j < i && String(other.id) === String(spec.id))) return `«${label}» مضاف مرتين، احذف أحدهما`;
     if (spec.schedule) {
       const msg = scheduleError(spec.schedule, doctorName, label);
       if (msg) return msg;
@@ -333,7 +334,7 @@ function DoctorPicker({ doctors, value, onChange }) {
  * newDay(): the object pushed by "أضف يومًا". newHour(time): pushed hour.
  * removalNote: extra sentence in the removal confirmations (edit mode).
  */
-export function SpecialtiesEditor({ value, onChange, specialties, doctors, busy, defaultDate, newSpecialty, newDay, newHour, removalNote, showExisting }) {
+export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoctorCreated, busy, defaultDate, newSpecialty, newDay, newHour, removalNote, showExisting }) {
   const toast = useToast();
   const [openIndex, setOpenIndex] = useState(value.length ? 0 : null);
   const [confirm, setConfirm] = useState(null); // { type: 'specialty'|'day', specIndex, dayIndex }
@@ -429,7 +430,15 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, busy,
                     <Field label="التخصص">
                       <SelectInput value={spec.id} onChange={(e) => changeSpecialty(i, parseInt(e.target.value, 10) || '')}>
                         <option value="">اختر التخصص</option>
-                        {specialties.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        {specialties.map((s) => {
+                          const used = value.some((other, j) => j !== i && String(other.id) === String(s.id));
+                          const count = doctors.filter((d) => d.is_active && String(d.specialty_id) === String(s.id)).length;
+                          return (
+                            <option key={s.id} value={s.id} disabled={used}>
+                              {s.name}{used ? ' (مضاف)' : spec.schedule ? ` (${count ? `${count} ${count === 1 ? 'طبيب' : 'أطباء'}` : 'بلا أطباء بعد'})` : ''}
+                            </option>
+                          );
+                        })}
                       </SelectInput>
                     </Field>
 
@@ -458,7 +467,9 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, busy,
                         value={spec.schedule}
                         onChange={(schedule) => patchSpec(i, { schedule })}
                         specialtyId={spec.id}
+                        specialties={specialties}
                         doctors={doctors}
+                        onDoctorCreated={onDoctorCreated}
                         busy={busy}
                         defaultDate={defaultDate}
                         formatDay={formatDay}
@@ -547,7 +558,7 @@ const specialtySummary = (s) => {
   return `${s.days.length} ${s.days.length === 1 ? 'يوم' : 'أيام'}، ${s.days.reduce((a, d) => a + d.hours.length, 0)} ساعة`;
 };
 
-export function EventReview({ form, specialtiesList, specialtyName, rulesCount }) {
+export function EventReview({ form, specialtiesList, specialtyName, doctorName = (id) => `#${id}`, rulesCount }) {
   const capacity = specialtiesList.reduce((sum, s) => sum + specialtyCapacity(s), 0);
   const doctorsCount = new Set(specialtiesList.flatMap((s) => (s.schedule || []).map((e) => e.doctor_id))).size;
   const rows = [
@@ -570,11 +581,23 @@ export function EventReview({ form, specialtiesList, specialtyName, rulesCount }
         ))}
       </dl>
       <h3 className="font-semibold text-ink mt-4 mb-2">التخصصات ({specialtiesList.length})</h3>
-      <ul className="text-sm space-y-1">
+      <ul className="text-sm space-y-2">
         {specialtiesList.map((s, i) => (
-          <li key={i} className="flex justify-between gap-3">
-            <span className="text-ink truncate">{specialtyName(s.id) || 'بدون اسم'}</span>
-            <span className="text-muted shrink-0">{specialtySummary(s)}</span>
+          <li key={i}>
+            <div className="flex justify-between gap-3">
+              <span className="text-ink font-semibold truncate">{specialtyName(s.id) || 'بدون اسم'}</span>
+              <span className="text-muted shrink-0">{specialtySummary(s)}</span>
+            </div>
+            {s.schedule?.length > 0 && (
+              <ul className="mt-1 ms-3 space-y-0.5 text-xs text-muted">
+                {s.schedule.map((e) => (
+                  <li key={e.doctor_id} className="flex justify-between gap-3">
+                    <span className="truncate">{doctorName(e.doctor_id)}</span>
+                    <span className="shrink-0">{e.days.length} {e.days.length === 1 ? 'يوم' : 'أيام'}، {doctorVisits(e)} زيارة</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>

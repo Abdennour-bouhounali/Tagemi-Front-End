@@ -1,17 +1,17 @@
 import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Plus, MoreVertical, Pencil, Trash2, KeyRound, UserX, UserCheck, Copy, Download, Stethoscope } from 'lucide-react';
+import { Plus, MoreVertical, Pencil, Trash2, KeyRound, UserX, UserCheck, Copy, Stethoscope, History } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import {
-  Button, IconButton, PageHeader, EmptyState, LoadingState, Sheet, SheetAction, Field, TextInput, SelectInput,
+  Button, IconButton, PageHeader, EmptyState, LoadingState, Sheet, SheetAction, SelectInput,
   SearchField, ChipGroup, useToast, cx,
 } from '../../../Components/ui';
-import { ConfirmSheet, CredentialRow, downloadCredentialsCsv } from './Components/EventFormParts';
-import { SECTOR_LABELS, WILAYAS, wilayaName } from '../../../utils/doctors';
+import { ConfirmSheet } from './Components/EventFormParts';
+import DoctorFormSheet, { DoctorCredentialsSheet, doctorCredentials } from './Components/DoctorFormSheet';
+import DoctorHistorySheet from './Components/DoctorHistorySheet';
+import { SECTOR_LABELS, wilayaName } from '../../../utils/doctors';
 
 const apiUrl = API_BASE_URL;
-
-const EMPTY_FORM = { first_name: '', family_name: '', phone: '', wilaya_code: '', specialty_id: '', sector: 'public' };
 
 // Doctors registry: identity, wilaya, specialty, sector, and a login account per doctor.
 export default function ManageDoctors() {
@@ -25,13 +25,11 @@ export default function ManageDoctors() {
   const [status, setStatus] = useState('active');
 
   const [busy, setBusy] = useState(false);
-  // Form sheet: null = closed, { id: null } = add, { id } = edit
-  const [form, setForm] = useState(null);
-  const [values, setValues] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
+  const [form, setForm] = useState(null); // null = closed, {} = add, { doctor } = edit
   const [actionsFor, setActionsFor] = useState(null);
   const [confirm, setConfirm] = useState(null); // { type: 'reset' | 'delete', doctor }
-  const [credentials, setCredentials] = useState(null); // { name, specialty, email, password }
+  const [credentials, setCredentials] = useState(null);
+  const [historyFor, setHistoryFor] = useState(null);
 
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, Accept: 'application/json' }), [token]);
 
@@ -71,48 +69,6 @@ export default function ManageDoctors() {
       && (!q || d.full_name.includes(q) || String(d.phone).includes(q)));
   }, [doctors, query, specialtyFilter, status]);
 
-  const openForm = (doctor) => {
-    setValues(doctor
-      ? { first_name: doctor.first_name, family_name: doctor.family_name, phone: doctor.phone || '', wilaya_code: doctor.wilaya_code || '', specialty_id: doctor.specialty_id || '', sector: doctor.sector }
-      : EMPTY_FORM);
-    setErrors({});
-    setForm({ id: doctor ? doctor.id : null });
-  };
-
-  const set = (key, value) => setValues((prev) => ({ ...prev, [key]: value }));
-
-  const showCredentials = (doctor, creds) => setCredentials({
-    type: 'طبيب', name: doctor.full_name, specialty: doctor.specialty?.name || '', email: creds.email, password: creds.password,
-  });
-
-  const save = async (e) => {
-    e?.preventDefault();
-    setBusy(true);
-    setErrors({});
-    const editing = !!form?.id;
-    try {
-      const res = await fetch(editing ? `${apiUrl}/api/doctors/${form.id}` : `${apiUrl}/api/doctors`, {
-        method: editing ? 'PUT' : 'POST',
-        body: JSON.stringify(values),
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setForm(null);
-        fetchDoctors();
-        toast(data.message || 'تم الحفظ');
-        if (data.credentials) showCredentials(data.doctor, data.credentials);
-      } else {
-        setErrors(data.errors || {});
-        if (!data.errors) toast(data.message || 'تعذر حفظ الطبيب', 'error');
-      }
-    } catch {
-      toast('تعذر الاتصال بالخادم، تحقق من الشبكة ثم أعد المحاولة', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const request = async (path, method) => {
     setBusy(true);
     try {
@@ -137,7 +93,7 @@ export default function ManageDoctors() {
     const { type, doctor } = confirm;
     if (type === 'reset') {
       const data = await request(`/api/doctors/${doctor.id}/reset-password`, 'POST');
-      if (data?.credentials) showCredentials(doctor, data.credentials);
+      if (data?.credentials) setCredentials(doctorCredentials(doctor, data.credentials));
     } else {
       await request(`/api/doctors/${doctor.id}`, 'DELETE');
     }
@@ -158,20 +114,18 @@ export default function ManageDoctors() {
     }
   };
 
-  const err = (key) => errors[key]?.[0];
-
   return (
     <div className="max-w-2xl lg:max-w-none mx-auto">
       <PageHeader
         title="الأطباء"
         subtitle={doctors ? `${counts.active} طبيب نشط` : undefined}
-        actions={<Button icon={Plus} onClick={() => openForm(null)}>أضف طبيبًا</Button>}
+        actions={<Button icon={Plus} onClick={() => setForm({})}>أضف طبيبًا</Button>}
       />
 
       {doctors === null ? (
         <LoadingState />
       ) : doctors.length === 0 ? (
-        <EmptyState icon={Stethoscope} title="لا يوجد أطباء بعد" action={<Button icon={Plus} onClick={() => openForm(null)}>أضف أول طبيب</Button>}>
+        <EmptyState icon={Stethoscope} title="لا يوجد أطباء بعد" action={<Button icon={Plus} onClick={() => setForm({})}>أضف أول طبيب</Button>}>
           سجّل الأطباء هنا ثم اخترهم عند إنشاء الأحداث.
         </EmptyState>
       ) : (
@@ -235,7 +189,10 @@ export default function ManageDoctors() {
               )}
             </div>
             <div className="divide-y divide-line">
-              <SheetAction icon={Pencil} onClick={() => { openForm(actionsFor); setActionsFor(null); }}>عدّل البيانات</SheetAction>
+              <SheetAction icon={History} hint="الأحداث التي شارك فيها، فتراته، ووقت وصوله ومغادرته" onClick={() => { setHistoryFor(actionsFor); setActionsFor(null); }}>
+                سجل المشاركات
+              </SheetAction>
+              <SheetAction icon={Pencil} onClick={() => { setForm({ doctor: actionsFor }); setActionsFor(null); }}>عدّل البيانات</SheetAction>
               <SheetAction icon={KeyRound} hint="تظهر مرة واحدة، ويُسجَّل خروجه من كل الأجهزة" onClick={() => { setConfirm({ type: 'reset', doctor: actionsFor }); setActionsFor(null); }}>
                 كلمة مرور جديدة
               </SheetAction>
@@ -252,50 +209,12 @@ export default function ManageDoctors() {
         )}
       </Sheet>
 
-      {/* Add / edit */}
-      <Sheet
-        open={!!form}
+      <DoctorFormSheet
+        open={form}
         onClose={() => setForm(null)}
-        title={form?.id ? 'تعديل الطبيب' : 'طبيب جديد'}
-        footer={<Button block size="lg" loading={busy} onClick={save}>{form?.id ? 'احفظ التغييرات' : 'أضف الطبيب وأنشئ حسابه'}</Button>}
-      >
-        <form onSubmit={save} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="الاسم" error={err('first_name')}>
-              <TextInput value={values.first_name} onChange={(e) => set('first_name', e.target.value)} invalid={!!err('first_name')} autoComplete="off" />
-            </Field>
-            <Field label="اللقب" error={err('family_name')}>
-              <TextInput value={values.family_name} onChange={(e) => set('family_name', e.target.value)} invalid={!!err('family_name')} autoComplete="off" />
-            </Field>
-          </div>
-          <Field label="رقم الهاتف" error={err('phone')}>
-            <TextInput type="tel" inputMode="tel" dir="ltr" placeholder="0555123456" value={values.phone} onChange={(e) => set('phone', e.target.value)} invalid={!!err('phone')} />
-          </Field>
-          <Field label="الولاية" error={err('wilaya_code')}>
-            <SelectInput value={values.wilaya_code} onChange={(e) => set('wilaya_code', e.target.value)}>
-              <option value="">اختر الولاية</option>
-              {WILAYAS.map((w) => <option key={w.code} value={w.code}>{w.code} - {w.name}</option>)}
-            </SelectInput>
-          </Field>
-          <Field label="التخصص" error={err('specialty_id')}>
-            <SelectInput value={values.specialty_id} onChange={(e) => set('specialty_id', e.target.value)}>
-              <option value="">اختر التخصص</option>
-              {specialties.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </SelectInput>
-          </Field>
-          <fieldset>
-            <legend className="block mb-1.5 text-sm font-semibold text-ink">مكان العمل</legend>
-            <ChipGroup
-              label="مكان العمل"
-              value={values.sector}
-              onChange={(v) => set('sector', v)}
-              options={Object.entries(SECTOR_LABELS).map(([value, label]) => ({ value, label }))}
-            />
-            {err('sector') && <span className="block mt-1 text-xs text-red-700">{err('sector')}</span>}
-          </fieldset>
-          {!form?.id && <p className="text-xs text-muted">يُنشأ للطبيب حساب دخول بكلمة مرور تظهر لك مرة واحدة بعد الحفظ.</p>}
-        </form>
-      </Sheet>
+        specialties={specialties}
+        onSaved={(_, creds) => { fetchDoctors(); if (creds) setCredentials(creds); }}
+      />
 
       <ConfirmSheet
         open={!!confirm}
@@ -313,27 +232,8 @@ export default function ManageDoctors() {
         )}
       </ConfirmSheet>
 
-      {/* Credentials, shown once */}
-      <Sheet
-        open={!!credentials}
-        onClose={() => setCredentials(null)}
-        title="بيانات دخول الطبيب"
-        footer={credentials && (
-          <>
-            <Button variant="secondary" icon={Download} className="flex-1" onClick={() => downloadCredentialsCsv([credentials], `doctor-${credentials.email}.csv`)}>CSV</Button>
-            <Button icon={Copy} className="flex-1" onClick={() => copy(`البريد: ${credentials.email}\nكلمة المرور: ${credentials.password}`, 'البيانات')}>انسخ الكل</Button>
-          </>
-        )}
-      >
-        {credentials && (
-          <>
-            <p className="rounded-xl bg-st-pushed-bg px-3 py-2 text-sm text-st-pushed mb-1">
-              انسخ كلمة المرور الآن، لن تظهر مرة أخرى. يمكنك إنشاء كلمة جديدة لاحقًا.
-            </p>
-            <ul><CredentialRow credential={credentials} /></ul>
-          </>
-        )}
-      </Sheet>
+      <DoctorCredentialsSheet credentials={credentials} onClose={() => setCredentials(null)} />
+      <DoctorHistorySheet doctor={historyFor} onClose={() => setHistoryFor(null)} />
     </div>
   );
 }

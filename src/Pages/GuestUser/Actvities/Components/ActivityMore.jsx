@@ -285,7 +285,7 @@ export default function ActivityMore() {
                                                 src={getMediaUrl(activity.media[selectedMediaIndex].url)}
                                                 alt={language === 'en' ? activity.title_en : activity.title_ar}
                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                fetchPriority="high"
+                                                fetchpriority="high"
                                                 decoding="async"
                                                 onError={(e) => {
                                                     e.target.onerror = null;

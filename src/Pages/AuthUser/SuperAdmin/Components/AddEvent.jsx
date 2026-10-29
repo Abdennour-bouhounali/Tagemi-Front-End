@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../../config/environment';
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { ChevronRight, Download, CheckCircle2 } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import { Button, PageHeader, LoadingState, useToast } from '../../../../Components/ui';
@@ -7,6 +7,7 @@ import {
   Stepper, FormActionBar, EventInfoFields, validateEventInfo, validateSpecialties,
   SpecialtiesEditor, RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv,
 } from './EventFormParts';
+import { newIdempotencyKey } from '../../../../utils/idempotency';
 
 const apiUrl = API_BASE_URL;
 
@@ -40,6 +41,8 @@ export default function AddEvent({ getEvents, onClose }) {
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
+  const submissionKey = useRef(newIdempotencyKey());
   const [dataLoading, setDataLoading] = useState(true);
   const [credentials, setCredentials] = useState(null);
 
@@ -110,6 +113,9 @@ export default function AddEvent({ getEvents, onClose }) {
       return;
     }
 
+    // A second tap before the button re-renders must not create the event twice
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     const payload = {
       ...form,
@@ -120,9 +126,11 @@ export default function AddEvent({ getEvents, onClose }) {
     try {
       const res = await fetch(`${apiUrl}/api/events`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        // Same key while retrying after a lost answer: the server creates once
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'Idempotency-Key': submissionKey.current },
         body: JSON.stringify(payload),
       });
+      submissionKey.current = newIdempotencyKey();
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast(data.message || 'أُنشئ الحدث');
@@ -139,6 +147,7 @@ export default function AddEvent({ getEvents, onClose }) {
     } catch {
       toast('تعذر الاتصال بالخادم، تحقق من الشبكة وأعد المحاولة', 'error');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -191,6 +200,7 @@ export default function AddEvent({ getEvents, onClose }) {
               onChange={setEventSpecialties}
               specialties={specialties}
               doctors={doctors}
+              onDoctorCreated={(doctor) => setDoctors((prev) => [...prev, doctor])}
               busy={busy}
               defaultDate={form.date}
               newSpecialty={() => ({
@@ -212,7 +222,7 @@ export default function AddEvent({ getEvents, onClose }) {
                 <p className="text-sm text-muted mb-3">يقرأ المريض هذه الضوابط قبل الحجز.</p>
                 <RulesPicker rules={rules} selected={selectedRules} onToggle={toggleRule} />
               </section>
-              <EventReview form={form} specialtiesList={eventSpecialties} specialtyName={specialtyName} rulesCount={selectedRules.length} />
+              <EventReview form={form} specialtiesList={eventSpecialties} specialtyName={specialtyName} doctorName={doctorName} rulesCount={selectedRules.length} />
             </div>
           )}
 

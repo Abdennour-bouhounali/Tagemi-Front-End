@@ -195,7 +195,7 @@ export default function Activities() {
                             <img
                                 src={typeImageUrl(type)}
                                 alt={typeName}
-                                fetchPriority="high"
+                                fetchpriority="high"
                                 decoding="async"
                                 width="560"
                                 height="380"

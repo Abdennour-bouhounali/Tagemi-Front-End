@@ -51,7 +51,7 @@ const VideoBanner = ({ bannerImage, bannerText, homePage }) => {
                     >
                         <img 
                             src={bannerImage} 
-                            fetchPriority="high"
+                            fetchpriority="high"
                             decoding="async"
                             width="1600"
                             height="841"

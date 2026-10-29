@@ -147,7 +147,7 @@ export default function AppointmentDistribution({ eventId, onClose }) {
                           {d.day_name} <span className="font-normal text-muted">{d.formatted_date}</span>
                         </p>
                         <p className="text-xs text-muted tabular-nums whitespace-nowrap">
-                          {d.total_appointments} / {d.total_capacity}، {d.number_per_hour} في الساعة
+                          {d.total_appointments} / {d.total_capacity}{d.number_per_hour ? `، ${d.number_per_hour} في الساعة` : ''}
                         </p>
                       </div>
                       <ul className="space-y-1.5">

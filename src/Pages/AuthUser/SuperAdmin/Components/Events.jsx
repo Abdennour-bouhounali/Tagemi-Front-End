@@ -3,7 +3,7 @@ import { useContext, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   MoreVertical, ChevronRight, CalendarDays, Activity, Info, Link as LinkIcon, Monitor, MessageSquareHeart,
-  Power, PencilLine, Users, PieChart, TrendingUp, Archive, RotateCcw, FileText, BarChart3, Plus, MapPin, Unlock, FlaskConical, Trash2, UserCog,
+  Power, PencilLine, Users, PieChart, TrendingUp, Archive, RotateCcw, FileText, BarChart3, Plus, MapPin, FlaskConical, Trash2, UserCog,
 } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import {
@@ -12,7 +12,6 @@ import {
 import EventAdminsManager from './EventAdminsManager';
 import EditEvent from './EditEvent';
 import EventDetails from './EventDetails';
-import QueueOpening from './QueueOpening';
 import { ConfirmSheet } from './EventFormParts';
 
 const apiUrl = API_BASE_URL;
@@ -60,7 +59,7 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
   const [query, setQuery] = useState('');
 
   const [menuEvent, setMenuEvent] = useState(null);
-  const [screen, setScreen] = useState(null); // { type: 'edit' | 'admins' | 'queues', event }
+  const [screen, setScreen] = useState(null); // { type: 'edit' | 'admins', event }
   const [detailsEvent, setDetailsEvent] = useState(null);
   const [archiveTarget, setArchiveTarget] = useState(null); // { event, count }
   const [restoreTarget, setRestoreTarget] = useState(null);
@@ -223,9 +222,6 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
     return <EditEvent event={screen.event} onClose={() => setScreen(null)} onSuccess={getEvents} />;
   }
 
-  if (screen?.type === 'queues') {
-    return <QueueOpening event={screen.event} onClose={() => setScreen(null)} />;
-  }
 
   if (screen?.type === 'admins') {
     return (
@@ -325,11 +321,6 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
               <SheetAction icon={m.is_archived ? Archive : Activity} onClick={() => go(`/admin/event-tracking/${m.id}`)}>
                 {m.is_archived ? 'افتح الأرشيف والتقارير' : 'افتح المتابعة'}
               </SheetAction>
-              {!m.is_archived && (
-                <SheetAction icon={Unlock} hint="يوم الفحص: افتح التخصص عند وصول طبيبه" onClick={() => { setScreen({ type: 'queues', event: m }); setMenuEvent(null); }}>
-                  فتح الطوابير عند وصول الأطباء
-                </SheetAction>
-              )}
               <SheetAction icon={Info} hint="الروابط العامة وملصق «اعرف دورك»" onClick={() => { setDetailsEvent(m); setMenuEvent(null); }}>
                 التفاصيل والروابط
               </SheetAction>

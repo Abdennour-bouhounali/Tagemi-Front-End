@@ -3,7 +3,7 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ChevronRight, ChevronLeft, ClipboardCheck, Monitor, PieChart, Activity, ListOrdered, Droplets,
-  BarChart3, Users, MapPin, FileText, FileBarChart, TrendingUp, ListChecks, Archive,
+  BarChart3, Users, MapPin, FileText, FileBarChart, TrendingUp, ListChecks, Archive, Stethoscope,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { PageHeader, StatStrip, LoadingState, EmptyState, useToast } from '../../../Components/ui';
@@ -122,6 +122,7 @@ const EventTracking = () => {
 
   const liveTools = [
     { title: 'مكتب الحضور', hint: 'سجّل حضور المرضى وحدّث حالة مواعيدهم', icon: ClipboardCheck, path: `/admin/check-presence/${eventId}` },
+    { title: 'الأطباء والطوابير', hint: 'سجّل وصول الأطباء ومغادرتهم، فتُفتح الطوابير وتُغلق', icon: Stethoscope, path: `/admin/doctors-today/${eventId}` },
     { title: 'شاشة قاعة الانتظار', hint: 'أول المرضى في طابور كل تخصص', icon: Monitor, path: `/admin/big-list-waiting/${eventId}` },
     { title: 'توزيع المواعيد', hint: 'الحجوزات والسعة لكل تخصص ويوم وساعة', icon: PieChart, path: `/admin/appointment-distribution/${eventId}` },
     { title: 'إحصائيات الحدث', hint: 'أرقام الحضور والفحص لحظة بلحظة', icon: Activity, path: `/admin/event-statistics/${eventId}` },

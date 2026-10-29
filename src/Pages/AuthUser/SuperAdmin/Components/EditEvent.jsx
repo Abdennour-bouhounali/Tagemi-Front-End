@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../../config/environment';
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import { Button, PageHeader, LoadingState, useToast } from '../../../../Components/ui';
@@ -7,6 +7,7 @@ import {
   Stepper, FormActionBar, EventInfoFields, validateEventInfo, validateSpecialties,
   SpecialtiesEditor, RulesPicker, EventReview,
 } from './EventFormParts';
+import { newIdempotencyKey } from '../../../../utils/idempotency';
 
 const apiUrl = API_BASE_URL;
 
@@ -39,6 +40,8 @@ export default function EditEvent({ event, onClose, onSuccess }) {
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
+  const submissionKey = useRef(newIdempotencyKey());
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
@@ -145,6 +148,9 @@ export default function EditEvent({ event, onClose, onSuccess }) {
       return;
     }
 
+    // A second tap before the button re-renders must not save twice
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     try {
       const payload = {
@@ -159,9 +165,11 @@ export default function EditEvent({ event, onClose, onSuccess }) {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           Authorization: `Bearer ${token}`,
+          'Idempotency-Key': submissionKey.current,
         },
         body: JSON.stringify(payload),
       });
+      submissionKey.current = newIdempotencyKey();
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -181,6 +189,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
     } catch {
       toast('تعذر الاتصال بالخادم، تحقق من الشبكة وأعد المحاولة', 'error');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -206,6 +215,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
               onChange={setEventSpecialties}
               specialties={specialties}
               doctors={doctors}
+              onDoctorCreated={(doctor) => setDoctors((prev) => [...prev, doctor])}
               busy={busy}
               defaultDate={form.date}
               showExisting
@@ -231,7 +241,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
                 <p className="text-sm text-muted mb-3">يقرأ المريض هذه الضوابط قبل الحجز.</p>
                 <RulesPicker rules={rules} selected={selectedRules} onToggle={toggleRule} />
               </section>
-              <EventReview form={form} specialtiesList={eventSpecialties} specialtyName={specialtyName} rulesCount={selectedRules.length} />
+              <EventReview form={form} specialtiesList={eventSpecialties} specialtyName={specialtyName} doctorName={doctorName} rulesCount={selectedRules.length} />
             </div>
           )}
 

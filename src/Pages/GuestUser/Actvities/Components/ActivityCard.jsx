@@ -48,7 +48,7 @@ function Cover({ activity, lang, priority }) {
             src={mediaUrl(cover.url)}
             alt={activityTitle(activity, lang)}
             loading={priority ? 'eager' : 'lazy'}
-            fetchPriority={priority ? 'high' : 'auto'}
+            fetchpriority={priority ? 'high' : 'auto'}
             decoding="async"
             width="640"
             height="480"
