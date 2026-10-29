@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../config/environment';
-import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
+import { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import QRScanner from './QRScanner';
@@ -114,6 +114,8 @@ const CheckPresence = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scanAction, setScanAction] = useState(null); // 'present', 'special', 'details'
   const [manualPatientId, setManualPatientId] = useState("");
+  // Action run on the typed (or scanned) patient number
+  const [numberAction, setNumberAction] = useState(canCheckIn ? 'present' : canManageSpecial ? 'special' : 'details');
 
   // Stable close handlers: the kit's Sheet re-runs its focus effect when
   // onClose changes, so inline arrows would steal focus on every re-render
@@ -230,8 +232,53 @@ const CheckPresence = () => {
 
   // ------------------------------------------------------------- check-in
 
+  // Patient (grouped appointments) by number; reloads once if not in the list yet
+  const findPatient = async (patientId) => {
+    const find = (list) => getUniquePatients(list).find((p) => p.patient_id?.toString() === patientId.toString());
+    const patient = find(appointments) || find(await fetchAppointments(true));
+    if (!patient) toast(`لا يوجد مريض برقم #${patientId} في هذا الحدث. تحقق من الرقم.`, "error");
+    return patient || null;
+  };
+
+  // Opened during the click: browsers block pop-ups opened after a network wait
+  const openPrintWindow = () => {
+    const win = window.open("", "_blank");
+    if (!win) {
+      toast("المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة لهذا الموقع.", "error");
+      return null;
+    }
+    win.document.write('<p dir="rtl" style="font-family:sans-serif;padding:2rem">جاري تحضير بطاقة المتابعة...</p>');
+    return win;
+  };
+
+  // حاضر: check in, then print the follow-up card (بطاقة المتابعة) right away
+  const checkInAndPrint = async (patientId) => {
+    const win = openPrintWindow();
+    const list = await checkInPatient(patientId);
+    const patient = list && getUniquePatients(list).find((p) => p.patient_id?.toString() === patientId.toString());
+    if (patient && win) {
+      printPatientCard(patient, win);
+    } else {
+      win?.close();
+    }
+    return !!list;
+  };
+
+  // Reprint for a patient already checked in
+  const printCardFor = async (patientId, win = openPrintWindow()) => {
+    const patient = await findPatient(patientId);
+    if (patient && !hasCheckedIn(patient)) {
+      toast(`المريض #${patientId} لم يُسجَّل حضوره بعد. سجّل حضوره أولاً.`, "error");
+    } else if (patient && win) {
+      printPatientCard(patient, win);
+      return true;
+    }
+    win?.close();
+    return false;
+  };
+
   // Check-in by patient number (QR scan or typed). Only today's appointments
-  // are activated by the server.
+  // are activated by the server. Returns the reloaded list, or null on failure.
   const checkInPatient = async (patientId) => {
     setUpdating(true);
     try {
@@ -251,8 +298,7 @@ const CheckPresence = () => {
         // No open specialty: checked in, waits for a doctor to arrive
         toast(`${data.message}${place}`, data.appointment ? "success" : "info");
         setManualPatientId("");
-        await fetchAppointments(true);
-        return true;
+        return await fetchAppointments(true);
       }
       toast(data.message || `تعذر تسجيل حضور المريض #${patientId}. تحقق من الرقم.`, "error");
     } catch (err) {
@@ -261,57 +307,91 @@ const CheckPresence = () => {
     } finally {
       setUpdating(false);
     }
-    return false;
+    return null;
   };
 
-  const handleManualCheckIn = (e) => {
-    e.preventDefault();
-    if (!/^\d+$/.test(manualPatientId.trim())) {
+  // The typed number, or null (with a message) when it is not a number
+  const typedPatientId = () => {
+    const id = manualPatientId.trim();
+    if (!/^\d+$/.test(id)) {
       toast("أدخل رقم المريض بالأرقام فقط.", "error");
+      return null;
+    }
+    return id;
+  };
+
+  // سجّل الحضور (typed or scanned): show who it is first; the receptionist
+  // confirms in the sheet, which checks in and prints the follow-up card
+  const showForPresence = (patient) => {
+    if (hasCheckedIn(patient)) toast(`المريض #${patient.patient_id} مسجل حاضراً من قبل.`, "info");
+    setDetailsId(patient.patient_id);
+  };
+
+  // Actions of the patient-number panel, by role
+  const numberActions = [
+    canCheckIn && { value: 'present', label: 'سجّل الحضور', icon: Check, hint: 'تظهر معلومات المريض، وعند التأكيد يُسجَّل حاضراً وتُطبع بطاقة المتابعة' },
+    canManageSpecial && { value: 'special', label: 'سجّل حالة خاصة', icon: Star, hint: 'يدخل الطابور بأولوية' },
+    { value: 'details', label: 'اعرض تفاصيل المريض', icon: Info, hint: 'معلوماته ومواعيده وكل الإجراءات' },
+    canCheckIn && { value: 'print', label: 'طباعة بطاقة الحضور', icon: Printer, hint: 'إعادة طباعة بطاقة المتابعة لمريض سُجّل حضوره' },
+  ].filter(Boolean);
+  const currentAction = numberActions.find((a) => a.value === numberAction) || numberActions[0];
+
+  // Runs the selected action on the typed number
+  const handleNumberAction = (e) => {
+    e.preventDefault();
+    const id = typedPatientId();
+    if (!id) return;
+    if (currentAction.value === 'print') {
+      printCardFor(id); // its window opens now, during the click
       return;
     }
-    checkInPatient(manualPatientId.trim());
+    findPatient(id).then((patient) => {
+      if (!patient) return;
+      if (currentAction.value === 'present') showForPresence(patient);
+      else actOnPatient(currentAction.value, patient);
+    });
+  };
+
+  const actOnPatient = async (action, patient) => {
+    if (action === 'details') {
+      setDetailsId(patient.patient_id);
+      return true;
+    }
+    if (isSpecialPatient(patient)) {
+      toast(`المريض #${patient.patient_id} مسجل حالةً خاصة من قبل.`, "info");
+      return true;
+    }
+    return markAsSpecialCase(patient.id);
   };
 
   // Returns false on failure so the scanner stays open for another try
   const handleQRScanSuccess = async (patientId) => {
     try {
-      // Default action: check in. The server decides (today's appointments,
-      // already checked in...), so a patient registered after this page
-      // was opened is found too.
-      if (scanAction !== 'details' && scanAction !== 'special') {
-        return await checkInPatient(patientId);
+      const patient = await findPatient(patientId);
+      if (!patient) return false;
+
+      // Presence: show who it is; the receptionist confirms in the sheet (check in + print)
+      if (scanAction === 'present') {
+        showForPresence(patient);
+        return true;
       }
 
-      const find = (list) => getUniquePatients(list).find(
-        (p) => p.patient_id?.toString() === patientId.toString()
-      );
-      let patient = find(appointments);
-      if (!patient) patient = find(await fetchAppointments(true));
-
-      if (!patient) {
-        toast(`لا يوجد مريض برقم #${patientId} في هذا الحدث. تحقق من الرقم.`, "error");
-        return false;
-      }
-
-      if (scanAction === 'details') {
+      if (scanAction === 'print') {
+        if (!hasCheckedIn(patient)) {
+          toast(`المريض #${patientId} لم يُسجَّل حضوره بعد. سجّل حضوره أولاً.`, "error");
+          return false;
+        }
+        // The scan is not a click: show the sheet, where the print button opens the window
         setDetailsId(patient.patient_id);
         return true;
       }
 
-      if (scanAction === 'special') {
-        if (isSpecialPatient(patient)) {
-          toast(`المريض #${patientId} مسجل حالةً خاصة من قبل.`, "info");
-          return true;
-        }
-        return await markAsSpecialCase(patient.id);
-      }
+      return await actOnPatient(scanAction, patient);
     } catch (err) {
       console.error("QR Scan Update Error:", err);
       toast("حدث خطأ أثناء معالجة الرمز. حاول مرة أخرى.", "error");
       return false;
     }
-    return true;
   };
 
   // ------------------------------------------------------------- WhatsApp
@@ -363,8 +443,11 @@ const CheckPresence = () => {
     allAppointments.forEach((apt, index) => {
       const specialty = apt.event_specialty?.specialty?.name || "غير محدد";
       const date = apt.day?.day_date || apt.day?.date || "-";
-      const time = apt.hour?.time || apt.hour?.hour || "-";
-      appointmentsList += `\n${index + 1}. التخصص: ${specialty}\n   التاريخ: ${date}\n   التوقيت: ${time}\n`;
+      const time = String(apt.hour?.time || apt.hour?.hour || "-").slice(0, 5);
+      // Patients come one hour before the hour they booked
+      const [h, m] = time.split(":").map((n) => parseInt(n, 10));
+      const arrival = Number.isNaN(h) ? "" : `${String(Math.max(0, h - 1)).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+      appointmentsList += `\n${index + 1}. التخصص: ${specialty}\n   التاريخ: ${date}\n   التوقيت: ${time}${arrival ? `\n   الحضور على الساعة: ${arrival}` : ""}\n`;
     });
 
     const message = `السلام عليكم ${patientName}،
@@ -375,7 +458,7 @@ const CheckPresence = () => {
 ${appointmentsList}
 *الحضور بمحرم إجباري بالنسبة للنساء*
 
-نرجو الحضور ربع ساعة قبل الموعد لضمان السيرورة الحسنة للفحوصات.
+نرجو الحضور ساعة قبل الموعد لضمان السيرورة الحسنة للفحوصات.
 
 فريق مؤسسة تجمي للتنمية الإنسانية`;
 
@@ -1165,8 +1248,12 @@ ${appointmentsList}
     }, 250);
   };
 
-  const printPatientCard = (appointment) => {
-    const printWindow = window.open("", "_blank");
+  // printWindow: pass one opened during the click when printing after a request
+  const printPatientCard = (appointment, printWindow = window.open("", "_blank")) => {
+    if (!printWindow) {
+      toast("المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة لهذا الموقع.", "error");
+      return;
+    }
     const eventName = escapeHtml(event?.name || "الحدث");
     const patientAppts = appointment.all_appointments || [appointment];
     const logoUrl = `${window.location.origin}/tagemi_logo.png`;
@@ -1176,11 +1263,9 @@ ${appointmentsList}
       ? new Date(appointment.birthday).toLocaleDateString('en-UK')
       : "-";
     const gender = appointment.sex == '0' ? 'ذكر' : appointment.sex == '1' ? 'أنثى' : '-';
-    const phone = escapeHtml(appointment.phone || "-");
-    const phone2 = escapeHtml(appointment.phone2 || "-");
-    const state = escapeHtml(appointment.state || "-");
-    const city = escapeHtml(appointment.city || "-");
     const diseases = escapeHtml(appointment.diseases && appointment.diseases !== 'nothing' ? appointment.diseases : "لا يوجد");
+    // A5 landscape: rows shrink with the number of specialties so the table fits under the info
+    const rowHeight = Math.max(7, Math.min(14, Math.floor(58 / Math.max(1, patientAppts.length))));
     // Same payload as PatientQRCode, so the presence/queue scanners can read the card
     const qrSvg = appointment.patient_id
       ? renderToStaticMarkup(
@@ -1216,31 +1301,35 @@ ${appointmentsList}
           .card {
             width: 100%;
             height: 100%;
-            padding: 8mm;
+            padding: 6mm;
             display: flex;
             flex-direction: column;
           }
           .header {
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 4mm;
             border-bottom: 3px solid #2563eb;
-            padding-bottom: 5mm;
-            margin-bottom: 5mm;
+            padding-bottom: 2mm;
+            margin-bottom: 3mm;
           }
           .logo {
-            height: 15mm;
-            max-width: 60%;
-            margin: 0 auto 2mm;
+            height: 11mm;
+            max-width: 45mm;
             display: block;
           }
           .event-name {
-            font-size: 16px;
+            flex: 1;
+            text-align: center;
+            font-size: 15px;
             font-weight: bold;
             color: #1e40af;
-            margin-bottom: 1mm;
           }
           .card-title {
-            font-size: 20px;
+            font-size: 17px;
+            font-weight: bold;
             color: #1e40af;
+            white-space: nowrap;
           }
           .content {
             display: flex;
@@ -1252,36 +1341,37 @@ ${appointmentsList}
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 4mm;
-          }
-          .header {
-            position: relative;
+            gap: 3mm;
+            min-width: 0;
           }
           .qr-section {
-            position: absolute;
-            top: 0;
-            left: 0;
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
           .qr-code svg {
-            width: 24mm;
-            height: 24mm;
+            width: 44mm;
+            height: 44mm;
             display: block;
           }
           .qr-patient-id {
-            font-size: 13px;
+            font-size: 24px;
             font-weight: bold;
             color: #1e40af;
-            margin-top: 1mm;
+            margin-top: 2mm;
           }
           .left-side {
-            flex: 1;
+            width: 58mm;
+            flex: none;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
           }
           .section {
             background: #f8fafc;
-            padding: 4mm;
+            padding: 2.5mm;
             border-radius: 6px;
             border: 2px solid #e2e8f0;
           }
@@ -1289,26 +1379,29 @@ ${appointmentsList}
             font-size: 12px;
             font-weight: bold;
             color: #1e40af;
-            margin-bottom: 3mm;
-            padding: 2mm;
+            margin-bottom: 2mm;
+            padding: 1.5mm;
             background: #dbeafe;
             border-radius: 4px;
             text-align: center;
           }
           .info-line {
-            margin-bottom: 2mm;
-            font-size: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5mm 6mm;
+            font-size: 13px;
+            line-height: 1.3;
           }
           .info-item {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             gap: 2mm;
-            margin-bottom: 1.5mm;
+            min-width: 0;
           }
           .info-label {
             font-weight: bold;
             color: #475569;
-            min-width: 25mm;
+            white-space: nowrap;
           }
           .info-value {
             color: #1e40af;
@@ -1320,8 +1413,7 @@ ${appointmentsList}
             flex-direction: column;
           }
           .table-wrapper {
-            flex: 1;
-            overflow: auto;
+            overflow: hidden;
           }
           .checklist {
             width: 100%;
@@ -1335,6 +1427,7 @@ ${appointmentsList}
             font-size: 10px;
           }
           .checklist th {
+            padding: 1.2mm 2mm;
             background-color: #2563eb;
             color: white;
             font-weight: bold;
@@ -1343,8 +1436,8 @@ ${appointmentsList}
             background-color: #f8fafc;
           }
           .checkbox-cell {
-            width: 30mm;
-            height: 20mm;
+            width: 24mm;
+            height: ${rowHeight}mm;
           }
           .specialty-name {
             text-align: right;
@@ -1373,11 +1466,6 @@ ${appointmentsList}
             <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'" />
             <div class="event-name">${eventName}</div>
             <div class="card-title">بطاقة المتابعة</div>
-            ${qrSvg ? `
-            <div class="qr-section">
-              <div class="qr-code">${qrSvg}</div>
-              <div class="qr-patient-id">#${escapeHtml(appointment.patient_id)}</div>
-            </div>` : ''}
           </div>
 
           <div class="content">
@@ -1397,17 +1485,13 @@ ${appointmentsList}
                     <span class="info-label">الجنس:</span>
                     <span class="info-value">${gender}</span>
                   </div>
-                  <div class="info-item">
+                  <div class="info-item" style="grid-column: 1 / -1">
                     <span class="info-label">الأمراض المزمنة:</span>
                     <span class="info-value">${diseases}</span>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div class="left-side">
               <div class="appointments-section">
-                <div class="section-title">التخصصات والمتابعة</div>
                 <div class="table-wrapper">
                   <table class="checklist">
                     <thead>
@@ -1429,6 +1513,14 @@ ${appointmentsList}
                   </table>
                 </div>
               </div>
+            </div>
+
+            <div class="left-side">
+              ${qrSvg ? `
+              <div class="qr-section">
+                <div class="qr-code">${qrSvg}</div>
+                <div class="qr-patient-id">#${escapeHtml(appointment.patient_id)}</div>
+              </div>` : ''}
             </div>
           </div>
 
@@ -1663,7 +1755,6 @@ ${appointmentsList}
       'البلدية',
       'الجنس',
       'الأمراض',
-      'الطبيب',
       'حالة خاصة',
       'تم التذكير'
     ];
@@ -1696,7 +1787,6 @@ ${appointmentsList}
         appointment.city || '-',
         sex,
         diseases,
-        appointment.doctor?.name || 'غير محدد',
         isSpecial,
         isReminded
       ];
@@ -1776,8 +1866,8 @@ ${appointmentsList}
         {/* Check-in and special case live here, not on the row, so a tap while scrolling cannot trigger them */}
         {canCheckIn && !checkedIn && (
           <div className="pb-3">
-            <Button size="lg" block icon={Check} disabled={updating} onClick={run(() => checkInPatient(p.patient_id))}>
-              سجّل الحضور
+            <Button size="lg" block icon={Check} disabled={updating} onClick={run(() => checkInAndPrint(p.patient_id))}>
+              حاضر، واطبع بطاقة المتابعة
             </Button>
           </div>
         )}
@@ -1850,9 +1940,8 @@ ${appointmentsList}
       {/* Laptop: check-in panel in a sticky side column, patients in the rest */}
       <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] lg:gap-6 lg:items-start">
       <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-      {/* Check-in: the main job of this screen */}
-      {canCheckIn && (
-        <form onSubmit={handleManualCheckIn} className="bg-white border border-line rounded-2xl p-4 mb-3">
+      {/* Patient number: check-in (the main job), print, special case, details */}
+      <form onSubmit={handleNumberAction} className="bg-white border border-line rounded-2xl p-4 mb-4">
           <label htmlFor="checkin-patient-id" className="block text-sm font-semibold text-ink mb-2">رقم المريض</label>
           <div className="flex gap-2">
             <input
@@ -1869,30 +1958,22 @@ ${appointmentsList}
             />
             <button
               type="button"
-              onClick={() => openScanner('present')}
+              onClick={() => openScanner(currentAction.value)}
               className="shrink-0 h-14 px-4 inline-flex flex-col items-center justify-center gap-0.5 rounded-xl border border-line bg-white text-ink hover:bg-ink-faint"
             >
               <ScanLine className="w-6 h-6" />
               <span className="text-[11px] font-semibold leading-none">مسح QR</span>
             </button>
           </div>
-          <Button type="submit" size="lg" block icon={Check} loading={updating} disabled={!manualPatientId} className="mt-2 h-14 text-base">
-            سجّل الحضور
+          <label htmlFor="number-action" className="block text-sm font-semibold text-ink mt-3 mb-1.5">الإجراء</label>
+          <SelectInput id="number-action" value={currentAction.value} onChange={(e) => setNumberAction(e.target.value)}>
+            {numberActions.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+          </SelectInput>
+          <Button type="submit" size="lg" block icon={currentAction.icon} loading={updating} disabled={!manualPatientId} className="mt-2 h-14 text-base">
+            فعّل الإجراء
           </Button>
+          <p className="mt-1 text-xs text-muted text-center">{currentAction.hint}. زر «مسح QR» ينفّذ نفس الإجراء.</p>
         </form>
-      )}
-
-      {/* Scanner shortcuts for the other jobs */}
-      <div className="flex gap-2 mb-4">
-        {canManageSpecial && (
-          <Button variant={canCheckIn ? 'secondary' : 'primary'} size={canCheckIn ? 'md' : 'lg'} icon={Star} className="flex-1" onClick={() => openScanner('special')}>
-            مسح حالة خاصة
-          </Button>
-        )}
-        <Button variant="secondary" size={canManageSpecial && !canCheckIn ? 'lg' : 'md'} icon={Info} className="flex-1" onClick={() => openScanner('details')}>
-          مسح لعرض التفاصيل
-        </Button>
-      </div>
 
       <StatStrip
         className="mb-4 lg:mb-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0 lg:pb-0"
@@ -2013,7 +2094,22 @@ ${appointmentsList}
       </Sheet>
 
       {/* Patient details */}
-      <Sheet size="lg" open={!!selectedPatient} onClose={closeDetails} title={selectedPatient ? `#${selectedPatient.patient_id} ${selectedPatient.full_name || ''}` : ''}>
+      <Sheet
+        size="lg"
+        open={!!selectedPatient}
+        onClose={closeDetails}
+        title={selectedPatient ? `#${selectedPatient.patient_id} ${selectedPatient.full_name || ''}` : ''}
+        // After a scan: the main action, always visible without scrolling (confirm presence, or print)
+        footer={selectedPatient && canCheckIn && (hasCheckedIn(selectedPatient) ? (
+          <Button size="lg" block variant="secondary" icon={Printer} onClick={() => printPatientCard(selectedPatient)}>
+            اطبع بطاقة المتابعة
+          </Button>
+        ) : (
+          <Button size="lg" block icon={Check} disabled={updating} onClick={() => { const id = selectedPatient.patient_id; closeAllSheets(); checkInAndPrint(id); }}>
+            أكّد الحضور واطبع بطاقة المتابعة
+          </Button>
+        ))}
+      >
         {selectedPatient && (
           <div className="space-y-5">
             {isSpecialPatient(selectedPatient) && (
@@ -2044,7 +2140,6 @@ ${appointmentsList}
                     </div>
                     <p className="text-xs text-muted mt-1">
                       يوم {aptDay(apt)}، الساعة {aptHour(apt)}
-                      {apt.doctor?.name ? `، الطبيب ${apt.doctor.name}` : ''}
                     </p>
                     {(canManageSpecial || isAdmin) && (
                       <div className="flex gap-2 mt-2">
@@ -2284,7 +2379,8 @@ ${appointmentsList}
           onClose={closeScanner}
           eventId={eventId}
           actionTitle={
-            scanAction === 'present' ? 'امسح رمز المريض لتسجيل حضوره' :
+            scanAction === 'present' ? 'امسح رمز المريض: تظهر معلوماته ثم أكّد حضوره' :
+              scanAction === 'print' ? 'امسح رمز المريض لطباعة بطاقته' :
               scanAction === 'special' ? 'امسح رمز المريض لتسجيله حالة خاصة' :
                 scanAction === 'details' ? 'امسح رمز المريض لعرض تفاصيله' :
                   'امسح رمز QR'
