@@ -12,7 +12,7 @@ const apiUrl = API_BASE_URL;
 
 const REMOVAL_NOTE = 'لا يُقبل الحذف إذا كانت فيه مواعيد محجوزة: سيرفض الخادم الحفظ.';
 
-/** Edit an event as a 3-step form. Payload of PUT /api/events/{id}/full is unchanged. */
+/** Edit an event as a 3-step form (PUT /api/events/{id}/full). Old specialties keep their hourly days. */
 export default function EditEvent({ event, onClose, onSuccess }) {
   const { token } = useContext(AppContext);
   const toast = useToast();
@@ -33,6 +33,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
 
   const [specialties, setSpecialties] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [busy, setBusy] = useState([]); // doctors' dates in other events
   const [rules, setRules] = useState([]);
 
   const [step, setStep] = useState(0);
@@ -76,55 +77,36 @@ export default function EditEvent({ event, onClose, onSuccess }) {
       }
     };
 
+    // Specialties already shaped like the form: `schedule` (doctors) or legacy `days`
     const fetchEventSpecialties = async () => {
       try {
-        const res = await fetch(`${apiUrl}/api/events/${event.id}`, auth);
+        const res = await fetch(`${apiUrl}/api/events/${event.id}/edit-data`, auth);
         if (!res.ok) throw new Error();
         const data = await res.json();
-
-        const transformed = await Promise.all(
-          (data.event?.event_specialties || []).map(async (es) => {
-            const daysRes = await fetch(`${apiUrl}/api/event-specialties/${es.id}/days`, auth);
-            const daysData = await daysRes.json();
-
-            const daysWithHours = await Promise.all(
-              (daysData.days || []).map(async (day) => {
-                const hoursRes = await fetch(`${apiUrl}/api/days/${day.id}/hours`, auth);
-                const hoursData = await hoursRes.json();
-                return {
-                  id: day.id,
-                  day_date: day.day_date,
-                  number_per_hour: day.number_per_hour || 6,
-                  hours: (hoursData.hours || []).map((h) => ({ id: h.id, time: h.time })),
-                };
-              })
-            );
-
-            return {
-              id: es.specialty_id,
-              eventSpecialtyId: es.id,
-              description: es.description || '',
-              doctors: (es.doctors || []).map((d) => d.id),
-              is_saturated: es.is_saturated || false,
-              has_dilatation: es.has_dilatation || false,
-              days: daysWithHours,
-            };
-          })
-        );
-        setEventSpecialties(transformed);
+        setEventSpecialties(data.specialties || []);
       } catch {
         toast('تعذر تحميل تخصصات الحدث، أعد فتح النموذج', 'error');
       }
     };
 
+    const fetchBusy = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/api/doctors/busy-dates?exclude_event_id=${event.id}`, auth);
+        if (res.ok) setBusy((await res.json()).busy || []);
+      } catch {
+        // Only feeds a warning: the form works without it
+      }
+    };
+
     (async () => {
       setDataLoading(true);
-      await Promise.all([fetchSpecialties(), fetchDoctors(), fetchRules(), fetchEventSpecialties()]);
+      await Promise.all([fetchSpecialties(), fetchDoctors(), fetchRules(), fetchEventSpecialties(), fetchBusy()]);
       setDataLoading(false);
     })();
   }, [event.id, token, toast]);
 
   const specialtyName = (id) => specialties.find((s) => String(s.id) === String(id))?.name;
+  const doctorName = (id) => doctors.find((d) => d.id === id)?.full_name || `#${id}`;
 
   const toggleRule = (id) => setSelectedRules((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -138,7 +120,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
       }
     }
     if (step === 1) {
-      const msg = validateSpecialties(eventSpecialties, specialtyName);
+      const msg = validateSpecialties(eventSpecialties, specialtyName, doctorName);
       if (msg) {
         toast(msg, 'error');
         return;
@@ -156,7 +138,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
       toast('أكمل معلومات الحدث', 'error');
       return;
     }
-    const msg = validateSpecialties(eventSpecialties, specialtyName);
+    const msg = validateSpecialties(eventSpecialties, specialtyName, doctorName);
     if (msg) {
       setStep(1);
       toast(msg, 'error');
@@ -224,16 +206,17 @@ export default function EditEvent({ event, onClose, onSuccess }) {
               onChange={setEventSpecialties}
               specialties={specialties}
               doctors={doctors}
+              busy={busy}
+              defaultDate={form.date}
               showExisting
               removalNote={REMOVAL_NOTE}
               newSpecialty={() => ({
                 id: '',
                 eventSpecialtyId: null,
                 description: '',
-                doctors: [],
                 is_saturated: false,
                 has_dilatation: false,
-                days: [],
+                schedule: [],
                 isNew: true,
               })}
               newDay={() => ({ id: null, day_date: '', number_per_hour: 20, hours: [], isNew: true })}

@@ -74,6 +74,7 @@ export function staffMoreLinks(user) {
   return [
     { label: 'إضافة مواعيد', to: '/admin/add-multiple-appointments' },
     { label: 'التخصصات', to: '/admin/speciality' },
+    { label: 'الأطباء', to: '/admin/doctors' },
     { label: 'ضوابط الفحوصات', to: '/admin/rules' },
     { label: 'الرسائل', to: '/admin/contacts' },
     { label: 'المتطوعون', to: '/admin/volunteers' },

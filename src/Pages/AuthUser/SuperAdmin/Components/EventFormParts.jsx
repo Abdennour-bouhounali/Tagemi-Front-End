@@ -7,6 +7,8 @@ import {
   Button, IconButton, Sheet, SearchField, Field, TextInput, SelectInput, EmptyState, cx, useToast,
 } from '../../../../Components/ui';
 import { csvSafe } from '../../../../utils/safeHtml';
+import { scheduleError, scheduleVisits } from '../../../../utils/schedule';
+import DoctorScheduleEditor from './DoctorScheduleEditor';
 
 // ------------------------------------------------------------ Confirm sheet
 
@@ -183,13 +185,21 @@ export function validateEventInfo(form) {
   return errors;
 }
 
-/** Returns an error sentence for step 2, or '' if the specialties are complete. */
-export function validateSpecialties(list, specialtyName) {
+/**
+ * Returns an error sentence for step 2, or '' if the specialties are complete.
+ * A specialty with `schedule` is planned with doctors; otherwise legacy hourly days.
+ */
+export function validateSpecialties(list, specialtyName, doctorName = (id) => `#${id}`) {
   if (list.length === 0) return 'أضف تخصصًا واحدًا على الأقل';
   for (let i = 0; i < list.length; i += 1) {
     const spec = list[i];
     const label = spec.id ? specialtyName(spec.id) : `التخصص رقم ${i + 1}`;
     if (!spec.id) return `اختر اسم التخصص رقم ${i + 1}`;
+    if (spec.schedule) {
+      const msg = scheduleError(spec.schedule, doctorName, label);
+      if (msg) return msg;
+      continue;
+    }
     if (spec.days.length === 0) return `أضف يومًا واحدًا على الأقل إلى ${label}`;
     for (let j = 0; j < spec.days.length; j += 1) {
       const day = spec.days[j];
@@ -272,7 +282,7 @@ function DoctorPicker({ doctors, value, onChange }) {
   const [query, setQuery] = useState('');
   const chosen = doctors.filter((d) => value.includes(d.id));
   const toggle = (id) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
-  const list = doctors.filter((d) => !query || String(d.name).includes(query.trim()));
+  const list = doctors.filter((d) => !query || String(d.full_name).includes(query.trim()));
 
   return (
     <div>
@@ -280,8 +290,8 @@ function DoctorPicker({ doctors, value, onChange }) {
       <div className="flex flex-wrap gap-2">
         {chosen.map((d) => (
           <span key={d.id} className="inline-flex items-center gap-1 h-9 ps-3 pe-1 rounded-full bg-ink-faint text-ink text-sm">
-            {d.name}
-            <button type="button" onClick={() => toggle(d.id)} aria-label={`أزل ${d.name}`} className="w-7 h-7 inline-flex items-center justify-center rounded-full hover:bg-white">
+            {d.full_name}
+            <button type="button" onClick={() => toggle(d.id)} aria-label={`أزل ${d.full_name}`} className="w-7 h-7 inline-flex items-center justify-center rounded-full hover:bg-white">
               <X className="w-4 h-4" />
             </button>
           </span>
@@ -305,7 +315,7 @@ function DoctorPicker({ doctors, value, onChange }) {
               <li key={d.id}>
                 <label className="flex items-center gap-3 min-h-[3.25rem] cursor-pointer">
                   <input type="checkbox" className="w-5 h-5 accent-[#101E58]" checked={value.includes(d.id)} onChange={() => toggle(d.id)} />
-                  <span className="text-ink">{d.name}</span>
+                  <span className="text-ink">{d.full_name}</span>
                 </label>
               </li>
             ))}
@@ -317,12 +327,13 @@ function DoctorPicker({ doctors, value, onChange }) {
 }
 
 /**
- * Step 2. `value` is the specialties array sent to the API as-is; this editor
+ * Step 2. `value` is the specialties array sent to the API as-is (`schedule` =
+ * doctors' intervals, or legacy `days` of hours); this editor
  * only replaces objects immutably and never adds UI-only fields to them.
  * newDay(): the object pushed by "أضف يومًا". newHour(time): pushed hour.
  * removalNote: extra sentence in the removal confirmations (edit mode).
  */
-export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSpecialty, newDay, newHour, removalNote, showExisting }) {
+export function SpecialtiesEditor({ value, onChange, specialties, doctors, busy, defaultDate, newSpecialty, newDay, newHour, removalNote, showExisting }) {
   const toast = useToast();
   const [openIndex, setOpenIndex] = useState(value.length ? 0 : null);
   const [confirm, setConfirm] = useState(null); // { type: 'specialty'|'day', specIndex, dayIndex }
@@ -336,6 +347,17 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
   const addSpecialty = () => {
     onChange([...value, newSpecialty()]);
     setOpenIndex(value.length);
+  };
+
+  // Doctors belong to one specialty: changing it empties the doctors' list
+  const changeSpecialty = (i, id) => {
+    const spec = value[i];
+    if (spec.schedule?.length && id !== spec.id) {
+      patchSpec(i, { id, schedule: [] });
+      toast('أُزيل أطباء التخصص السابق، أضف أطباء التخصص الجديد', 'info');
+      return;
+    }
+    patchSpec(i, { id });
   };
 
   const addHour = (i, j, hour) => {
@@ -366,14 +388,14 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
       {value.length === 0 ? (
         <div className="bg-white border border-line rounded-2xl">
           <EmptyState title="لم تضف أي تخصص بعد" action={<Button icon={Plus} onClick={addSpecialty}>أضف تخصصًا</Button>}>
-            لكل تخصص أيامه وساعاته وعدد المرضى في الساعة.
+            لكل تخصص أطباؤه، ولكل طبيب أيامه وفترات عمله.
           </EmptyState>
         </div>
       ) : (
         <ul className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
           {value.map((spec, i) => {
             const open = openIndex === i;
-            const hoursCount = spec.days.reduce((sum, d) => sum + d.hours.length, 0);
+            const hoursCount = spec.schedule ? 0 : spec.days.reduce((sum, d) => sum + d.hours.length, 0);
             const title = nameOf(spec.id) || 'تخصص جديد';
             return (
               <li key={i} className="bg-white border border-line rounded-2xl">
@@ -390,7 +412,9 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
                         {showExisting && !spec.isNew && <span className="text-[11px] font-normal text-muted">محفوظ</span>}
                       </span>
                       <span className="flex items-center gap-2 text-xs text-muted mt-0.5">
-                        {spec.days.length} {spec.days.length === 1 ? 'يوم' : 'أيام'}، {hoursCount} ساعة
+                        {spec.schedule
+                          ? `${spec.schedule.length} ${spec.schedule.length === 1 ? 'طبيب' : 'أطباء'}، ${scheduleVisits(spec.schedule)} زيارة`
+                          : `${spec.days.length} ${spec.days.length === 1 ? 'يوم' : 'أيام'}، ${hoursCount} ساعة`}
                         {spec.has_dilatation && <span className="inline-flex items-center gap-1 text-st-dil"><Droplets className="w-3.5 h-3.5" />قاعة تمدد</span>}
                         {spec.is_saturated && <span className="text-st-pushed">مشبع</span>}
                       </span>
@@ -403,13 +427,15 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
                 {open && (
                   <div className="border-t border-line px-4 pt-4 pb-4 space-y-4">
                     <Field label="التخصص">
-                      <SelectInput value={spec.id} onChange={(e) => patchSpec(i, { id: parseInt(e.target.value, 10) || '' })}>
+                      <SelectInput value={spec.id} onChange={(e) => changeSpecialty(i, parseInt(e.target.value, 10) || '')}>
                         <option value="">اختر التخصص</option>
                         {specialties.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </SelectInput>
                     </Field>
 
-                    <DoctorPicker doctors={doctors} value={spec.doctors} onChange={(ids) => patchSpec(i, { doctors: ids.map((id) => parseInt(id, 10)) })} />
+                    {!spec.schedule && (
+                      <DoctorPicker doctors={doctors} value={spec.doctors} onChange={(ids) => patchSpec(i, { doctors: ids.map((id) => parseInt(id, 10)) })} />
+                    )}
 
                     <Field label="وصف التخصص" hint={`${spec.description?.length || 0} من 500 حرف، اختياري`}>
                       <textarea
@@ -427,7 +453,19 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
                       <SwitchRow checked={spec.has_dilatation} onChange={(v) => patchSpec(i, { has_dilatation: v })} icon={Droplets} label="قاعة تمدد" hint="يرسل مسؤول التخصص المرضى إلى التمدد ثم يعودون بأولوية" />
                     </div>
 
+                    {spec.schedule ? (
+                      <DoctorScheduleEditor
+                        value={spec.schedule}
+                        onChange={(schedule) => patchSpec(i, { schedule })}
+                        specialtyId={spec.id}
+                        doctors={doctors}
+                        busy={busy}
+                        defaultDate={defaultDate}
+                        formatDay={formatDay}
+                      />
+                    ) : (
                     <div>
+                      <p className="text-xs text-muted mb-2">تخصص قديم بساعات وعدد مرضى ثابت في الساعة.</p>
                       <h3 className="font-semibold text-ink mb-2">الأيام</h3>
                       {spec.days.length === 0 && <p className="text-sm text-muted mb-2">أضف يوم عمل واحدًا على الأقل.</p>}
                       <ul className="space-y-3">
@@ -464,6 +502,7 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
                         أضف يومًا
                       </Button>
                     </div>
+                    )}
                   </div>
                 )}
               </li>
@@ -496,9 +535,21 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, newSp
 
 // ------------------------------------------------------------ Review card
 
+const specialtyCapacity = (s) => (s.schedule
+  ? scheduleVisits(s.schedule)
+  : s.days.reduce((a, d) => a + d.hours.length * (parseInt(d.number_per_hour, 10) || 0), 0));
+
+const specialtySummary = (s) => {
+  if (s.schedule) {
+    const dates = new Set(s.schedule.flatMap((e) => e.days.map((d) => d.day_date)));
+    return `${s.schedule.length} ${s.schedule.length === 1 ? 'طبيب' : 'أطباء'}، ${dates.size} ${dates.size === 1 ? 'يوم' : 'أيام'}، ${scheduleVisits(s.schedule)} زيارة`;
+  }
+  return `${s.days.length} ${s.days.length === 1 ? 'يوم' : 'أيام'}، ${s.days.reduce((a, d) => a + d.hours.length, 0)} ساعة`;
+};
+
 export function EventReview({ form, specialtiesList, specialtyName, rulesCount }) {
-  const hours = specialtiesList.reduce((sum, s) => sum + s.days.reduce((a, d) => a + d.hours.length, 0), 0);
-  const capacity = specialtiesList.reduce((sum, s) => sum + s.days.reduce((a, d) => a + d.hours.length * (parseInt(d.number_per_hour, 10) || 0), 0), 0);
+  const capacity = specialtiesList.reduce((sum, s) => sum + specialtyCapacity(s), 0);
+  const doctorsCount = new Set(specialtiesList.flatMap((s) => (s.schedule || []).map((e) => e.doctor_id))).size;
   const rows = [
     ['الاسم', form.name || '—'],
     ['التاريخ', form.date ? formatDay(form.date) : '—'],
@@ -523,11 +574,14 @@ export function EventReview({ form, specialtiesList, specialtyName, rulesCount }
         {specialtiesList.map((s, i) => (
           <li key={i} className="flex justify-between gap-3">
             <span className="text-ink truncate">{specialtyName(s.id) || 'بدون اسم'}</span>
-            <span className="text-muted shrink-0">{s.days.length} {s.days.length === 1 ? 'يوم' : 'أيام'}، {s.days.reduce((a, d) => a + d.hours.length, 0)} ساعة</span>
+            <span className="text-muted shrink-0">{specialtySummary(s)}</span>
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-muted">السعة الكلية: <span className="font-semibold text-ink">{capacity}</span> موعد في {hours} ساعة.</p>
+      <p className="mt-3 text-sm text-muted">
+        السعة الكلية: <span className="font-semibold text-ink">{capacity}</span> موعد
+        {doctorsCount > 0 && <> مع {doctorsCount} {doctorsCount === 1 ? 'طبيب' : 'أطباء'}</>}.
+      </p>
     </section>
   );
 }

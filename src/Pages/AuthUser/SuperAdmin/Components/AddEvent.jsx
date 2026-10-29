@@ -5,7 +5,7 @@ import { AppContext } from '../../../../Context/AppContext';
 import { Button, PageHeader, LoadingState, useToast } from '../../../../Components/ui';
 import {
   Stepper, FormActionBar, EventInfoFields, validateEventInfo, validateSpecialties,
-  SpecialtiesEditor, RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv, toTime,
+  SpecialtiesEditor, RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv,
 } from './EventFormParts';
 
 const apiUrl = API_BASE_URL;
@@ -23,10 +23,7 @@ const EMPTY_FORM = {
   is_simulation: false,
 };
 
-// 08:00 to 17:00, like before
-const defaultHours = () => Array.from({ length: 10 }, (_, i) => ({ time: toTime(8 + i) }));
-
-/** New event as a 3-step form. Payload of POST /api/events is unchanged. */
+/** New event as a 3-step form; each specialty is planned with its doctors' intervals. */
 export default function AddEvent({ getEvents, onClose }) {
   const { token } = useContext(AppContext);
   const toast = useToast();
@@ -37,6 +34,7 @@ export default function AddEvent({ getEvents, onClose }) {
 
   const [specialties, setSpecialties] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [busy, setBusy] = useState([]); // doctors' dates in other events
   const [rules, setRules] = useState([]);
 
   const [step, setStep] = useState(0);
@@ -58,19 +56,22 @@ export default function AddEvent({ getEvents, onClose }) {
     };
     (async () => {
       setDataLoading(true);
-      const [s, d, r] = await Promise.all([
+      const [s, d, r, b] = await Promise.all([
         get('/api/specialty', (data) => data.specialties || [], 'التخصصات'),
         get('/api/doctors', (data) => data.doctors || [], 'الأطباء'),
         get('/api/rules', (data) => data || [], 'الضوابط'),
+        get('/api/doctors/busy-dates', (data) => data.busy || [], 'مواعيد الأطباء'),
       ]);
       setSpecialties(s);
       setDoctors(d);
       setRules(r);
+      setBusy(b);
       setDataLoading(false);
     })();
   }, [token, toast]);
 
   const specialtyName = (id) => specialties.find((s) => String(s.id) === String(id))?.name;
+  const doctorName = (id) => doctors.find((d) => d.id === id)?.full_name || `#${id}`;
 
   const toggleRule = (id) => setSelectedRules((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -84,7 +85,7 @@ export default function AddEvent({ getEvents, onClose }) {
       }
     }
     if (step === 1) {
-      const msg = validateSpecialties(eventSpecialties, specialtyName);
+      const msg = validateSpecialties(eventSpecialties, specialtyName, doctorName);
       if (msg) {
         toast(msg, 'error');
         return;
@@ -102,7 +103,7 @@ export default function AddEvent({ getEvents, onClose }) {
       toast('أكمل معلومات الحدث', 'error');
       return;
     }
-    const msg = validateSpecialties(eventSpecialties, specialtyName);
+    const msg = validateSpecialties(eventSpecialties, specialtyName, doctorName);
     if (msg) {
       setStep(1);
       toast(msg, 'error');
@@ -190,15 +191,16 @@ export default function AddEvent({ getEvents, onClose }) {
               onChange={setEventSpecialties}
               specialties={specialties}
               doctors={doctors}
+              busy={busy}
+              defaultDate={form.date}
               newSpecialty={() => ({
                 id: '',
                 description: '',
-                doctors: [],
                 is_saturated: false,
                 has_dilatation: false,
-                days: [{ day_date: form.date, number_per_hour: 20, hours: defaultHours() }],
+                schedule: [],
               })}
-              newDay={() => ({ day_date: form.date, number_per_hour: 20, hours: defaultHours() })}
+              newDay={() => ({ day_date: form.date, number_per_hour: 20, hours: [] })}
               newHour={(time) => ({ time })}
             />
           )}

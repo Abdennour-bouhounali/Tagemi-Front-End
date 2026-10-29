@@ -1,11 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoadingState } from './Components/ui';
 import GuestLayout from './Pages/GuestLayout';
-import { lazy, Suspense, useContext, useEffect, useState } from 'react';
+import { lazy, Suspense, useContext, useState } from 'react';
 import { AppContext } from './Context/AppContext';
 import './i18n';
 import { LanguageProvider } from './Context/LanguageContext';
-import RedirectToAppointment from './RedirectToAppointment';
 
 // Every page is its own chunk: visitors only download the screens they open
 const StaffShell = lazy(() => import('./Pages/StaffShell'));
@@ -24,6 +23,7 @@ const VisitsStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/VisitsSt
 const About = lazy(() => import('./Pages/GuestUser/About'));
 const Contact = lazy(() => import('./Pages/GuestUser/Contact'));
 const ManageRules = lazy(() => import('./Pages/AuthUser/SuperAdmin/ManageRules'));
+const ManageDoctors = lazy(() => import('./Pages/AuthUser/SuperAdmin/ManageDoctors'));
 const Activities = lazy(() => import('./Pages/GuestUser/Actvities/Activities'));
 const Messages = lazy(() => import('./Pages/AuthUser/SuperAdmin/Messages'));
 const VolunteerForm = lazy(() => import('./Pages/GuestUser/VolunteerForm'));
@@ -130,6 +130,7 @@ export default function App() {
               {/* Super Admin Only Routes */}
               <Route path="users" element={isSuperAdmin ? <AllUsers /> : <NotAuthenticated />} />
               <Route path="speciality" element={isSuperAdmin ? <ManageSpeciality /> : <NotAuthenticated />} />
+              <Route path="doctors" element={isSuperAdmin ? <ManageDoctors /> : <NotAuthenticated />} />
               <Route path="statistics" element={isSuperAdmin ? <VisitsStatistics /> : <NotAuthenticated />} />
               <Route path="rules" element={isSuperAdmin ? <ManageRules /> : <NotAuthenticated />} />
               <Route path="manage-events" element={isSuperAdmin ? <EventsManagement /> : <NotAuthenticated />} />
