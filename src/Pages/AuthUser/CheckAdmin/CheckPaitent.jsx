@@ -26,7 +26,7 @@ const MAX_PUSH_PLACES = 30;
 /**
  * Specialty queue (مسؤول التخصص / الطبيب). Patients are shown as tickets in
  * queue order. The officer passes, pushes down, sends to dilatation or to
- * another specialty; the patient manager (مسؤول الإنزال) only pushes down; the
+ * another specialty; the patient manager (مسؤول القاعة الصغرى) only pushes down; the
  * doctor reads and writes notes. Every action works from the buttons and from
  * a QR scan of the patient's card.
  */
