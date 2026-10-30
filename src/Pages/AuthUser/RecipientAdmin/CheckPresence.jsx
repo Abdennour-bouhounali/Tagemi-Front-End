@@ -114,8 +114,6 @@ const CheckPresence = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scanAction, setScanAction] = useState(null); // 'present', 'special', 'details'
   const [manualPatientId, setManualPatientId] = useState("");
-  // Action run on the typed (or scanned) patient number
-  const [numberAction, setNumberAction] = useState(canCheckIn ? 'present' : canManageSpecial ? 'special' : 'details');
 
   // Stable close handlers: the kit's Sheet re-runs its focus effect when
   // onClose changes, so inline arrows would steal focus on every re-render
@@ -327,28 +325,27 @@ const CheckPresence = () => {
     setDetailsId(patient.patient_id);
   };
 
-  // Actions of the patient-number panel, by role
+  // Buttons of the patient-number panel, by role, main one first
   const numberActions = [
-    canCheckIn && { value: 'present', label: 'سجّل الحضور', icon: Check, hint: 'تظهر معلومات المريض، وعند التأكيد يُسجَّل حاضراً وتُطبع بطاقة المتابعة' },
-    canManageSpecial && { value: 'special', label: 'سجّل حالة خاصة', icon: Star, hint: 'يدخل الطابور بأولوية' },
-    { value: 'details', label: 'اعرض تفاصيل المريض', icon: Info, hint: 'معلوماته ومواعيده وكل الإجراءات' },
-    canCheckIn && { value: 'print', label: 'طباعة بطاقة الحضور', icon: Printer, hint: 'إعادة طباعة بطاقة المتابعة لمريض سُجّل حضوره' },
+    canCheckIn && { value: 'present', label: 'حاضر', icon: Check },
+    canCheckIn && { value: 'print', label: 'طباعة بطاقة الحضور', icon: Printer },
+    canManageSpecial && { value: 'special', label: 'حالة خاصة', icon: Star },
+    { value: 'details', label: 'تفاصيل المريض', icon: Info },
   ].filter(Boolean);
-  const currentAction = numberActions.find((a) => a.value === numberAction) || numberActions[0];
+  const mainAction = numberActions[0];
 
-  // Runs the selected action on the typed number
-  const handleNumberAction = (e) => {
-    e.preventDefault();
+  // Runs an action on the typed number (Enter runs the main one)
+  const runNumberAction = (action) => {
     const id = typedPatientId();
     if (!id) return;
-    if (currentAction.value === 'print') {
+    if (action === 'print') {
       printCardFor(id); // its window opens now, during the click
       return;
     }
     findPatient(id).then((patient) => {
       if (!patient) return;
-      if (currentAction.value === 'present') showForPresence(patient);
-      else actOnPatient(currentAction.value, patient);
+      if (action === 'present') showForPresence(patient);
+      else actOnPatient(action, patient);
     });
   };
 
@@ -1941,7 +1938,7 @@ ${appointmentsList}
       <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] lg:gap-6 lg:items-start">
       <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
       {/* Patient number: check-in (the main job), print, special case, details */}
-      <form onSubmit={handleNumberAction} className="bg-white border border-line rounded-2xl p-4 mb-4">
+      <form onSubmit={(e) => { e.preventDefault(); runNumberAction(mainAction.value); }} className="bg-white border border-line rounded-2xl p-4 mb-4">
           <label htmlFor="checkin-patient-id" className="block text-sm font-semibold text-ink mb-2">رقم المريض</label>
           <div className="flex gap-2">
             <input
@@ -1958,21 +1955,33 @@ ${appointmentsList}
             />
             <button
               type="button"
-              onClick={() => openScanner(currentAction.value)}
+              onClick={() => openScanner(mainAction.value)}
               className="shrink-0 h-14 px-4 inline-flex flex-col items-center justify-center gap-0.5 rounded-xl border border-line bg-white text-ink hover:bg-ink-faint"
             >
               <ScanLine className="w-6 h-6" />
               <span className="text-[11px] font-semibold leading-none">مسح QR</span>
             </button>
           </div>
-          <label htmlFor="number-action" className="block text-sm font-semibold text-ink mt-3 mb-1.5">الإجراء</label>
-          <SelectInput id="number-action" value={currentAction.value} onChange={(e) => setNumberAction(e.target.value)}>
-            {numberActions.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
-          </SelectInput>
-          <Button type="submit" size="lg" block icon={currentAction.icon} loading={updating} disabled={!manualPatientId} className="mt-2 h-14 text-base">
-            فعّل الإجراء
-          </Button>
-          <p className="mt-1 text-xs text-muted text-center">{currentAction.hint}. زر «مسح QR» ينفّذ نفس الإجراء.</p>
+          {/* One tap per action, main one on top; Enter runs the main one */}
+          <div className="mt-3 flex flex-col gap-2">
+            {numberActions.map((a, k) => (
+              <Button
+                key={a.value}
+                type={k === 0 ? 'submit' : 'button'}
+                variant={k === 0 ? 'primary' : 'secondary'}
+                size="lg"
+                block
+                icon={a.icon}
+                loading={k === 0 && updating}
+                disabled={!manualPatientId || updating}
+                onClick={k === 0 ? undefined : () => runNumberAction(a.value)}
+                className={k === 0 ? 'h-14 text-base' : undefined}
+              >
+                {a.label}
+              </Button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted text-center">زر «مسح QR» ينفّذ «{mainAction.label}».</p>
         </form>
 
       <StatStrip

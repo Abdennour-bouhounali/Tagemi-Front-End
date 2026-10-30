@@ -49,7 +49,7 @@ const dateRange = (event) => {
  * The super admin's home: every event as a row (tap → tracking), with a ⋮
  * sheet for the rest. Edit and the team accounts open as full screens.
  */
-export default function Events({ events, getEvents, loading: listLoading, onAdd }) {
+export default function Events({ events, getEvents, loading: listLoading, onAdd, drafts }) {
   const { token } = useContext(AppContext);
   const toast = useToast();
   const navigate = useNavigate();
@@ -251,6 +251,8 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd 
           </>
         }
       />
+
+      {drafts}
 
       {events.length > 6 && (
         <SearchField value={query} onChange={setQuery} placeholder="ابحث باسم الحدث أو الولاية" className="mb-3 lg:max-w-md" />

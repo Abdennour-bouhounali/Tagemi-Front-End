@@ -9,6 +9,7 @@ import {
 import { csvSafe } from '../../../../utils/safeHtml';
 import { scheduleError, scheduleVisits, doctorVisits } from '../../../../utils/schedule';
 import DoctorScheduleEditor from './DoctorScheduleEditor';
+import AddSpecialty from './AddSpeciality';
 
 // ------------------------------------------------------------ Confirm sheet
 
@@ -333,11 +334,13 @@ function DoctorPicker({ doctors, value, onChange }) {
  * only replaces objects immutably and never adds UI-only fields to them.
  * newDay(): the object pushed by "أضف يومًا". newHour(time): pushed hour.
  * removalNote: extra sentence in the removal confirmations (edit mode).
+ * onSpecialtyCreated(specialty): one added to the catalogue from here, for the parent's list.
  */
-export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoctorCreated, busy, defaultDate, newSpecialty, newDay, newHour, removalNote, showExisting }) {
+export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoctorCreated, onSpecialtyCreated, busy, defaultDate, newSpecialty, newDay, newHour, removalNote, showExisting }) {
   const toast = useToast();
   const [openIndex, setOpenIndex] = useState(value.length ? 0 : null);
   const [confirm, setConfirm] = useState(null); // { type: 'specialty'|'day', specIndex, dayIndex }
+  const [creatingFor, setCreatingFor] = useState(null); // index of the specialty getting a new catalogue name
 
   const nameOf = (id) => specialties.find((s) => String(s.id) === String(id))?.name;
 
@@ -428,7 +431,8 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoc
                 {open && (
                   <div className="border-t border-line px-4 pt-4 pb-4 space-y-4">
                     <Field label="التخصص">
-                      <SelectInput value={spec.id} onChange={(e) => changeSpecialty(i, parseInt(e.target.value, 10) || '')}>
+                      <div className="flex gap-2">
+                      <SelectInput className="flex-1 min-w-0" value={spec.id} onChange={(e) => changeSpecialty(i, parseInt(e.target.value, 10) || '')}>
                         <option value="">اختر التخصص</option>
                         {specialties.map((s) => {
                           const used = value.some((other, j) => j !== i && String(other.id) === String(s.id));
@@ -440,6 +444,10 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoc
                           );
                         })}
                       </SelectInput>
+                      {onSpecialtyCreated && (
+                        <Button variant="secondary" icon={Plus} className="shrink-0 h-12" onClick={() => setCreatingFor(i)}>جديد</Button>
+                      )}
+                      </div>
                     </Field>
 
                     {!spec.schedule && (
@@ -524,6 +532,18 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoc
 
       {value.length > 0 && (
         <Button variant="secondary" icon={Plus} block className="mt-3 lg:w-auto lg:min-w-[16rem]" onClick={addSpecialty}>أضف تخصصًا</Button>
+      )}
+
+      {/* A specialty missing from the catalogue, added without leaving the event form */}
+      {onSpecialtyCreated && (
+        <AddSpecialty
+          open={creatingFor !== null}
+          onClose={() => setCreatingFor(null)}
+          onCreated={(specialty) => {
+            onSpecialtyCreated(specialty);
+            if (creatingFor !== null && value[creatingFor]) changeSpecialty(creatingFor, specialty.id);
+          }}
+        />
       )}
 
       <ConfirmSheet

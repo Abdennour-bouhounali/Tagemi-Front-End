@@ -5,8 +5,8 @@ import { Button, Sheet, Field, TextInput, useToast } from "../../../../Component
 
 const apiUrl = API_BASE_URL;
 
-/** Sheet form that adds a specialty to the catalogue. */
-export default function AddSpecialty({ open, onClose, getSpecialites }) {
+/** Sheet form that adds a specialty to the catalogue. onCreated(specialty): the new one, if given. */
+export default function AddSpecialty({ open, onClose, getSpecialites, onCreated }) {
   const { token } = useContext(AppContext);
   const toast = useToast();
   const [name, setName] = useState("");
@@ -31,7 +31,8 @@ export default function AddSpecialty({ open, onClose, getSpecialites }) {
       if (res.ok) {
         toast(data.message || "تمت إضافة التخصص");
         setName("");
-        getSpecialites();
+        getSpecialites?.();
+        if (data.specialty) onCreated?.(data.specialty);
         onClose();
       } else if (data.errors) {
         setError(Object.values(data.errors)[0][0]);

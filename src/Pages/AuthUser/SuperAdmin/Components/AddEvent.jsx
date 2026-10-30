@@ -1,11 +1,11 @@
 import { API_BASE_URL } from '../../../../config/environment';
-import { useState, useContext, useEffect, useRef } from 'react';
-import { ChevronRight, Download, CheckCircle2 } from 'lucide-react';
+import { useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
+import { ChevronRight, Download, CheckCircle2, Trash2 } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
-import { Button, PageHeader, LoadingState, useToast } from '../../../../Components/ui';
+import { Button, IconButton, PageHeader, LoadingState, useToast } from '../../../../Components/ui';
 import {
   Stepper, FormActionBar, EventInfoFields, validateEventInfo, validateSpecialties,
-  SpecialtiesEditor, RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv,
+  SpecialtiesEditor, RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv, ConfirmSheet,
 } from './EventFormParts';
 import { newIdempotencyKey } from '../../../../utils/idempotency';
 
@@ -24,8 +24,28 @@ const EMPTY_FORM = {
   is_simulation: false,
 };
 
-/** New event as a 3-step form; each specialty is planned with its doctors' intervals. */
-export default function AddEvent({ getEvents, onClose }) {
+// The form is saved as a draft this long after the last change
+const DRAFT_DELAY = 1000;
+const DRAFT_RETRY = 5000;
+
+const draftBody = ({ form, eventSpecialties, selectedRules, step }) =>
+  JSON.stringify({ name: String(form.name || '').trim() || null, data: { form, eventSpecialties, selectedRules, step } });
+
+// An untouched form is not worth a draft
+const PRISTINE = draftBody({ form: EMPTY_FORM, eventSpecialties: [], selectedRules: [], step: 0 });
+
+const DRAFT_STATUS = {
+  saving: 'تُحفظ المسودة…',
+  saved: 'حُفظت المسودة تلقائيًا، يمكنك إكمالها لاحقًا من قائمة الأحداث',
+  error: 'تعذر حفظ المسودة، ستُعاد المحاولة',
+};
+
+/**
+ * New event as a 3-step form; each specialty is planned with its doctors' intervals.
+ * Saved as a draft on the server while the super admin types (draftId: resume one);
+ * the server deletes the draft when the event is created.
+ */
+export default function AddEvent({ draftId = null, getEvents, onClose }) {
   const { token } = useContext(AppContext);
   const toast = useToast();
 
@@ -45,6 +65,17 @@ export default function AddEvent({ getEvents, onClose }) {
   const submissionKey = useRef(newIdempotencyKey());
   const [dataLoading, setDataLoading] = useState(true);
   const [credentials, setCredentials] = useState(null);
+
+  // Draft: saves run one after another; draftRef is null until the first one
+  const draftRef = useRef(draftId);
+  const lastSaved = useRef(PRISTINE);
+  const saveChain = useRef(Promise.resolve());
+  const doneRef = useRef(false); // event created or draft deleted: stop saving
+  const [draftLoading, setDraftLoading] = useState(!!draftId);
+  const [draftStatus, setDraftStatus] = useState(draftId ? 'saved' : null);
+  const [retry, setRetry] = useState(0);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
 
   useEffect(() => {
     const get = async (path, pick, label) => {
@@ -72,6 +103,114 @@ export default function AddEvent({ getEvents, onClose }) {
       setDataLoading(false);
     })();
   }, [token, toast]);
+
+  // Resume a draft
+  useEffect(() => {
+    if (!draftId) return;
+    (async () => {
+      try {
+        const res = await fetch(`${apiUrl}/api/event-drafts/${draftId}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error();
+        const data = (await res.json()).draft?.data || {};
+        const restored = {
+          form: { ...EMPTY_FORM, ...(data.form || {}) },
+          eventSpecialties: data.eventSpecialties || [],
+          selectedRules: data.selectedRules || [],
+          step: Math.min(2, Math.max(0, data.step || 0)),
+        };
+        setForm(restored.form);
+        setEventSpecialties(restored.eventSpecialties);
+        setSelectedRules(restored.selectedRules);
+        setStep(restored.step);
+        lastSaved.current = draftBody(restored);
+      } catch {
+        toast('تعذر فتح المسودة، أعد المحاولة من قائمة الأحداث', 'error');
+        doneRef.current = true;
+        onClose?.();
+      } finally {
+        setDraftLoading(false);
+      }
+    })();
+    // Once, when the form opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const snapshot = useMemo(() => ({ form, eventSpecialties, selectedRules, step }), [form, eventSpecialties, selectedRules, step]);
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
+
+  const saveDraft = useCallback((snap, keepalive = false) => {
+    saveChain.current = saveChain.current.then(async () => {
+      const body = draftBody(snap);
+      if (doneRef.current || submittingRef.current || body === lastSaved.current) return;
+      const id = draftRef.current;
+      setDraftStatus('saving');
+      try {
+        const res = await fetch(id ? `${apiUrl}/api/event-drafts/${id}` : `${apiUrl}/api/event-drafts`, {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body,
+          keepalive,
+        });
+        if (res.status === 404 && id) {
+          draftRef.current = null; // deleted from another tab: the next save makes a new one
+          throw new Error();
+        }
+        if (!res.ok) throw new Error();
+        if (!id) draftRef.current = (await res.json()).draft?.id ?? null;
+        lastSaved.current = body;
+        setDraftStatus('saved');
+      } catch {
+        setDraftStatus('error');
+        setTimeout(() => setRetry((n) => n + 1), DRAFT_RETRY);
+      }
+    });
+    return saveChain.current;
+  }, [token]);
+
+  // Save shortly after each change, and right away when the tab is hidden or closed
+  useEffect(() => {
+    if (draftLoading) return undefined;
+    const timer = setTimeout(() => saveDraft(snapshot), DRAFT_DELAY);
+    return () => clearTimeout(timer);
+  }, [snapshot, draftLoading, saveDraft, retry]);
+
+  useEffect(() => {
+    const flush = () => { if (!draftLoading) saveDraft(snapshotRef.current, true); };
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [draftLoading, saveDraft]);
+
+  // Back to the list: the draft is saved first, so the list shows it
+  const close = async () => {
+    if (!draftLoading && !doneRef.current) await saveDraft(snapshotRef.current);
+    onClose?.();
+  };
+
+  const discardDraft = async () => {
+    setDiscarding(true);
+    await saveChain.current;
+    const id = draftRef.current;
+    try {
+      if (id) {
+        const res = await fetch(`${apiUrl}/api/event-drafts/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok && res.status !== 404) throw new Error();
+      }
+      doneRef.current = true;
+      toast('حُذفت المسودة');
+      onClose?.();
+    } catch {
+      toast('تعذر حذف المسودة، أعد المحاولة', 'error');
+    } finally {
+      setDiscarding(false);
+      setConfirmDiscard(false);
+    }
+  };
 
   const specialtyName = (id) => specialties.find((s) => String(s.id) === String(id))?.name;
   const doctorName = (id) => doctors.find((d) => d.id === id)?.full_name || `#${id}`;
@@ -115,12 +254,15 @@ export default function AddEvent({ getEvents, onClose }) {
 
     // A second tap before the button re-renders must not create the event twice
     if (submittingRef.current) return;
-    submittingRef.current = true;
     setLoading(true);
+    await saveChain.current; // the draft's id, so the server deletes it with the event
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const payload = {
       ...form,
       rules_ids: selectedRules,
       specialties: eventSpecialties,
+      draft_id: draftRef.current,
     };
 
     try {
@@ -133,6 +275,7 @@ export default function AddEvent({ getEvents, onClose }) {
       submissionKey.current = newIdempotencyKey();
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        doneRef.current = true;
         toast(data.message || 'أُنشئ الحدث');
         if (getEvents) await getEvents();
         if (data.credentials) {
@@ -181,12 +324,29 @@ export default function AddEvent({ getEvents, onClose }) {
 
   return (
     <div className="max-w-2xl lg:max-w-none mx-auto">
-      <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
+      <button type="button" onClick={close} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
         <ChevronRight className="w-4 h-4" /> الأحداث
       </button>
-      <PageHeader title="حدث جديد" />
+      <PageHeader
+        title="حدث جديد"
+        subtitle={draftStatus ? DRAFT_STATUS[draftStatus] : undefined}
+        actions={draftStatus && (
+          <IconButton icon={Trash2} label="احذف المسودة" className="bg-white border border-line text-red-700" onClick={() => setConfirmDiscard(true)} />
+        )}
+      />
 
-      {dataLoading ? (
+      <ConfirmSheet
+        open={confirmDiscard}
+        onClose={() => setConfirmDiscard(false)}
+        title="حذف المسودة؟"
+        confirmLabel="احذف المسودة"
+        loading={discarding}
+        onConfirm={discardDraft}
+      >
+        <p>يُحذف كل ما كتبته في هذا الحدث وتعود إلى قائمة الأحداث. الأطباء والتخصصات التي أضفتها تبقى.</p>
+      </ConfirmSheet>
+
+      {dataLoading || draftLoading ? (
         <LoadingState />
       ) : (
         <>
@@ -201,6 +361,7 @@ export default function AddEvent({ getEvents, onClose }) {
               specialties={specialties}
               doctors={doctors}
               onDoctorCreated={(doctor) => setDoctors((prev) => [...prev, doctor])}
+              onSpecialtyCreated={(specialty) => setSpecialties((prev) => [...prev, specialty])}
               busy={busy}
               defaultDate={form.date}
               newSpecialty={() => ({

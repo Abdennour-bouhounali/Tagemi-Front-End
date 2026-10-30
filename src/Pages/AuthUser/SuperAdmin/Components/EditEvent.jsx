@@ -216,6 +216,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
               specialties={specialties}
               doctors={doctors}
               onDoctorCreated={(doctor) => setDoctors((prev) => [...prev, doctor])}
+              onSpecialtyCreated={(specialty) => setSpecialties((prev) => [...prev, specialty])}
               busy={busy}
               defaultDate={form.date}
               showExisting

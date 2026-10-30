@@ -7,7 +7,7 @@ import {
   intervalInfo, dayVisits, doctorVisits, scheduleVisits, overlapIndex, hourlyByDate, toMinutes, toTime,
 } from '../../../../utils/schedule';
 
-const DEFAULT_INTERVAL = { start_time: '08:00', end_time: '12:00', visit_minutes: 20 };
+const DEFAULT_INTERVAL = { start_time: '08:00', end_time: '12:00', visit_minutes: 20, extra_visits: 0 };
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -22,10 +22,10 @@ function nextInterval(intervals) {
   if (!last) return { ...DEFAULT_INTERVAL };
   const start = toMinutes(last.end_time);
   if (Number.isNaN(start)) return { ...DEFAULT_INTERVAL };
-  return { start_time: toTime(start), end_time: toTime(Math.min(start + 120, 23 * 60 + 59)), visit_minutes: last.visit_minutes };
+  return { start_time: toTime(start), end_time: toTime(Math.min(start + 120, 23 * 60 + 59)), visit_minutes: last.visit_minutes, extra_visits: 0 };
 }
 
-/** One interval: start, end, visit length, and the visits it gives. */
+/** One interval: start, end, visit length, extra visits, and the visits it gives. */
 function IntervalRow({ interval, overlaps, onChange, onRemove, canRemove }) {
   const info = intervalInfo(interval);
   const error = info.error || (overlaps ? 'تتداخل مع فترة أخرى' : '');
@@ -42,7 +42,7 @@ function IntervalRow({ interval, overlaps, onChange, onRemove, canRemove }) {
         </label>
       </div>
       <div className="flex items-end gap-2 mt-2">
-        <label className="block w-24 shrink-0">
+        <label className="block flex-1 min-w-0">
           <span className="block mb-1 text-xs text-muted">مدة الزيارة (د)</span>
           <TextInput
             type="number" inputMode="numeric" min="5" max="240" step="5" className="h-11 px-2"
@@ -51,16 +51,26 @@ function IntervalRow({ interval, overlaps, onChange, onRemove, canRemove }) {
             invalid={!!error}
           />
         </label>
-        <p className={cx('flex-1 min-w-0 pb-2 text-xs leading-snug', error ? 'text-red-700' : 'text-muted')}>
-          {error || (
-            <>
-              = <span className="font-semibold text-ink">{plural(info.visits, 'زيارة', 'زيارات')}</span>
-              {info.leftover > 0 && <span className="block">تبقى {info.leftover} دقيقة دون زيارة</span>}
-            </>
-          )}
-        </p>
+        <label className="block flex-1 min-w-0">
+          <span className="block mb-1 text-xs text-muted">زيارات إضافية</span>
+          <TextInput
+            type="number" inputMode="numeric" min="0" max="500" className="h-11 px-2"
+            value={interval.extra_visits ?? 0}
+            onChange={(e) => onChange({ extra_visits: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0) })}
+            invalid={!!error}
+          />
+        </label>
         <IconButton icon={Trash2} label="احذف الفترة" className="text-red-700 disabled:opacity-30" onClick={onRemove} disabled={!canRemove} />
       </div>
+      <p className={cx('mt-1.5 text-xs leading-snug', error ? 'text-red-700' : 'text-muted')}>
+        {error || (
+          <>
+            = <span className="font-semibold text-ink">{plural(info.visits, 'زيارة', 'زيارات')}</span>
+            {info.extra > 0 && <> ({info.computed} من المدة + {info.extra} إضافية)</>}
+            {info.leftover > 0 && <span className="block">تبقى {info.leftover} دقيقة دون زيارة</span>}
+          </>
+        )}
+      </p>
     </li>
   );
 }
@@ -104,7 +114,7 @@ function AddDoctorSheet({ open, onClose, doctors, onPick, onCreateNew }) {
 /**
  * Doctors of one specialty, each with working days and intervals. `value` is
  * the specialty's `schedule` sent to the API as-is:
- * [{ doctor_id, days: [{ day_date, intervals: [{ id?, start_time, end_time, visit_minutes }] }] }]
+ * [{ doctor_id, days: [{ day_date, intervals: [{ id?, start_time, end_time, visit_minutes, extra_visits }] }] }]
  * busy: [{ doctor_id, day_date, event_id, event_name }] from other events (warning only).
  * onDoctorCreated(doctor): a doctor registered from here, for the parent's doctors list.
  */
@@ -137,7 +147,7 @@ export default function DoctorScheduleEditor({ value, onChange, specialtyId, spe
     }
     // Same intervals as the previous day: a doctor usually keeps their hours
     const intervals = last
-      ? last.intervals.map(({ start_time, end_time, visit_minutes }) => ({ start_time, end_time, visit_minutes }))
+      ? last.intervals.map(({ start_time, end_time, visit_minutes, extra_visits }) => ({ start_time, end_time, visit_minutes, extra_visits }))
       : [{ ...DEFAULT_INTERVAL }];
     patchEntry(i, { days: [...days, { day_date: date, intervals }] });
   };
