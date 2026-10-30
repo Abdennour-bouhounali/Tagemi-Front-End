@@ -1276,6 +1276,7 @@ ${appointmentsList}
       <head>
         <meta charset="UTF-8">
         <title>بطاقة المريض - ${fullName}</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
         <style>
           * { 
             margin: 0; 
@@ -1286,8 +1287,8 @@ ${appointmentsList}
             size: A5 landscape;
             margin: 0;
           }
-          body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          body, table, th, td {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
             direction: rtl;
             width: 210mm;
             height: 148mm;
@@ -1310,9 +1311,14 @@ ${appointmentsList}
             padding-bottom: 2mm;
             margin-bottom: 3mm;
           }
+          .brand {
+            display: flex;
+            align-items: center;
+            gap: 3mm;
+          }
           .logo {
-            height: 11mm;
-            max-width: 45mm;
+            height: 13mm;
+            max-width: 48mm;
             display: block;
           }
           .event-name {
@@ -1324,7 +1330,7 @@ ${appointmentsList}
           }
           .card-title {
             font-size: 17px;
-            font-weight: bold;
+            font-weight: 800;
             color: #1e40af;
             white-space: nowrap;
           }
@@ -1460,9 +1466,11 @@ ${appointmentsList}
       <body>
         <div class="card">
           <div class="header">
-            <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'" />
+            <div class="brand">
+              <img src="${logoUrl}" alt="Tagemi" class="logo" />
+              <div class="card-title">بطاقة المتابعة</div>
+            </div>
             <div class="event-name">${eventName}</div>
-            <div class="card-title">بطاقة المتابعة</div>
           </div>
 
           <div class="content">
@@ -1531,9 +1539,17 @@ ${appointmentsList}
 
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    // Print once Cairo and the logo are in, so the card never prints with fallbacks
+    const doc = printWindow.document;
+    const loaded = (el) => new Promise((resolve) => { el.onload = el.onerror = resolve; });
+    const fontCss = doc.querySelector('link[rel="stylesheet"]');
+    const fontsReady = (fontCss?.sheet ? Promise.resolve() : loaded(fontCss))
+      .then(() => doc.fonts?.load("700 16px Cairo"))
+      .then(() => doc.fonts?.ready);
+    const logoReady = Array.from(doc.images).map((img) => (img.complete ? null : loaded(img)));
+    const ready = Promise.all([fontsReady, ...logoReady]);
+    const timeout = new Promise((resolve) => setTimeout(resolve, 3000));
+    Promise.race([ready, timeout]).then(() => printWindow.print());
   };
 
   const exportToPDF = () => {
