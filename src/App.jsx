@@ -50,6 +50,7 @@ const EvaluationForm = lazy(() => import('./Pages/Common/EvaluationForm'));
 const EvaluationsAdmin = lazy(() => import('./Pages/AuthUser/SuperAdmin/EvaluationsAdmin'));
 const EvaluationStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics'));
 const MyTurn = lazy(() => import('./Pages/GuestUser/MyTurn'));
+const Privacy = lazy(() => import('./Pages/GuestUser/Privacy'));
 const PatientJourney = lazy(() => import('./Pages/AuthUser/PatientJourney/PatientJourney'));
 
 export default function App() {
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="future-prjects/:Projectid" element={<ProjectDetails />} />
             <Route path="waiting-list/:eventId" element={<WaitingList />} />
             <Route path="my-turn/:eventId" element={<MyTurn />} />
+            <Route path="privacy" element={<Privacy />} />
             {/* // Add these routes in the GuestLayout section: */}
             <Route path="evaluation/:eventId/:appointmentId" element={<EvaluationForm />} />
             <Route path="evaluation/:eventId" element={<EvaluationForm />} />

@@ -6,6 +6,7 @@ import { AppContext } from '../../../../Context/AppContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { Button, StatStrip, LoadingState, Panel, ChipGroup, EmptyState, cx } from '../../../../Components/ui';
 import { CHART, ChartLegend, ErrorState, HBarChart, ResponsiveTable, downloadCsv, pct, toNum } from '../../../../Components/ui/StatsKit';
+import { STATUS_GROUPS, GROUP_LABELS } from '../../../../utils/visitStatus';
 
 const MODES = [
   { value: 'count', label: 'العدد' },
@@ -17,6 +18,8 @@ const MODES = [
 const MATRIX_ORDER = [
   'ksar_sex', 'ksar_age', 'sex_age', 'ksar_outcome', 'sex_outcome', 'ksar_specialty', 'sex_specialty',
 ];
+
+const matrixTotal = (m) => m.cells.reduce((a, row) => a + row.reduce((b, n) => b + toNum(n), 0), 0);
 
 const formatP = (p) => (p < 0.001 ? '< 0.001' : p.toFixed(3));
 
@@ -93,8 +96,17 @@ function Timeline({ days }) {
   );
 }
 
-function Matrix({ matrix }) {
+/** One matrix, filterable by appointment status ("all" = every appointment). */
+function Matrix({ all, byStatus }) {
   const [mode, setMode] = useState('count');
+  const [status, setStatus] = useState('all');
+  const matrix = status === 'all' ? all : byStatus?.[status] || all;
+  const statusOptions = [
+    { value: 'all', label: 'الكل', count: matrixTotal(all) },
+    ...Object.keys(STATUS_GROUPS)
+      .filter((key) => byStatus?.[key])
+      .map((key) => ({ value: key, label: GROUP_LABELS[key], count: matrixTotal(byStatus[key]) })),
+  ];
   const { rows, cols, cells } = matrix;
   const rowTotals = cells.map((r) => r.reduce((a, b) => a + toNum(b), 0));
   const colTotals = cols.map((_, c) => cells.reduce((a, r) => a + toNum(r[c]), 0));
@@ -130,13 +142,18 @@ function Matrix({ matrix }) {
   };
 
   return (
-    <Panel title={matrix.title}>
+    <Panel title={all.title}>
+      <ChipGroup label="حالة المواعيد" value={status} onChange={setStatus} options={statusOptions} className="mb-2" />
       <ChipGroup label="طريقة العرض" value={mode} onChange={setMode} options={MODES} className="mb-3" />
       {mode === 'resid' && (
         <p className="text-xs text-muted mb-2">
           الأحمر: أكثر من المتوقع، الأزرق: أقل من المتوقع. القيمة خارج ‎±1.96‎ تعني فرقاً ذا دلالة إحصائية (5%) في تلك الخلية.
         </p>
       )}
+      {rows.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted">لا توجد مواعيد بهذه الحالة.</p>
+      ) : (
+      <>
       {/* Fixed layout: the columns share the full width and their titles wrap, so no scrolling */}
       <div className="w-full">
         <table className="w-full table-fixed text-xs sm:text-sm lg:text-base border-separate border-spacing-0.5">
@@ -182,6 +199,8 @@ function Matrix({ matrix }) {
         </table>
       </div>
       <TestNote test={matrix.test} unit={matrix.unit} />
+      </>
+      )}
     </Panel>
   );
 }
@@ -330,7 +349,15 @@ const DeepStatsSection = ({ eventId }) => {
             </Panel>
 
             <div className="grid grid-cols-1 gap-4">
-              {MATRIX_ORDER.map((key) => <Matrix key={key} matrix={s.matrices[key]} />)}
+              {MATRIX_ORDER.map((key) => (
+                <Matrix
+                  key={key}
+                  all={s.matrices[key]}
+                  byStatus={s.matrices_by_status && Object.fromEntries(
+                    Object.entries(s.matrices_by_status).map(([group, matrices]) => [group, matrices[key]]),
+                  )}
+                />
+              ))}
             </div>
           </div>
         </>

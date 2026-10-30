@@ -12,6 +12,7 @@ const Footer = ({ types }) => {
         { to: '/about', labelEn: 'About Us', labelAr: 'من نحن' },
         { to: '/volunteer', labelEn: 'Volunteer With Us', labelAr: 'تطوع معنا' },
         { to: '/contact', labelEn: 'Contact Us', labelAr: 'تواصل معنا' },
+        { to: '/privacy', labelEn: 'Privacy', labelAr: 'الخصوصية' },
     ];
 
     return (

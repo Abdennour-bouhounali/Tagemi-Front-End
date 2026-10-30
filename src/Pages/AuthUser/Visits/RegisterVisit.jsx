@@ -7,6 +7,7 @@ import {
   Upload, FileText, X, Printer, Download, Info, Ticket as TicketIcon, Check,
 } from 'lucide-react';
 import { writePrintDocument, escapeHtml } from '../../../utils/safeHtml';
+import { DATA_ITEMS, PRIVACY_LAW } from '../../../utils/privacyData';
 import { newIdempotencyKey } from '../../../utils/idempotency';
 import logo from './tagemi_logo.png';
 import { AppContext } from '../../../Context/AppContext';
@@ -40,7 +41,6 @@ const REQUIRED_MESSAGES = {
   state: 'اختر ولاية الإقامة.',
   city: 'اختر البلدية.',
   phone: 'اكتب رقم الهاتف الأساسي.',
-  phone2: 'اكتب رقماً ثانياً، لك أو لأحد أفراد عائلتك.',
   sex: 'اختر الجنس.',
 };
 const PERSONAL_FIELDS = Object.keys(REQUIRED_MESSAGES);
@@ -518,7 +518,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
           <div class="row"><span class="k">تاريخ الميلاد</span><span class="v">${e(birthday)}</span></div>
           <div class="row"><span class="k">الجنس</span><span class="v">${e(gender)}</span></div>
           <div class="row"><span class="k">الهاتف</span><span class="v">${e(formData.phone)}</span></div>
-          <div class="row"><span class="k">هاتف ثان</span><span class="v">${e(formData.phone2)}</span></div>
+          ${formData.phone2 ? `<div class="row"><span class="k">هاتف ثان</span><span class="v">${e(formData.phone2)}</span></div>` : ''}
           <div class="row"><span class="k">العنوان</span><span class="v">${e(formData.state)} - ${e(CITY_NAMES[formData.city] || formData.city)}</span></div>
           <div class="row"><span class="k">الأمراض المزمنة</span><span class="v">${e(diseases)}</span></div>
           ${documentsCount > 0 ? `<div class="row"><span class="k">المستندات الطبية</span><span class="v">${e(documentsCount)} ملف</span></div>` : ''}
@@ -664,6 +664,7 @@ const RegisterVisitInner = () => {
   const [availableSlots, setAvailableSlots] = useState({});
   const [slotsLoading, setSlotsLoading] = useState({});
   const [acceptedRules, setAcceptedRules] = useState(false);
+  const [acceptedData, setAcceptedData] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [specialtyErrors, setSpecialtyErrors] = useState({});
@@ -836,6 +837,8 @@ const RegisterVisitInner = () => {
         break;
       case 'phone':
       case 'phone2':
+        // The second number is optional
+        if (name === 'phone2' && !value) break;
         if (!phoneRegex.test(value)) {
           error = 'رقم الهاتف غير صحيح، اكتب الأرقام فقط';
         } else if (value.length < 9) {
@@ -925,10 +928,10 @@ const RegisterVisitInner = () => {
         if (!formData[f]) errs[f] = fieldErrors[f] || REQUIRED_MESSAGES[f];
       });
       // Format errors already shown under fields also block the step
-      PERSONAL_FIELDS.forEach((f) => {
+      [...PERSONAL_FIELDS, 'phone2'].forEach((f) => {
         if (fieldErrors[f]) errs[f] = fieldErrors[f];
       });
-      const bad = PERSONAL_FIELDS.filter((f) => errs[f]);
+      const bad = [...PERSONAL_FIELDS, 'phone2'].filter((f) => errs[f]);
       if (bad.length) {
         setFieldErrors((prev) => ({ ...prev, ...errs }));
         toast('يرجى إكمال جميع الحقول المطلوبة قبل المتابعة', 'error');
@@ -973,6 +976,11 @@ const RegisterVisitInner = () => {
       toast('يجب الموافقة على الشروط والأحكام', 'error');
       return;
     }
+    if (!acceptedData) {
+      toast('يجب الموافقة على معالجة بياناتك الشخصية', 'error');
+      scrollToId('f-data-consent');
+      return;
+    }
 
     const eventId = event?.id;
     if (!eventId) {
@@ -997,6 +1005,7 @@ const RegisterVisitInner = () => {
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('phone2', formData.phone2);
       formDataToSend.append('sex', formData.sex);
+      formDataToSend.append('data_consent', '1');
 
       formData.specialties.forEach((specialty, index) => {
         formDataToSend.append(`specialties[${index}][event_specialty_id]`, specialty.event_specialty_id);
@@ -1071,12 +1080,12 @@ const RegisterVisitInner = () => {
     formData.state &&
     formData.city &&
     formData.phone &&
-    formData.phone2 &&
     formData.sex &&
     formData.specialties.every((s) => s.event_specialty_id && s.day_id && s.hour_id) &&
     !Object.values(fieldErrors).some((error) => error) &&
-    acceptedRules
-  ), [formData, fieldErrors, acceptedRules]);
+    acceptedRules &&
+    acceptedData
+  ), [formData, fieldErrors, acceptedRules, acceptedData]);
 
   const appointmentSummary = useMemo(() => formData.specialties.map((spec, index) => {
     const specialty = event?.event_specialties?.find((es) => es.id == spec.event_specialty_id);
@@ -1102,6 +1111,7 @@ const RegisterVisitInner = () => {
     setMedicalDocuments([]);
     setCurrentStep(0);
     setAcceptedRules(false);
+    setAcceptedData(false);
     setAvailableCities([]);
     scrollToTop();
     getEvent(); // fresh saturation flags
@@ -1201,12 +1211,12 @@ const RegisterVisitInner = () => {
             <TextInput
               name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr"
               value={formData.phone} onChange={handleChangeData} invalid={!!fieldErrors.phone}
-              placeholder="0555 12 34 56" className="text-start text-lg"
+              placeholder="05xx xx xx xx" className="text-start text-lg"
             />
           </Field>
         </div>
         <div id="f-phone2">
-          <Field label="رقم هاتف ثانٍ (لك أو لأحد أفراد عائلتك)" error={fieldErrors.phone2}>
+          <Field label="رقم هاتف ثانٍ (اختياري)" hint="لك أو لأحد أفراد عائلتك." error={fieldErrors.phone2}>
             <TextInput
               name="phone2" type="tel" inputMode="tel" dir="ltr"
               value={formData.phone2} onChange={handleChangeData} invalid={!!fieldErrors.phone2}
@@ -1328,6 +1338,42 @@ const RegisterVisitInner = () => {
         <span className="text-base font-semibold text-ink">أوافق على جميع الشروط والأحكام المذكورة أعلاه</span>
       </label>
       {!acceptedRules && <p className="text-sm text-muted">ضع علامة على الموافقة لتتمكن من الحجز.</p>}
+
+      {/* Data-processing consent (law 18-07): health data needs express consent */}
+      <section id="f-data-consent" className="bg-white border border-line rounded-2xl p-4">
+        <h3 className="font-display text-base text-ink mb-2">حماية بياناتك الشخصية</h3>
+        <p className="text-sm text-ink leading-relaxed">
+          لتنظيم فحصك نحفظ المعلومات التي كتبتها في هذه الاستمارة، ومنها معلومات صحية حساسة. يطّلع عليها فريق القافلة فقط، ولا نعطيها لأي جهة أخرى، وفق {PRIVACY_LAW}.
+        </p>
+        <ul className="mt-3 space-y-1.5 text-sm">
+          {DATA_ITEMS.map((item) => (
+            <li key={item.label}>
+              <span className="font-semibold text-ink">{item.label}:</span>{' '}
+              <span className="text-muted">{item.why}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-sm text-ink leading-relaxed">
+          يمكنك في أي وقت الاطلاع على بياناتك أو طلب تصحيحها أو حذفها أو سحب موافقتك.{' '}
+          <Link to="/privacy" target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">اقرأ سياسة الخصوصية كاملة</Link>
+        </p>
+      </section>
+
+      <label
+        className={cx(
+          'flex items-center gap-3 min-h-[3.5rem] rounded-2xl border px-4 py-3 cursor-pointer',
+          acceptedData ? 'border-ink bg-ink-faint' : 'border-line bg-white'
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={acceptedData}
+          onChange={(e) => setAcceptedData(e.target.checked)}
+          className="w-6 h-6 shrink-0 accent-[#101E58]"
+        />
+        <span className="text-base font-semibold text-ink">أوافق على حفظ بياناتي الشخصية والصحية ومعالجتها للأغراض المذكورة أعلاه</span>
+      </label>
+      {!acceptedData && <p className="text-sm text-muted">ضع علامة على الموافقة لتتمكن من الحجز.</p>}
 
       {submitNotice && (
         <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
