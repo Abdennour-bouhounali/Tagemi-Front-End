@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronsDownUp, ChevronsUpDown, Copy, CopyPlus, Droplets, Eye, EyeOff, Plus, Settings2, Trash2, TriangleAlert, X,
 } from 'lucide-react';
 import { Button, Field, IconButton, Sheet, cx, useToast } from '../../../../Components/ui';
+import TimeField from '../../../../Components/ui/TimeField';
 import {
   DEFAULT_INTERVAL, nextInterval, intervalInfo, dayVisits, extraOf, overlapIndex, hourlyByDate,
   fromRows, toRows, newKey, scheduleError,
@@ -26,7 +27,10 @@ const dayLabel = (date, long = false) => {
 // Column widths in px. The admin drags any column's edge (an empty last column
 // takes what is left); widths and the hidden name column are remembered here.
 // Interval columns are keyed from0/to0, from1/to1...
-const COLUMN_WIDTHS = { num: 28, name: 160, day: 52, visit: 40, from: 108, to: 108, extra: 48, visits: 44, actions: 76 };
+// Defaults as arranged by the admin on a wide screen; the first interval is wider than the next ones
+const COLUMN_WIDTHS = {
+  num: 28, name: 200, day: 64, visit: 136, from0: 200, to0: 200, from: 150, to: 150, extra: 136, visits: 64, actions: 76,
+};
 const HIDDEN_NAME = 20;
 const MIN_WIDTH = 28;
 const MAX_WIDTH = 480;
@@ -285,7 +289,8 @@ export function ScheduleTable({
   useEffect(() => store('eventTable.nameHidden', nameHidden ? '1' : '0'), [nameHidden]);
 
   // Multi-day events have a third row button (copy to the next day)
-  const widthOf = (key) => widths[key] ?? (key === 'actions' && dates.length > 1 ? 112 : COLUMN_WIDTHS[key.replace(/\d+$/, '')]);
+  const widthOf = (key) => widths[key]
+    ?? (key === 'actions' && dates.length > 1 ? 112 : COLUMN_WIDTHS[key] ?? COLUMN_WIDTHS[key.replace(/\d+$/, '')]);
   const setWidth = (key, w) => setWidths((prev) => ({ ...prev, [key]: clampWidth(w) }));
   const resetWidth = (key) => setWidths((prev) => {
     const next = { ...prev };
@@ -674,7 +679,7 @@ export function ScheduleTable({
                         }
                         const info = intervalInfo(iv);
                         const error = info.error || (k === overlap ? 'تتداخل مع فترة أخرى' : '');
-                        const set = (field) => (e) => patchIntervals(spec.key, row.key, (ivs) => ivs.map((x, idx) => (idx === k ? { ...x, [field]: e.target.value } : x)));
+                        const set = (field) => (time) => patchIntervals(spec.key, row.key, (ivs) => ivs.map((x, idx) => (idx === k ? { ...x, [field]: time } : x)));
                         return (
                           <IntervalCells
                             key={k}
@@ -834,13 +839,11 @@ function IntervalCells({ interval, error, leftover, rowLabel, onStart, onEnd, ca
   return (
     <>
       <td className="px-1 ps-1 border-s border-line">
-        <input type="time" step="300" dir="ltr" aria-label={`${rowLabel}: من`} title={title}
-          className={cx(cellInput, error && 'border-red-400 bg-red-50')} value={interval.start_time || ''} onChange={onStart} />
+        <TimeField label={`${rowLabel}: من`} title={title} invalid={!!error} value={String(interval.start_time || '').slice(0, 5)} onChange={onStart} />
       </td>
       <td className="px-1 pe-1">
         <div className="flex items-center gap-0.5">
-          <input type="time" step="300" dir="ltr" aria-label={`${rowLabel}: إلى`} title={title}
-            className={cx(cellInput, error && 'border-red-400 bg-red-50')} value={interval.end_time || ''} onChange={onEnd} />
+          <TimeField className="flex-1 min-w-0" label={`${rowLabel}: إلى`} title={title} invalid={!!error} value={String(interval.end_time || '').slice(0, 5)} onChange={onEnd} />
           {canRemove && (
             <button type="button" aria-label={`احذف ${rowLabel}`} onClick={onRemove}
               className="w-6 h-9 shrink-0 inline-flex items-center justify-center rounded text-muted hover:text-red-700">
