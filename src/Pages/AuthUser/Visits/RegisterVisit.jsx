@@ -386,7 +386,10 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
   const fullName = `${formData.name} ${formData.lastName}`;
   const qrValue = `patient_id:${patientId}`;
 
-  // Saves the QR code with the patient number under it as a PNG
+  // The form was scrolled to its bottom: open on the ticket and QR code
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, []);
+
+  // Saves the QR code with the patient number and full name under it as a PNG
   const downloadQRCode = () => {
     const svg = document.getElementById('patient-qr-code');
     if (!svg) return;
@@ -397,7 +400,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
 
     img.onload = () => {
       canvas.width = 360;
-      canvas.height = 430;
+      canvas.height = 480;
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 20, 20, 320, 320);
@@ -408,6 +411,13 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
       ctx.fillText(String(patientId), 180, 390);
       ctx.font = '18px Tahoma, sans-serif';
       ctx.fillText('رقم المريض', 180, 352);
+      // Long names shrink to fit the image width
+      let nameSize = 26;
+      do {
+        ctx.font = `bold ${nameSize}px Tahoma, sans-serif`;
+        nameSize -= 2;
+      } while (ctx.measureText(fullName).width > 330 && nameSize > 12);
+      ctx.fillText(fullName, 180, 440);
 
       const downloadLink = document.createElement('a');
       downloadLink.download = `QR_Patient_${patientId}_${formData.name}_${formData.lastName}.png`;
@@ -664,7 +674,6 @@ const RegisterVisitInner = () => {
   const [availableSlots, setAvailableSlots] = useState({});
   const [slotsLoading, setSlotsLoading] = useState({});
   const [acceptedRules, setAcceptedRules] = useState(false);
-  const [acceptedData, setAcceptedData] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [specialtyErrors, setSpecialtyErrors] = useState({});
@@ -976,11 +985,6 @@ const RegisterVisitInner = () => {
       toast('يجب الموافقة على الشروط والأحكام', 'error');
       return;
     }
-    if (!acceptedData) {
-      toast('يجب الموافقة على معالجة بياناتك الشخصية', 'error');
-      scrollToId('f-data-consent');
-      return;
-    }
 
     const eventId = event?.id;
     if (!eventId) {
@@ -1005,7 +1009,7 @@ const RegisterVisitInner = () => {
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('phone2', formData.phone2);
       formDataToSend.append('sex', formData.sex);
-      formDataToSend.append('data_consent', '1');
+      formDataToSend.append('data_consent', acceptedRules ? '1' : '0');
 
       formData.specialties.forEach((specialty, index) => {
         formDataToSend.append(`specialties[${index}][event_specialty_id]`, specialty.event_specialty_id);
@@ -1083,9 +1087,8 @@ const RegisterVisitInner = () => {
     formData.sex &&
     formData.specialties.every((s) => s.event_specialty_id && s.day_id && s.hour_id) &&
     !Object.values(fieldErrors).some((error) => error) &&
-    acceptedRules &&
-    acceptedData
-  ), [formData, fieldErrors, acceptedRules, acceptedData]);
+    acceptedRules
+  ), [formData, fieldErrors, acceptedRules]);
 
   const appointmentSummary = useMemo(() => formData.specialties.map((spec, index) => {
     const specialty = event?.event_specialties?.find((es) => es.id == spec.event_specialty_id);
@@ -1111,7 +1114,6 @@ const RegisterVisitInner = () => {
     setMedicalDocuments([]);
     setCurrentStep(0);
     setAcceptedRules(false);
-    setAcceptedData(false);
     setAvailableCities([]);
     scrollToTop();
     getEvent(); // fresh saturation flags
@@ -1321,6 +1323,32 @@ const RegisterVisitInner = () => {
             ))}
           </ol>
         )}
+
+        {/* Data-processing consent (law 18-07): accepted with the same checkbox as the rules */}
+        <details className="group mt-4 rounded-xl border border-line">
+          <summary className="flex items-center justify-between gap-2 min-h-[3rem] px-3 py-2 cursor-pointer list-none">
+            <span className="font-semibold text-sm text-ink">حماية بياناتك الشخصية</span>
+            <span className="text-xs text-muted group-open:hidden">اضغط لعرض التفاصيل</span>
+            <ChevronLeft className="w-4 h-4 shrink-0 text-muted transition-transform group-open:-rotate-90" aria-hidden="true" />
+          </summary>
+          <div className="px-3 pb-3">
+            <p className="text-sm text-ink leading-relaxed">
+              لتنظيم فحصك نحفظ المعلومات التي كتبتها في هذه الاستمارة، ومنها معلومات صحية حساسة. يطّلع عليها فريق القافلة فقط، ولا نعطيها لأي جهة أخرى، وفق {PRIVACY_LAW}.
+            </p>
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {DATA_ITEMS.map((item) => (
+                <li key={item.label}>
+                  <span className="font-semibold text-ink">{item.label}:</span>{' '}
+                  <span className="text-muted">{item.why}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-ink leading-relaxed">
+              يمكنك في أي وقت الاطلاع على بياناتك أو طلب تصحيحها أو حذفها أو سحب موافقتك.{' '}
+              <Link to="/privacy" target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">اقرأ سياسة الخصوصية كاملة</Link>
+            </p>
+          </div>
+        </details>
       </section>
 
       <label
@@ -1335,45 +1363,9 @@ const RegisterVisitInner = () => {
           onChange={(e) => setAcceptedRules(e.target.checked)}
           className="w-6 h-6 shrink-0 accent-[#101E58]"
         />
-        <span className="text-base font-semibold text-ink">أوافق على جميع الشروط والأحكام المذكورة أعلاه</span>
+        <span className="text-base font-semibold text-ink">أوافق على جميع الشروط والأحكام المذكورة أعلاه، ومنها حفظ بياناتي الشخصية والصحية ومعالجتها</span>
       </label>
       {!acceptedRules && <p className="text-sm text-muted">ضع علامة على الموافقة لتتمكن من الحجز.</p>}
-
-      {/* Data-processing consent (law 18-07): health data needs express consent */}
-      <section id="f-data-consent" className="bg-white border border-line rounded-2xl p-4">
-        <h3 className="font-display text-base text-ink mb-2">حماية بياناتك الشخصية</h3>
-        <p className="text-sm text-ink leading-relaxed">
-          لتنظيم فحصك نحفظ المعلومات التي كتبتها في هذه الاستمارة، ومنها معلومات صحية حساسة. يطّلع عليها فريق القافلة فقط، ولا نعطيها لأي جهة أخرى، وفق {PRIVACY_LAW}.
-        </p>
-        <ul className="mt-3 space-y-1.5 text-sm">
-          {DATA_ITEMS.map((item) => (
-            <li key={item.label}>
-              <span className="font-semibold text-ink">{item.label}:</span>{' '}
-              <span className="text-muted">{item.why}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-sm text-ink leading-relaxed">
-          يمكنك في أي وقت الاطلاع على بياناتك أو طلب تصحيحها أو حذفها أو سحب موافقتك.{' '}
-          <Link to="/privacy" target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">اقرأ سياسة الخصوصية كاملة</Link>
-        </p>
-      </section>
-
-      <label
-        className={cx(
-          'flex items-center gap-3 min-h-[3.5rem] rounded-2xl border px-4 py-3 cursor-pointer',
-          acceptedData ? 'border-ink bg-ink-faint' : 'border-line bg-white'
-        )}
-      >
-        <input
-          type="checkbox"
-          checked={acceptedData}
-          onChange={(e) => setAcceptedData(e.target.checked)}
-          className="w-6 h-6 shrink-0 accent-[#101E58]"
-        />
-        <span className="text-base font-semibold text-ink">أوافق على حفظ بياناتي الشخصية والصحية ومعالجتها للأغراض المذكورة أعلاه</span>
-      </label>
-      {!acceptedData && <p className="text-sm text-muted">ضع علامة على الموافقة لتتمكن من الحجز.</p>}
 
       {submitNotice && (
         <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
