@@ -9,7 +9,7 @@ import {
 import { ConfirmSheet } from './Components/EventFormParts';
 import DoctorFormSheet, { DoctorCredentialsSheet, doctorCredentials } from './Components/DoctorFormSheet';
 import DoctorHistorySheet from './Components/DoctorHistorySheet';
-import { SECTOR_LABELS, wilayaName } from '../../../utils/doctors';
+import { SECTOR_LABELS, SEX_LABELS, wilayaName } from '../../../utils/doctors';
 
 const apiUrl = API_BASE_URL;
 
@@ -66,7 +66,7 @@ export default function ManageDoctors() {
     return (doctors || []).filter((d) =>
       (status === 'all' || (status === 'active') === d.is_active)
       && (!specialtyFilter || String(d.specialty_id) === specialtyFilter)
-      && (!q || d.full_name.includes(q) || String(d.phone).includes(q)));
+      && (!q || d.full_name.includes(q) || String(d.phone || '').includes(q)));
   }, [doctors, query, specialtyFilter, status]);
 
   const request = async (path, method) => {
@@ -161,9 +161,9 @@ export default function ManageDoctors() {
                       {!d.is_active && <span className="ms-2 text-xs font-normal text-st-pushed">موقوف</span>}
                     </p>
                     <p className="text-xs text-muted mt-0.5 truncate">
-                      {[d.specialty?.name, wilayaName(d.wilaya_code), SECTOR_LABELS[d.sector]].filter(Boolean).join(' · ')}
+                      {[d.specialty?.name, SEX_LABELS[d.sex], wilayaName(d.wilaya_code), SECTOR_LABELS[d.sector]].filter(Boolean).join(' · ')}
                     </p>
-                    <p className="text-xs text-muted mt-0.5 tabular-nums text-end" dir="ltr">{d.phone}</p>
+                    {d.phone && <p className="text-xs text-muted mt-0.5 tabular-nums text-end" dir="ltr">{d.phone}</p>}
                   </div>
                   <IconButton icon={MoreVertical} label={`خيارات ${d.full_name}`} onClick={() => setActionsFor(d)} />
                 </li>

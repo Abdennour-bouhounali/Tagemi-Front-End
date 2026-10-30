@@ -147,9 +147,23 @@ export function EventInfoFields({ form, setForm, errors = {}, onStateChange }) {
       <Field label="اسم الحدث" error={errors.name}>
         <TextInput value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="مثال: قافلة طبية بأدرار" invalid={!!errors.name} />
       </Field>
-      <Field label="تاريخ الحدث" error={errors.date}>
-        <TextInput type="date" value={form.date} onChange={(e) => set('date', e.target.value)} invalid={!!errors.date} />
-      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="تاريخ البداية" error={errors.date}>
+          <TextInput
+            type="date"
+            value={form.date}
+            // The end follows the start until it is set to a later day
+            onChange={(e) => {
+              const date = e.target.value;
+              setForm((prev) => ({ ...prev, date, end_date: !prev.end_date || prev.end_date <= prev.date || prev.end_date < date ? date : prev.end_date }));
+            }}
+            invalid={!!errors.date}
+          />
+        </Field>
+        <Field label="تاريخ النهاية" hint={form.date && form.end_date === form.date ? 'يوم واحد' : undefined} error={errors.end_date}>
+          <TextInput type="date" min={form.date || undefined} value={form.end_date || ''} onChange={(e) => set('end_date', e.target.value)} invalid={!!errors.end_date} />
+        </Field>
+      </div>
       <LocationFields
         state={form.state}
         city={form.city}
@@ -180,7 +194,8 @@ export function EventInfoFields({ form, setForm, errors = {}, onStateChange }) {
 export function validateEventInfo(form) {
   const errors = {};
   if (!String(form.name || '').trim()) errors.name = 'اكتب اسم الحدث';
-  if (!form.date) errors.date = 'اختر تاريخ الحدث';
+  if (!form.date) errors.date = 'اختر تاريخ بداية الحدث';
+  if (form.date && form.end_date && form.end_date < form.date) errors.end_date = 'النهاية قبل البداية';
   const n = parseInt(form.nbr_of_allowed_specialties, 10);
   if (!n || n < 1 || n > 5) errors.nbr_of_allowed_specialties = 'اكتب رقمًا من 1 إلى 5';
   return errors;
@@ -583,7 +598,7 @@ export function EventReview({ form, specialtiesList, specialtyName, doctorName =
   const doctorsCount = new Set(specialtiesList.flatMap((s) => (s.schedule || []).map((e) => e.doctor_id))).size;
   const rows = [
     ['الاسم', form.name || '—'],
-    ['التاريخ', form.date ? formatDay(form.date) : '—'],
+    ['التاريخ', !form.date ? '—' : form.end_date && form.end_date !== form.date ? `من ${formatDay(form.date)} إلى ${formatDay(form.end_date)}` : formatDay(form.date)],
     ['المكان', [form.city, form.state].filter(Boolean).join('، ') || '—'],
     ['الحالة', form.is_active ? 'نشط، يقبل الحجوزات' : 'غير نشط'],
     ['تخصصات لكل مريض', form.nbr_of_allowed_specialties],

@@ -10,6 +10,17 @@ export const toMinutes = (time) => {
 
 export const toTime = (minutes) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
+export const DEFAULT_INTERVAL = { start_time: '08:00', end_time: '12:00', visit_minutes: 20, extra_visits: 0 };
+
+/** Next interval of a day: starts where the last one ends, same visit length. */
+export function nextInterval(intervals) {
+  const last = intervals[intervals.length - 1];
+  if (!last) return { ...DEFAULT_INTERVAL };
+  const start = toMinutes(last.end_time);
+  if (Number.isNaN(start)) return { ...DEFAULT_INTERVAL };
+  return { start_time: toTime(start), end_time: toTime(Math.min(start + 120, 23 * 60 + 59)), visit_minutes: last.visit_minutes, extra_visits: 0 };
+}
+
 export const extraOf = (interval) => Math.max(0, parseInt(interval.extra_visits, 10) || 0);
 
 /** { visits (computed + extra), computed, extra, leftover, error } of one interval. */
@@ -92,4 +103,52 @@ export function scheduleError(schedule, doctorName, label) {
     }
   }
   return '';
+}
+
+/** ISO dates from start to end (both included), at most 62 days; [start] when end is empty or before. */
+export function eventDates(start, end) {
+  if (!start) return [];
+  const dates = [start];
+  if (!end || end <= start) return dates;
+  const d = new Date(`${start}T00:00:00Z`);
+  while (dates.length < 62) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const iso = d.toISOString().slice(0, 10);
+    if (iso > end) break;
+    dates.push(iso);
+  }
+  return dates;
+}
+
+let rowSeq = 0;
+export const newKey = () => `k${Date.now().toString(36)}${(rowSeq += 1)}`;
+
+/**
+ * The event table's shape of a schedule: one row per doctor and day
+ * ({ key, doctor_id|null, days: [day] }), so a doctor can have a row per date.
+ */
+export const toRows = (schedule = []) => schedule.flatMap((entry) => {
+  const days = entry.days?.length ? entry.days : [{ day_date: '', intervals: [] }];
+  return days.map((day) => ({ key: days.length === 1 && entry.key ? entry.key : newKey(), doctor_id: entry.doctor_id ?? null, days: [day] }));
+});
+
+/**
+ * Rows back to the API's schedule: one entry per doctor, its days sorted; two
+ * rows of the same doctor and day become one day with both rows' intervals.
+ * onlyDate: every day gets this date (an event of one day hides the column).
+ */
+export function fromRows(rows = [], onlyDate = null) {
+  const byDoctor = new Map();
+  rows.forEach((row) => row.days.forEach((day) => {
+    const date = onlyDate || day.day_date;
+    const entry = byDoctor.get(row.doctor_id) || { doctor_id: row.doctor_id, days: [] };
+    byDoctor.set(row.doctor_id, entry);
+    const same = entry.days.find((d) => d.day_date === date);
+    if (same) same.intervals = [...same.intervals, ...day.intervals];
+    else entry.days.push({ day_date: date, intervals: [...day.intervals] });
+  }));
+  return [...byDoctor.values()].map((entry) => ({
+    ...entry,
+    days: entry.days.sort((a, b) => String(a.day_date).localeCompare(String(b.day_date))),
+  }));
 }

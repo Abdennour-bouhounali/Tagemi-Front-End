@@ -21,6 +21,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
   const [form, setForm] = useState({
     name: event.name || '',
     date: event.date ? event.date.split('T')[0] : '',
+    end_date: String(event.end_date || event.date || '').split('T')[0],
     state: event.state || '',
     nbr_of_allowed_specialties: event.nbr_of_allowed_specialties || 1,
     city: event.city || '',

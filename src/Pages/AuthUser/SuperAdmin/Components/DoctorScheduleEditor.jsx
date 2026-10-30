@@ -4,10 +4,8 @@ import { Button, IconButton, SearchField, Sheet, TextInput, cx } from '../../../
 import DoctorFormSheet, { DoctorCredentialsSheet } from './DoctorFormSheet';
 import { wilayaName, SECTOR_LABELS } from '../../../../utils/doctors';
 import {
-  intervalInfo, dayVisits, doctorVisits, scheduleVisits, overlapIndex, hourlyByDate, toMinutes, toTime,
+  intervalInfo, dayVisits, doctorVisits, scheduleVisits, overlapIndex, hourlyByDate, DEFAULT_INTERVAL, nextInterval,
 } from '../../../../utils/schedule';
-
-const DEFAULT_INTERVAL = { start_time: '08:00', end_time: '12:00', visit_minutes: 20, extra_visits: 0 };
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -15,15 +13,6 @@ const todayIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-
-/** Next interval of a day: starts where the last one ends, same visit length. */
-function nextInterval(intervals) {
-  const last = intervals[intervals.length - 1];
-  if (!last) return { ...DEFAULT_INTERVAL };
-  const start = toMinutes(last.end_time);
-  if (Number.isNaN(start)) return { ...DEFAULT_INTERVAL };
-  return { start_time: toTime(start), end_time: toTime(Math.min(start + 120, 23 * 60 + 59)), visit_minutes: last.visit_minutes, extra_visits: 0 };
-}
 
 /** One interval: start, end, visit length, extra visits, and the visits it gives. */
 function IntervalRow({ interval, overlaps, onChange, onRemove, canRemove }) {
@@ -78,7 +67,7 @@ function IntervalRow({ interval, overlaps, onChange, onRemove, canRemove }) {
 /** Sheet listing the active doctors of the specialty not yet added; can register a new one. */
 function AddDoctorSheet({ open, onClose, doctors, onPick, onCreateNew }) {
   const [query, setQuery] = useState('');
-  const list = doctors.filter((d) => !query.trim() || d.full_name.includes(query.trim()) || String(d.phone).includes(query.trim()));
+  const list = doctors.filter((d) => !query.trim() || d.full_name.includes(query.trim()) || String(d.phone || '').includes(query.trim()));
   return (
     <Sheet
       open={open}

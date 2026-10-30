@@ -1,12 +1,17 @@
 import { API_BASE_URL } from '../../../../config/environment';
 import { useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
-import { ChevronRight, Download, CheckCircle2, Trash2 } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { ChevronRight, Download, CheckCircle2, Trash2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
-import { Button, IconButton, PageHeader, LoadingState, useToast } from '../../../../Components/ui';
+import { Button, IconButton, PageHeader, LoadingState, useToast, cx } from '../../../../Components/ui';
 import {
-  Stepper, FormActionBar, EventInfoFields, validateEventInfo, validateSpecialties,
-  SpecialtiesEditor, RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv, ConfirmSheet,
+  Stepper, FormActionBar, EventInfoFields, validateEventInfo,
+  RulesPicker, EventReview, CredentialRow, downloadCredentialsCsv, ConfirmSheet,
 } from './EventFormParts';
+import {
+  ScheduleTable, ScheduleSummary, newTableSpecialty, restoreTableSpecialties, prepareSpecialties, tableError,
+} from './ScheduleTable';
+import { eventDates } from '../../../../utils/schedule';
 import { newIdempotencyKey } from '../../../../utils/idempotency';
 
 const apiUrl = API_BASE_URL;
@@ -14,6 +19,7 @@ const apiUrl = API_BASE_URL;
 const EMPTY_FORM = {
   name: '',
   date: '',
+  end_date: '',
   state: '',
   nbr_of_allowed_specialties: 1,
   city: '',
@@ -41,7 +47,8 @@ const DRAFT_STATUS = {
 };
 
 /**
- * New event as a 3-step form; each specialty is planned with its doctors' intervals.
+ * New event as a 3-step form; the specialties are planned in a table (a row
+ * per doctor and day, grouped by specialty) beside a live visits summary.
  * Saved as a draft on the server while the super admin types (draftId: resume one);
  * the server deletes the draft when the event is created.
  */
@@ -59,12 +66,27 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
   const [rules, setRules] = useState([]);
 
   const [step, setStep] = useState(0);
+  const [selectedKey, setSelectedKey] = useState(null); // specialty shown in the summary
+  const [showSummary, setShowSummary] = useState(() => {
+    try { return localStorage.getItem('eventTable.summary') !== 'hidden'; } catch { return true; }
+  });
+  const toggleSummary = () => setShowSummary((on) => {
+    try { localStorage.setItem('eventTable.summary', on ? 'hidden' : 'shown'); } catch { /* private mode */ }
+    return !on;
+  });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
   const submissionKey = useRef(newIdempotencyKey());
   const [dataLoading, setDataLoading] = useState(true);
   const [credentials, setCredentials] = useState(null);
+
+  // The planning table takes the whole screen width
+  const setWide = useOutletContext()?.setWide;
+  useEffect(() => {
+    setWide?.(step === 1 && !credentials);
+    return () => setWide?.(false);
+  }, [setWide, step, credentials]);
 
   // Draft: saves run one after another; draftRef is null until the first one
   const draftRef = useRef(draftId);
@@ -114,7 +136,7 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
         const data = (await res.json()).draft?.data || {};
         const restored = {
           form: { ...EMPTY_FORM, ...(data.form || {}) },
-          eventSpecialties: data.eventSpecialties || [],
+          eventSpecialties: restoreTableSpecialties(data.eventSpecialties || []),
           selectedRules: data.selectedRules || [],
           step: Math.min(2, Math.max(0, data.step || 0)),
         };
@@ -215,6 +237,10 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
   const specialtyName = (id) => specialties.find((s) => String(s.id) === String(id))?.name;
   const doctorName = (id) => doctors.find((d) => d.id === id)?.full_name || `#${id}`;
 
+  const dates = useMemo(() => eventDates(form.date, form.end_date || form.date), [form.date, form.end_date]);
+  const prepared = useMemo(() => prepareSpecialties(eventSpecialties, dates), [eventSpecialties, dates]);
+  const specialtiesError = () => tableError(eventSpecialties, dates, (id) => specialtyName(id) || 'التخصص', doctorName);
+
   const toggleRule = (id) => setSelectedRules((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const goNext = () => {
@@ -225,9 +251,11 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
         toast('أكمل الحقول المطلوبة', 'error');
         return;
       }
+      // The table opens with a first specialty row ready to fill
+      if (!eventSpecialties.length) setEventSpecialties([newTableSpecialty(form.date)]);
     }
     if (step === 1) {
-      const msg = validateSpecialties(eventSpecialties, specialtyName, doctorName);
+      const msg = specialtiesError();
       if (msg) {
         toast(msg, 'error');
         return;
@@ -245,7 +273,7 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
       toast('أكمل معلومات الحدث', 'error');
       return;
     }
-    const msg = validateSpecialties(eventSpecialties, specialtyName, doctorName);
+    const msg = specialtiesError();
     if (msg) {
       setStep(1);
       toast(msg, 'error');
@@ -260,8 +288,9 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
     submittingRef.current = true;
     const payload = {
       ...form,
+      end_date: form.end_date || form.date,
       rules_ids: selectedRules,
-      specialties: eventSpecialties,
+      specialties: prepared,
       draft_id: draftRef.current,
     };
 
@@ -355,25 +384,33 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
           {step === 0 && <EventInfoFields form={form} setForm={setForm} errors={errors} />}
 
           {step === 1 && (
-            <SpecialtiesEditor
-              value={eventSpecialties}
-              onChange={setEventSpecialties}
-              specialties={specialties}
-              doctors={doctors}
-              onDoctorCreated={(doctor) => setDoctors((prev) => [...prev, doctor])}
-              onSpecialtyCreated={(specialty) => setSpecialties((prev) => [...prev, specialty])}
-              busy={busy}
-              defaultDate={form.date}
-              newSpecialty={() => ({
-                id: '',
-                description: '',
-                is_saturated: false,
-                has_dilatation: false,
-                schedule: [],
-              })}
-              newDay={() => ({ day_date: form.date, number_per_hour: 20, hours: [] })}
-              newHour={(time) => ({ time })}
-            />
+            <div className={cx('space-y-4 lg:space-y-0 lg:grid lg:gap-3 lg:items-start', showSummary ? 'lg:grid-cols-[minmax(0,1fr)_18rem]' : 'lg:grid-cols-1')}>
+              <ScheduleTable
+                value={eventSpecialties}
+                onChange={setEventSpecialties}
+                specialties={specialties}
+                doctors={doctors}
+                busy={busy}
+                dates={dates}
+                onDoctorCreated={(doctor) => setDoctors((prev) => [...prev, doctor])}
+                onSpecialtyCreated={(specialty) => setSpecialties((prev) => [...prev, specialty])}
+                selectedKey={selectedKey}
+                onSelect={setSelectedKey}
+                actions={(
+                  <Button size="sm" variant="ghost" icon={showSummary ? PanelLeftClose : PanelLeftOpen} onClick={toggleSummary} aria-pressed={showSummary}>
+                    {showSummary ? 'أخفِ الملخص' : 'أظهر الملخص'}
+                  </Button>
+                )}
+              />
+              {showSummary && <ScheduleSummary
+                value={eventSpecialties}
+                specialties={specialties}
+                doctors={doctors}
+                dates={dates}
+                selectedKey={selectedKey}
+                onSelect={setSelectedKey}
+              />}
+            </div>
           )}
 
           {step === 2 && (
@@ -383,7 +420,7 @@ export default function AddEvent({ draftId = null, getEvents, onClose }) {
                 <p className="text-sm text-muted mb-3">يقرأ المريض هذه الضوابط قبل الحجز.</p>
                 <RulesPicker rules={rules} selected={selectedRules} onToggle={toggleRule} />
               </section>
-              <EventReview form={form} specialtiesList={eventSpecialties} specialtyName={specialtyName} doctorName={doctorName} rulesCount={selectedRules.length} />
+              <EventReview form={form} specialtiesList={prepared} specialtyName={specialtyName} doctorName={doctorName} rulesCount={selectedRules.length} />
             </div>
           )}
 

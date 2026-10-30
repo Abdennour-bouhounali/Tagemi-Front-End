@@ -25,6 +25,8 @@ export default function StaffShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
+  // A screen can ask for the whole width (the event planning table) via useOutletContext().setWide
+  const [wide, setWide] = useState(false);
   const [mustAcceptRules, setMustAcceptRules] = useState(!!location.state?.loggedIn);
   const [accepted, setAccepted] = useState(false);
 
@@ -101,8 +103,8 @@ export default function StaffShell() {
           </div>
         )}
 
-        <main className="mx-auto max-w-screen-2xl px-4 lg:px-8 pt-4 lg:pt-6 pb-28 lg:pb-10">
-          <Outlet />
+        <main className={cx('mx-auto pt-4 lg:pt-6 pb-28 lg:pb-10', wide ? 'max-w-none px-2 lg:px-3' : 'max-w-screen-2xl px-4 lg:px-8')}>
+          <Outlet context={{ setWide }} />
         </main>
 
         {/* Bottom bar (phones, tablets) */}

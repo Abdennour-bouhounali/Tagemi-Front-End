@@ -1,17 +1,24 @@
 import { API_BASE_URL } from '../../../../config/environment';
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../../../Context/AppContext";
 import { Button, Sheet, Field, TextInput, useToast } from "../../../../Components/ui";
 
 const apiUrl = API_BASE_URL;
 
-/** Sheet form that adds a specialty to the catalogue. onCreated(specialty): the new one, if given. */
-export default function AddSpecialty({ open, onClose, getSpecialites, onCreated }) {
+/**
+ * Sheet form that adds a specialty to the catalogue. onCreated(specialty): the new one, if given.
+ * initialName: fills the name when the sheet opens (typed in a search first).
+ */
+export default function AddSpecialty({ open, onClose, getSpecialites, onCreated, initialName = "" }) {
   const { token } = useContext(AppContext);
   const toast = useToast();
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && initialName) setName(initialName);
+  }, [open, initialName]);
 
   async function handleSubmit(e) {
     e?.preventDefault();

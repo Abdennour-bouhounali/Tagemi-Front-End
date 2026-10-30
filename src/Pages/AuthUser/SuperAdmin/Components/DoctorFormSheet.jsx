@@ -4,11 +4,11 @@ import { Copy, Download } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import { Button, ChipGroup, Field, SelectInput, Sheet, TextInput, useToast } from '../../../../Components/ui';
 import { CredentialRow, downloadCredentialsCsv } from './EventFormParts';
-import { SECTOR_LABELS, WILAYAS } from '../../../../utils/doctors';
+import { SECTOR_LABELS, SEX_LABELS, WILAYAS } from '../../../../utils/doctors';
 
 const apiUrl = API_BASE_URL;
 
-const EMPTY_FORM = { first_name: '', family_name: '', phone: '', wilaya_code: '', specialty_id: '', sector: 'public' };
+const EMPTY_FORM = { first_name: '', family_name: '', sex: '', phone: '', wilaya_code: '', specialty_id: '', sector: 'public' };
 
 /** A doctor's login, shown once (after creation or a password reset). credentials: { type, name, specialty, email, password } */
 export function DoctorCredentialsSheet({ credentials, onClose }) {
@@ -50,7 +50,7 @@ export const doctorCredentials = (doctor, creds) => ({
 });
 
 /**
- * Add or edit a doctor. open: { doctor } to edit, {} to add. lockedSpecialtyId:
+ * Add or edit a doctor. open: { doctor } to edit, {} (or { prefill: fields }) to add. lockedSpecialtyId:
  * the specialty is fixed (adding from the event form). onSaved(doctor, credentials|null):
  * credentials only after a creation, for the caller to show once.
  */
@@ -67,8 +67,8 @@ export default function DoctorFormSheet({ open, onClose, specialties, lockedSpec
     if (!open) return;
     const d = open.doctor;
     setValues(d
-      ? { first_name: d.first_name, family_name: d.family_name, phone: d.phone || '', wilaya_code: d.wilaya_code || '', specialty_id: d.specialty_id || '', sector: d.sector }
-      : { ...EMPTY_FORM, specialty_id: lockedSpecialtyId || '' });
+      ? { first_name: d.first_name, family_name: d.family_name, sex: d.sex || '', phone: d.phone || '', wilaya_code: d.wilaya_code || '', specialty_id: d.specialty_id || '', sector: d.sector }
+      : { ...EMPTY_FORM, specialty_id: lockedSpecialtyId || '', ...(open.prefill || {}) });
     setErrors({});
   }, [open, lockedSpecialtyId]);
 
@@ -119,7 +119,17 @@ export default function DoctorFormSheet({ open, onClose, specialties, lockedSpec
             <TextInput value={values.family_name} onChange={(e) => set('family_name', e.target.value)} invalid={!!err('family_name')} autoComplete="off" />
           </Field>
         </div>
-        <Field label="رقم الهاتف" error={err('phone')}>
+        <fieldset>
+          <legend className="block mb-1.5 text-sm font-semibold text-ink">الجنس</legend>
+          <ChipGroup
+            label="الجنس"
+            value={values.sex}
+            onChange={(v) => set('sex', v)}
+            options={Object.entries(SEX_LABELS).map(([value, label]) => ({ value, label }))}
+          />
+          {err('sex') && <span className="block mt-1 text-xs text-red-700">{err('sex')}</span>}
+        </fieldset>
+        <Field label="رقم الهاتف" hint="اختياري" error={err('phone')}>
           <TextInput type="tel" inputMode="tel" dir="ltr" placeholder="0555123456" value={values.phone} onChange={(e) => set('phone', e.target.value)} invalid={!!err('phone')} />
         </Field>
         <Field label="الولاية" error={err('wilaya_code')}>
