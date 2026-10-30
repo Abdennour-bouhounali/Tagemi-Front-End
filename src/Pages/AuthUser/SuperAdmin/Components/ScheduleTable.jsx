@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ChevronDown, ChevronsDownUp, ChevronsUpDown, CopyPlus, Droplets, Eye, EyeOff, Plus, Settings2, Trash2, TriangleAlert, X,
+  ChevronDown, ChevronsDownUp, ChevronsUpDown, Copy, CopyPlus, Droplets, Eye, EyeOff, Plus, Settings2, Trash2, TriangleAlert, X,
 } from 'lucide-react';
 import { Button, Field, IconButton, Sheet, cx, useToast } from '../../../../Components/ui';
 import {
@@ -284,7 +284,8 @@ export function ScheduleTable({
   useEffect(() => store('eventTable.widths', JSON.stringify(widths)), [widths]);
   useEffect(() => store('eventTable.nameHidden', nameHidden ? '1' : '0'), [nameHidden]);
 
-  const widthOf = (key) => widths[key] ?? COLUMN_WIDTHS[key.replace(/\d+$/, '')];
+  // Multi-day events have a third row button (copy to the next day)
+  const widthOf = (key) => widths[key] ?? (key === 'actions' && dates.length > 1 ? 112 : COLUMN_WIDTHS[key.replace(/\d+$/, '')]);
   const setWidth = (key, w) => setWidths((prev) => ({ ...prev, [key]: clampWidth(w) }));
   const resetWidth = (key) => setWidths((prev) => {
     const next = { ...prev };
@@ -380,6 +381,13 @@ export function ScheduleTable({
   };
 
   // Same doctor and hours on the next day of the event
+  // Same day, hours, visit length and extra visits for another doctor: only the doctor is left to pick
+  const duplicateRow = (spec, row) => {
+    const copy = { key: newKey(), doctor_id: null, days: [{ ...row.days[0], intervals: row.days[0].intervals.map((iv) => ({ ...iv, id: undefined })) }] };
+    const at = spec.schedule.indexOf(row) + 1;
+    patchSpec(spec.key, { schedule: [...spec.schedule.slice(0, at), copy, ...spec.schedule.slice(at)] });
+  };
+
   const copyToNextDay = (spec, row) => {
     const date = row.days[0].day_date;
     const next = dates.find((d) => d > date) || dates[0];
@@ -693,8 +701,9 @@ export function ScheduleTable({
                       <td className="px-1 tabular-nums font-semibold text-ink">{dayVisits(day)}</td>
                       <td className="px-1">
                         <div className="flex items-center justify-end">
+                          <IconButton icon={Copy} label={`كرّر السطر ${r + 1} لطبيب آخر`} title="كرّر السطر (نفس اليوم والفترات) لطبيب آخر" className="w-9 h-9" onClick={() => duplicateRow(spec, row)} />
                           {multiDay && (
-                            <IconButton icon={CopyPlus} label="انسخ السطر إلى اليوم التالي" className="w-9 h-9" onClick={() => copyToNextDay(spec, row)} />
+                            <IconButton icon={CopyPlus} label="انسخ السطر إلى اليوم التالي" title="انسخ السطر (نفس الطبيب) إلى اليوم التالي" className="w-9 h-9" onClick={() => copyToNextDay(spec, row)} />
                           )}
                           <IconButton
                             icon={Trash2}
