@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../config/environment';
-import { useState, useEffect, useContext, useMemo, useCallback } from "react";
+import { useState, useEffect, useContext, useMemo, useCallback, useRef } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import QRScanner from './QRScanner';
@@ -31,6 +31,10 @@ import {
   Info,
   Users,
   CheckCircle2,
+  Volume2,
+  VolumeX,
+  HelpCircle,
+  Zap,
 } from "lucide-react";
 import {
   Button, IconButton, StatusBadge, PageHeader, StatStrip, SearchField, ChipGroup, EmptyState,
@@ -57,6 +61,25 @@ const patientDocuments = (p) => [...new Set((p.all_appointments || [p]).flatMap(
 const hasCheckedIn = (p) => (p.all_appointments || [p]).some((a) => a.status !== 'Pending');
 const aptDay = (a) => a.day?.day_date || a.day?.date || "-";
 const aptHour = (a) => a.hour?.time || a.hour?.hour || "-";
+
+// Normalize keystrokes from scanners on French/AZERTY keyboard layouts
+// where numbers require Shift and letters like A/Q are swapped.
+const normalizeAzertyBarcode = (buffer) => {
+  if (!buffer) return "";
+  const azertyToDigit = {
+    "&": "1", "é": "2", '"': "3", "'": "4", "(": "5",
+    "-": "6", "è": "7", "_": "8", "ç": "9", "à": "0",
+  };
+
+  let normalized = buffer;
+  // Replace French AZERTY mis-mapped letters for "patient_id"
+  normalized = normalized.replace(/pqtient[°_]?id[M:]?\s*/i, "patient_id: ");
+  
+  // Replace unshifted AZERTY number-row characters with digits
+  normalized = normalized.replace(/[&é"'(è_çà]/g, (char) => azertyToDigit[char] || char);
+
+  return normalized;
+};
 
 /**
  * Reception desk (role 5), special-cases desk (role 3) and super admin (1).
@@ -114,6 +137,63 @@ const CheckPresence = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scanAction, setScanAction] = useState(null); // 'present', 'special', 'details'
   const [manualPatientId, setManualPatientId] = useState("");
+
+  // Direct silent printing & barcode scanner mode
+  const [directPrint, setDirectPrint] = useState(() => {
+    return localStorage.getItem("tagemi_direct_print") !== "false";
+  });
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem("tagemi_scanner_sound") !== "false";
+  });
+  const [showKioskHelp, setShowKioskHelp] = useState(false);
+  const closeKioskHelp = useCallback(() => setShowKioskHelp(false), []);
+
+  const toggleDirectPrint = (enabled) => {
+    setDirectPrint(enabled);
+    localStorage.setItem("tagemi_direct_print", enabled ? "true" : "false");
+  };
+
+  const toggleSound = (enabled) => {
+    setSoundEnabled(enabled);
+    localStorage.setItem("tagemi_scanner_sound", enabled ? "true" : "false");
+  };
+
+  const playBeep = useCallback((type = "success") => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === "success") {
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.18);
+      } else if (type === "info") {
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      } else {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch {
+      // AudioContext blocked or not supported
+    }
+  }, [soundEnabled]);
 
   // Stable close handlers: the kit's Sheet re-runs its focus effect when
   // onClose changes, so inline arrows would steal focus on every re-render
@@ -251,6 +331,9 @@ const CheckPresence = () => {
 
   // حاضر: check in, then print the follow-up card (بطاقة المتابعة) right away
   const checkInAndPrint = async (patientId) => {
+    if (directPrint) {
+      return await fastCheckInAndPrint(patientId);
+    }
     const win = openPrintWindow();
     const list = await checkInPatient(patientId);
     const patient = list && getUniquePatients(list).find((p) => p.patient_id?.toString() === patientId.toString());
@@ -263,16 +346,59 @@ const CheckPresence = () => {
   };
 
   // Reprint for a patient already checked in
-  const printCardFor = async (patientId, win = openPrintWindow()) => {
+  const printCardFor = async (patientId, win = null) => {
     const patient = await findPatient(patientId);
-    if (patient && !hasCheckedIn(patient)) {
+    if (!patient) return false;
+    if (!hasCheckedIn(patient)) {
       toast(`المريض #${patientId} لم يُسجَّل حضوره بعد. سجّل حضوره أولاً.`, "error");
-    } else if (patient && win) {
-      printPatientCard(patient, win);
-      return true;
+      win?.close();
+      return false;
     }
-    win?.close();
-    return false;
+    printPatientCard(patient, win);
+    playBeep("info");
+    toast(`جاري طباعة بطاقة المتابعة للمريض #${patientId} (${patient.full_name || ''})`, "success");
+    return true;
+  };
+
+  // Direct fast check-in and silent print for barcode scanner & instant desk check-in
+  const fastCheckInAndPrint = async (patientId) => {
+    if (updating) return false;
+    setUpdating(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/events/${eventId}/check-in`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ patient_id: Number(patientId) }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setManualPatientId("");
+        playBeep("success");
+        toast(`تم تسجيل الحضور للمريض #${patientId}. جاري الطباعة الفورية...`, "success");
+        const list = await fetchAppointments(true);
+        const patient = list && getUniquePatients(list).find((p) => p.patient_id?.toString() === patientId.toString());
+        if (patient) {
+          printPatientCard(patient, null);
+        }
+        return true;
+      } else {
+        playBeep("error");
+        toast(data.message || `تعذر تسجيل حضور المريض #${patientId}.`, "error");
+        return false;
+      }
+    } catch (err) {
+      playBeep("error");
+      console.error("Fast check-in error:", err);
+      toast("تعذر الاتصال بالخادم أثناء تسجيل الحضور السريع.", "error");
+      return false;
+    } finally {
+      setUpdating(false);
+    }
   };
 
   // Check-in by patient number (QR scan or typed). Only today's appointments
@@ -310,7 +436,9 @@ const CheckPresence = () => {
 
   // The typed number, or null (with a message) when it is not a number
   const typedPatientId = () => {
-    const id = manualPatientId.trim();
+    const raw = manualPatientId.trim();
+    const normalized = normalizeAzertyBarcode(raw);
+    const id = normalized.replace(/^.*patient_id:\s*/i, "").trim();
     if (!/^\d+$/.test(id)) {
       toast("أدخل رقم المريض بالأرقام فقط.", "error");
       return null;
@@ -342,12 +470,91 @@ const CheckPresence = () => {
       printCardFor(id); // its window opens now, during the click
       return;
     }
+    if (directPrint && canCheckIn && action === 'present') {
+      fastCheckInAndPrint(id);
+      return;
+    }
     findPatient(id).then((patient) => {
       if (!patient) return;
       if (action === 'present') showForPresence(patient);
       else actOnPatient(action, patient);
     });
   };
+
+  const scannerBufferRef = useRef("");
+  const lastKeyTimeRef = useRef(0);
+
+  const handleBarcodeScanned = useCallback((scannedId) => {
+    setManualPatientId(scannedId);
+    playBeep("info");
+    if (directPrint && canCheckIn) {
+      fastCheckInAndPrint(scannedId);
+    } else {
+      runNumberAction(mainAction.value);
+    }
+  }, [directPrint, canCheckIn, mainAction, appointments, eventId, token]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const now = performance.now();
+      const timeDiff = now - lastKeyTimeRef.current;
+      lastKeyTimeRef.current = now;
+
+      if (timeDiff > 80 && scannerBufferRef.current.length > 0) {
+        const lower = scannerBufferRef.current.toLowerCase();
+        if (!lower.startsWith('patient_id:') && !lower.startsWith('pqtient')) {
+          scannerBufferRef.current = "";
+        }
+      }
+
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
+      const isCheckinInput = activeEl && activeEl.id === "checkin-patient-id";
+
+      if (e.key === "Enter") {
+        const rawBuffer = scannerBufferRef.current.trim();
+        scannerBufferRef.current = "";
+
+        const buffer = normalizeAzertyBarcode(rawBuffer);
+
+        if (buffer.length > 0) {
+          if (/patient_id:/i.test(buffer) || /^\d+$/.test(buffer)) {
+            let pid = buffer;
+            if (/patient_id:/i.test(buffer)) {
+              pid = buffer.replace(/^.*patient_id:\s*/i, "");
+            }
+            pid = pid.replace(/\D/g, "");
+
+            if (pid) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isInput && !isCheckinInput) {
+                activeEl.blur();
+              }
+              handleBarcodeScanned(pid);
+              return;
+            }
+          }
+        }
+        return;
+      }
+
+      if (e.key && e.key.length === 1) {
+        scannerBufferRef.current += e.key;
+
+        // If the scanner starts typing patient_id: (or pqtient) inside another input, prevent pollution
+        const lower = scannerBufferRef.current.toLowerCase();
+        if (lower.startsWith('patient_id:') || lower.startsWith('pqtient')) {
+          if (isInput && !isCheckinInput) {
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [handleBarcodeScanned]);
 
   const actOnPatient = async (action, patient) => {
     if (action === 'details') {
@@ -367,8 +574,12 @@ const CheckPresence = () => {
       const patient = await findPatient(patientId);
       if (!patient) return false;
 
-      // Presence: show who it is; the receptionist confirms in the sheet (check in + print)
+      // Presence: if direct print is enabled, immediately check in & print!
       if (scanAction === 'present') {
+        if (directPrint && canCheckIn) {
+          setShowQRScanner(false);
+          return await fastCheckInAndPrint(patientId);
+        }
         showForPresence(patient);
         return true;
       }
@@ -1245,11 +1456,14 @@ ${appointmentsList}
     }, 250);
   };
 
-  // printWindow: pass one opened during the click when printing after a request
-  const printPatientCard = (appointment, printWindow = window.open("", "_blank")) => {
-    if (!printWindow) {
-      toast("المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة لهذا الموقع.", "error");
-      return;
+  const printPatientCard = (appointment, printWindow = null) => {
+    const isDirectPrint = !printWindow;
+    if (!printWindow && !directPrint) {
+      printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        toast("المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة لهذا الموقع.", "error");
+        return;
+      }
     }
     const eventName = escapeHtml(event?.name || "الحدث");
     const patientAppts = appointment.all_appointments || [appointment];
@@ -1270,7 +1484,7 @@ ${appointmentsList}
         )
       : "";
 
-    writePrintDocument(printWindow, `
+    const cardHtml = `
       <!DOCTYPE html>
       <html dir="rtl">
       <head>
@@ -1535,8 +1749,47 @@ ${appointmentsList}
         </div>
       </body>
       </html>
-    `);
+    `;
 
+    if (isDirectPrint) {
+      // Direct / Silent Print via hidden iframe (No new tab opened!)
+      let iframe = document.getElementById("silent-print-frame");
+      if (!iframe) {
+        iframe = document.createElement("iframe");
+        iframe.id = "silent-print-frame";
+        iframe.style.position = "fixed";
+        iframe.style.right = "0";
+        iframe.style.bottom = "0";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "0";
+        iframe.setAttribute("aria-hidden", "true");
+        document.body.appendChild(iframe);
+      }
+
+      writePrintDocument(iframe.contentWindow, cardHtml);
+      iframe.contentWindow.document.close();
+      const doc = iframe.contentWindow.document;
+      const loaded = (el) => new Promise((resolve) => { el.onload = el.onerror = resolve; });
+      const fontCss = doc.querySelector('link[rel="stylesheet"]');
+      const fontsReady = (fontCss?.sheet ? Promise.resolve() : loaded(fontCss))
+        .then(() => doc.fonts?.load("700 16px Cairo"))
+        .then(() => doc.fonts?.ready);
+      const logoReady = Array.from(doc.images).map((img) => (img.complete ? null : loaded(img)));
+      const ready = Promise.all([fontsReady, ...logoReady]);
+      const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
+      Promise.race([ready, timeout]).then(() => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e) {
+          console.error("Silent print error:", e);
+        }
+      });
+      return;
+    }
+
+    writePrintDocument(printWindow, cardHtml);
     printWindow.document.close();
     printWindow.focus();
     // Print once Cairo and the logo are in, so the card never prints with fallbacks
@@ -1550,6 +1803,24 @@ ${appointmentsList}
     const ready = Promise.all([fontsReady, ...logoReady]);
     const timeout = new Promise((resolve) => setTimeout(resolve, 3000));
     Promise.race([ready, timeout]).then(() => printWindow.print());
+  };
+
+  // Test print for receptionists to verify A5 paper and printer settings
+  const handleTestPrint = () => {
+    const dummyPatient = {
+      patient_id: "9999",
+      full_name: "مريض تجريبي (اختبار الطباعة)",
+      birthday: "1990-01-01",
+      sex: "0",
+      diseases: "لا يوجد",
+      all_appointments: [
+        { event_specialty: { specialty: { name: "طب عام" } } },
+        { event_specialty: { specialty: { name: "طب الأسنان" } } },
+      ],
+    };
+    printPatientCard(dummyPatient, null);
+    playBeep("info");
+    toast("تم إرسال بطاقة تجريبية إلى الطابعة", "info");
   };
 
   const exportToPDF = () => {
@@ -1955,7 +2226,59 @@ ${appointmentsList}
       <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
       {/* Patient number: check-in (the main job), print, special case, details */}
       <form onSubmit={(e) => { e.preventDefault(); runNumberAction(mainAction.value); }} className="bg-white border border-line rounded-2xl p-4 mb-4">
-          <label htmlFor="checkin-patient-id" className="block text-sm font-semibold text-ink mb-2">رقم المريض</label>
+          {/* Direct Barcode Scanner & Printing Status / Controls */}
+          <div className="pb-3 mb-3 border-b border-line">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={cx(
+                  "w-2.5 h-2.5 rounded-full shrink-0",
+                  directPrint ? "bg-emerald-500 animate-pulse" : "bg-muted"
+                )} />
+                <span className="text-xs font-bold text-ink truncate">
+                  {directPrint ? "قارئ الباركود (مسح وطباعة فورية)" : "التحضير اليدوي"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => toggleSound(!soundEnabled)}
+                  title={soundEnabled ? "كتم صوت التنبيه" : "تفعيل صوت التنبيه"}
+                  className={cx(
+                    "p-1.5 rounded-lg border transition-colors",
+                    soundEnabled ? "border-primary/20 text-primary bg-primary/5" : "border-line text-muted hover:text-ink hover:bg-ink-faint"
+                  )}
+                >
+                  {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowKioskHelp(true)}
+                  title="إعدادات الطباعة المباشرة (Kiosk Printing)"
+                  className="p-1.5 rounded-lg border border-line text-muted hover:text-ink hover:bg-ink-faint transition-colors"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between bg-ink-faint/60 px-3 py-2 rounded-xl border border-line/60">
+              <div className="text-right">
+                <div className="text-xs font-semibold text-ink">طباعة تلقائية صامتة</div>
+                <div className="text-[10px] text-muted leading-tight">بدون فتح تبويب جديد وبدون نافذة تأكيد</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={directPrint}
+                  onChange={(e) => toggleDirectPrint(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-8 h-4 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-line after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-ink"></div>
+              </label>
+            </div>
+          </div>
+
+          <label htmlFor="checkin-patient-id" className="block text-sm font-semibold text-ink mb-2">رقم المريض أو امسح الباركود</label>
           <div className="flex gap-2">
             <input
               id="checkin-patient-id"
@@ -1965,7 +2288,11 @@ ${appointmentsList}
               autoComplete="off"
               enterKeyHint="go"
               value={manualPatientId}
-              onChange={(e) => setManualPatientId(e.target.value.replace(/[^0-9]/g, ""))}
+              onChange={(e) => {
+                let v = e.target.value;
+                if (/patient_id:/i.test(v)) v = v.replace(/^.*patient_id:\s*/i, "");
+                setManualPatientId(v.replace(/[^0-9]/g, ""));
+              }}
               placeholder="مثلاً 1024"
               className="min-w-0 flex-1 h-14 rounded-xl border border-line bg-white px-4 font-display text-2xl text-ink text-center placeholder:text-muted placeholder:text-base placeholder:font-ui focus:border-ink focus:outline-none"
             />
@@ -1975,7 +2302,7 @@ ${appointmentsList}
               className="shrink-0 h-14 px-4 inline-flex flex-col items-center justify-center gap-0.5 rounded-xl border border-line bg-white text-ink hover:bg-ink-faint"
             >
               <ScanLine className="w-6 h-6" />
-              <span className="text-[11px] font-semibold leading-none">مسح QR</span>
+              <span className="text-[11px] font-semibold leading-none">مسح كاميرا</span>
             </button>
           </div>
           {/* One tap per action, main one on top; Enter runs the main one */}
@@ -1997,7 +2324,7 @@ ${appointmentsList}
               </Button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted text-center">زر «مسح QR» ينفّذ «{mainAction.label}».</p>
+          <p className="mt-2 text-xs text-muted text-center">مع قارئ الباركود يتم التنفيذ والطباعة فورياً. زر «مسح كاميرا» ينفّذ «{mainAction.label}».</p>
         </form>
 
       <StatStrip
@@ -2394,6 +2721,67 @@ ${appointmentsList}
             <SheetAction icon={Printer} hint="قائمة واحدة، حسب التصفية الحالية" disabled={filteredAppointments.length === 0} onClick={() => { setShowExports(false); exportToPDF(); }}>
               اطبع قائمة المواعيد
             </SheetAction>
+          </div>
+        </Sheet>
+      )}
+
+      {/* Kiosk Printing & Barcode Scanner Guide */}
+      {showKioskHelp && (
+        <Sheet
+          open={showKioskHelp}
+          onClose={closeKioskHelp}
+          title="إعدادات قارئ الباركود والطباعة المباشرة"
+          size="lg"
+        >
+          <div className="space-y-4 text-sm text-ink leading-relaxed">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs">
+              <strong className="block mb-1 font-bold text-sm">⚡ كيف تعمل الميزة؟</strong>
+              قارئ الباركود (Handheld Barcode Scanner) متصل بحاسوب موظف الاستقبال ويعمل كلوحة مفاتيح سريعة.
+              بمجرد توجيه القارئ إلى رمز QR أو باركود المريض، يقوم النظام فورياً بتسجيل حضوره وطباعة بطاقة المتابعة (A5) مباشرة دون أي نقرات إضافية أو فتح نوافذ جديدة.
+            </div>
+
+            <div className="border border-line rounded-xl p-3.5 space-y-2 bg-white">
+              <h4 className="font-bold text-ink">1. للطباعة الصامتة تماماً (بدون نافذة تأكيد المتصفح):</h4>
+              <p className="text-xs text-muted">
+                لتجاوز نافذة الطباعة المنبثقة وجعل المتصفح يطبع مباشرة وفوراً إلى الطابعة:
+              </p>
+              <ol className="list-decimal list-inside space-y-1.5 text-xs text-ink-soft">
+                <li>على سطح المكتب، انقر بزر الفأرة الأيمن على اختصار متصفح <strong>Google Chrome</strong> أو <strong>Edge</strong> واختر <strong>Properties (خصائص)</strong>.</li>
+                <li>في حقل <strong>Target (الهدف)</strong>، أضف في نهاية السطر مسافة ثم:</li>
+              </ol>
+              <div className="p-2.5 bg-ink text-white font-mono text-xs rounded-lg text-left dir-ltr select-all">
+                --kiosk-printing
+              </div>
+              <p className="text-[11px] text-muted">
+                مثال على مسار الهدف كاملاً: <br />
+                <code className="text-[11px] font-mono text-ink bg-ink-faint px-1.5 py-0.5 rounded">"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing</code>
+              </p>
+            </div>
+
+            <div className="border border-line rounded-xl p-3.5 space-y-2 bg-white">
+              <h4 className="font-bold text-ink">2. إعداد الطابعة الافتراضية:</h4>
+              <p className="text-xs text-muted">
+                تأكد من تعيين طابعة الاستقبال كـ <strong>طابعة افتراضية (Default Printer)</strong> في إعدادات النظام، وضبط قياس الورق الافتراضي على <strong>A5 Landscape</strong>.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="secondary"
+                icon={Printer}
+                onClick={handleTestPrint}
+                className="flex-1"
+              >
+                تجربة طباعة بطاقة تجريبية
+              </Button>
+              <Button
+                variant="primary"
+                onClick={closeKioskHelp}
+                className="flex-1"
+              >
+                حسناً، فهمت
+              </Button>
+            </div>
           </div>
         </Sheet>
       )}
