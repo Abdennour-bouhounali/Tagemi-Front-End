@@ -190,6 +190,8 @@ const CheckPresence = () => {
   const [merging, setMerging] = useState(false);
   const [view, setView] = useState('patients');       // 'patients' | 'duplicates'
   const [dupGroups, setDupGroups] = useState(null);    // every same name + phone group of the event
+  const [mergeGroup, setMergeGroup] = useState(null);  // { group, target } being merged from the duplicates tab
+  const [notSameGroups, setNotSameGroups] = useState(() => new Set()); // groups the desk said are different people
 
   // Stats from the API
   const [reminderStats, setReminderStats] = useState({ total: 0, reminded: 0, not_reminded: 0 });
@@ -707,6 +709,7 @@ const CheckPresence = () => {
 
   const mergePatients = async (patientId, otherIds) => {
     setMerging(true);
+    let ok = false;
     try {
       const res = await fetch(`${apiUrl}/api/events/${eventId}/patients/${patientId}/merge`, {
         method: "POST",
@@ -715,6 +718,7 @@ const CheckPresence = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        ok = true;
         toast(data.message || "دُمجت المواعيد");
         await fetchAppointments(true);
         setLogVersion((v) => v + 1);
@@ -727,7 +731,16 @@ const CheckPresence = () => {
     } finally {
       setMerging(false);
     }
+    return ok;
   };
+
+  // Duplicates tab: merge every other number of the row into the chosen one
+  const confirmGroupMerge = async () => {
+    if (!mergeGroup) return;
+    const others = mergeGroup.group.patients.map((p) => p.patient_id).filter((id) => id !== mergeGroup.target);
+    if (await mergePatients(mergeGroup.target, others)) setMergeGroup(null);
+  };
+  const groupKey = (g) => g.patients.map((p) => p.patient_id).join('-');
 
   // The «التسجيلات المكررة» tab (scans the whole event): loaded once for its
   // count, then reloaded with the list only while the tab is open
@@ -2342,18 +2355,20 @@ ${appointmentsList}
     if (dupGroups === null) return <LoadingState />;
     const q = searchTerm.trim().toLowerCase();
     const digits = q.replace(/\D/g, '');
+    const visible = dupGroups.filter((g) => !notSameGroups.has(groupKey(g)));
     const groups = q
-      ? dupGroups.filter((g) => g.full_name?.toLowerCase().includes(q)
+      ? visible.filter((g) => g.full_name?.toLowerCase().includes(q)
         || (digits && (String(g.phone).replace(/\D/g, '').includes(digits) || g.patients.some((p) => String(p.patient_id).includes(digits)))))
-      : dupGroups;
-    if (dupGroups.length === 0) {
+      : visible;
+    if (visible.length === 0) {
       return <EmptyState icon={GitMerge} title="لا توجد تسجيلات مكررة">لا يوجد زائران بنفس الاسم والهاتف في هذا الحدث.</EmptyState>;
     }
-    const columns = Math.max(2, ...dupGroups.map((g) => g.patients.length));
+    const columns = Math.max(2, ...visible.map((g) => g.patients.length));
+    const canMergeHere = canMerge && !isViewer;
     return (
       <>
         <p className="text-sm text-muted mb-3">
-          {groups.length} شخص سجّل أكثر من مرة. اضغط على رقم الزائر لفتحه ودمج تسجيلاته.
+          {groups.length} شخص سجّل أكثر من مرة. {canMergeHere ? 'اضغط «دمج» لجمع تسجيلاته في رقم واحد، أو على رقم الزائر لفتحه.' : 'اضغط على رقم الزائر لفتحه.'}
         </p>
         <div className="overflow-x-auto rounded-xl border border-line bg-white">
           <table className="w-full text-sm">
@@ -2364,6 +2379,7 @@ ${appointmentsList}
                 {Array.from({ length: columns }, (_, i) => (
                   <th key={i} scope="col" className="px-3 py-2 text-start font-semibold whitespace-nowrap">الزائر {i + 1}</th>
                 ))}
+                {canMergeHere && <th scope="col" className="px-3 py-2 text-start font-semibold">الدمج</th>}
               </tr>
             </thead>
             <tbody>
@@ -2393,6 +2409,26 @@ ${appointmentsList}
                       </td>
                     );
                   })}
+                  {canMergeHere && (
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {g.patients.some((p) => p.checked_in) ? (
+                        <span className="text-xs text-muted">سُجّل حضور أحدهم، لا يمكن الدمج</span>
+                      ) : (
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <Button size="sm" icon={GitMerge} disabled={merging} onClick={() => setMergeGroup({ group: g, target: g.patients[0].patient_id })}>
+                            دمج
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => setNotSameGroups((prev) => new Set(prev).add(groupKey(g)))}
+                            className="text-xs text-muted underline underline-offset-2 hover:text-ink"
+                          >
+                            ليس نفس الشخص
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -3086,6 +3122,54 @@ ${appointmentsList}
             ]} />
           </div>
         </div>
+      </Sheet>
+
+      {/* Duplicates tab: confirm a merge and pick the number that stays */}
+      <Sheet
+        open={!!mergeGroup}
+        onClose={() => !merging && setMergeGroup(null)}
+        title={mergeGroup ? `دمج تسجيلات ${mergeGroup.group.full_name}` : ''}
+        footer={mergeGroup && (
+          <div className="flex gap-2">
+            <Button block icon={GitMerge} loading={merging} onClick={confirmGroupMerge}>
+              ادمج في #{mergeGroup.target}
+            </Button>
+            <Button variant="secondary" disabled={merging} onClick={() => setMergeGroup(null)}>إلغاء</Button>
+          </div>
+        )}
+      >
+        {mergeGroup && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-soft">
+              اختر الرقم الذي يبقى (رمز QR واحد). تُنقل إليه مواعيد الأرقام الأخرى، ويُسجّل الدمج في سجل الزائر.
+            </p>
+            <div className="space-y-2" role="radiogroup" aria-label="الرقم الذي يبقى">
+              {mergeGroup.group.patients.map((p) => (
+                <label
+                  key={p.patient_id}
+                  className={cx(
+                    'flex items-start gap-3 rounded-xl border p-3 cursor-pointer',
+                    mergeGroup.target === p.patient_id ? 'border-ink bg-ink-faint' : 'border-line bg-white'
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="merge-target"
+                    className="mt-1"
+                    checked={mergeGroup.target === p.patient_id}
+                    onChange={() => setMergeGroup((m) => ({ ...m, target: p.patient_id }))}
+                  />
+                  <span className="min-w-0">
+                    <span className="font-semibold text-ink">#{p.patient_id}</span>
+                    {p.birthday && <span className="ms-2 text-xs text-muted" dir="ltr">{p.birthday}</span>}
+                    <span className="block text-sm text-ink-soft">{p.specialties.join('، ') || '—'}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted" dir="ltr">{mergeGroup.group.phone}</p>
+          </div>
+        )}
       </Sheet>
 
       {/* Exports and prints (super admin) */}
