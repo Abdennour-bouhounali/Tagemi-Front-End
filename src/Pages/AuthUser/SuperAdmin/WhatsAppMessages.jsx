@@ -520,6 +520,12 @@ export default function WhatsAppMessages() {
             <p className="text-xs text-muted mt-2">
               يفتح واتساب (التطبيق أو واتساب ويب) والرسالة جاهزة: اضغط «إرسال» هناك، ثم عد إلى هذه الصفحة للتالي.
             </p>
+            {status.sender_number && (
+              <p className="flex items-start gap-1.5 text-xs font-semibold text-amber-800 mt-1">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <span>تأكد أن واتساب المفتوح هو رقم المؤسسة <span dir="ltr">{status.sender_number}</span>، وليس رقمك الشخصي.</span>
+              </p>
+            )}
             <ul className="divide-y divide-line mt-3 max-h-[28rem] overflow-y-auto">
               {manualRun.messages.map((m) => {
                 const s = MANUAL_STATUS[m.status] || MANUAL_STATUS.pending;
@@ -601,6 +607,15 @@ export default function WhatsAppMessages() {
               مربوط: {status.phone?.verified_name} <span dir="ltr">{status.phone?.display_phone_number}</span>
               {status.phone?.quality_rating && <span className="text-muted">· الجودة {status.phone.quality_rating}</span>}
               {!status.settings?.app_secret && <span className="text-amber-800">· حالات الوصول والقراءة لن تظهر قبل إضافة WHATSAPP_APP_SECRET</span>}
+            </p>
+          )}
+          {connected && status.sender_mismatch && (
+            <p className="flex items-start gap-2 text-sm text-red-700 bg-red-50 rounded-xl p-3">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                واتساب يرسل من <span dir="ltr">{status.phone?.display_phone_number}</span> وليس من رقم المؤسسة <span dir="ltr">{status.sender_number}</span>.
+                صحّح WHATSAPP_PHONE_NUMBER_ID في إعدادات الخادم.
+              </span>
             </p>
           )}
 
