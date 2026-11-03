@@ -38,6 +38,7 @@ const AddMultipleAppointments = lazy(() => import('./Pages/AuthUser/SuperAdmin/A
 const EventTracking = lazy(() => import('./Pages/AuthUser/SuperAdmin/EventTracking'));
 const DoctorsToday = lazy(() => import('./Pages/AuthUser/SuperAdmin/DoctorsToday'));
 const AdminActions = lazy(() => import('./Pages/AuthUser/SuperAdmin/AdminActions'));
+const WhatsAppMessages = lazy(() => import('./Pages/AuthUser/SuperAdmin/WhatsAppMessages'));
 const EventAppointmentDistribution = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EventAppointmentDistribution'));
 const SpecialtyStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/SpecialtyStats'));
 const StatusStats = lazy(() => import('./Pages/AuthUser/SuperAdmin/ArchivedStats/StatusStats'));
@@ -119,6 +120,7 @@ export default function App() {
               <Route path="event-tracking/:eventId" element={guard([1], <EventTracking />)} />
               <Route path="doctors-today/:eventId" element={guard([1, 9], <DoctorsToday />)} />
               <Route path="admin-actions" element={guard([1], <AdminActions />)} />
+              <Route path="whatsapp/:eventId" element={guard([1], <WhatsAppMessages />)} />
               <Route path="check-presence/:eventId" element={guard([1, 3, 5, 9], <CheckPresence />)} />
               <Route path="appointment-distribution/:eventId" element={guard([1], <EventAppointmentDistribution />)} />
               <Route path="event-statistics/:eventId" element={guard([1, 9], <VisitsStatistics />)} />

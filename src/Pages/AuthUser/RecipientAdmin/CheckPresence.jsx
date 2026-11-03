@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config/environment';
 import { useState, useEffect, useContext, useMemo, useCallback, useRef } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import QRScanner from './QRScannerLazy';
 import { escapeHtml, writePrintDocument, csvSafe } from "../../../utils/safeHtml";
@@ -142,6 +142,7 @@ const CheckPresence = () => {
   const { token, user } = useContext(AppContext);
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const role = user?.role_id;
   const isAdmin = role === 1;
@@ -2477,6 +2478,11 @@ ${appointmentsList}
             <SheetAction icon={ClipboardList} hint={isTrue(p.is_evaluated) ? 'سبق إرسال الرابط' : 'رابط استبيان رضا الزائر'} onClick={run(() => sendEvaluationLinkViaWhatsApp(p, eventId))}>
               أرسل رابط التقييم
             </SheetAction>
+            {isAdmin && (
+              <SheetAction icon={MessageCircle} hint="من قالب معتمد، يُرسل مباشرة من رقم المؤسسة" onClick={run(() => navigate(`/admin/whatsapp/${eventId}?patient=${p.patient_id}`))}>
+                أرسل رسالة واتساب (قالب)
+              </SheetAction>
+            )}
             <SheetAction icon={Pencil} onClick={run(() => startEditing(p))}>عدّل البيانات</SheetAction>
           </>
         )}
