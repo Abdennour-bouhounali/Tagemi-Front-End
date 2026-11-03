@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../../../config/environment';
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Save, Trash2, CheckCircle2, AlertTriangle, X, Eraser } from "lucide-react";
+import { Plus, Save, Trash2, CheckCircle2, AlertTriangle, X, Eraser, Loader2 } from "lucide-react";
 import { Button, IconButton, useToast, cx } from "../../../Components/ui";
 import algeriaLocations from "../../../data/algeria_locations.json";
 import { hasFreeSlot, searchKey } from "../../../utils/specialtyLoad";
@@ -20,17 +20,19 @@ const TAWAT_CITIES = [
 const SEX_OPTIONS = [{ value: '0', label: 'ذكر' }, { value: '1', label: 'أنثى' }];
 
 // Column order = Enter order
+// Shares of a fixed-layout table (the # and button columns are fixed): it fits
+// the page, no sideways scroll on a laptop
 const COLUMNS = [
-  { key: 'name', label: 'الاسم', width: 'min-w-[8rem]' },
-  { key: 'lastName', label: 'اللقب', width: 'min-w-[8rem]' },
-  { key: 'birthday', label: 'تاريخ الميلاد', width: 'min-w-[8rem]' },
-  { key: 'sex', label: 'الجنس', width: 'min-w-[6rem]' },
-  { key: 'phone', label: 'الهاتف', width: 'min-w-[8.5rem]' },
-  { key: 'phone2', label: 'هاتف ثان', width: 'min-w-[8.5rem]', optional: true },
-  { key: 'state', label: 'الولاية', width: 'min-w-[10rem]' },
-  { key: 'city', label: 'البلدية', width: 'min-w-[10rem]' },
-  { key: 'specialties', label: 'التخصصات', width: 'min-w-[14rem]' },
-  { key: 'diseases', label: 'أمراض مزمنة', width: 'min-w-[9rem]', optional: true },
+  { key: 'name', label: 'الاسم', width: '9.5%' },
+  { key: 'lastName', label: 'اللقب', width: '9.5%' },
+  { key: 'birthday', label: 'تاريخ الميلاد', width: '9.5%' },
+  { key: 'sex', label: 'الجنس', width: '7%' },
+  { key: 'phone', label: 'الهاتف', width: '10%' },
+  { key: 'phone2', label: 'هاتف ثان', width: '9.5%', optional: true },
+  { key: 'state', label: 'الولاية', width: '9.5%' },
+  { key: 'city', label: 'البلدية', width: '9.5%' },
+  { key: 'specialties', label: 'التخصصات', width: '16%' },
+  { key: 'diseases', label: 'أمراض مزمنة', width: '9.5%', optional: true },
 ];
 
 let keySeq = 0;
@@ -42,7 +44,15 @@ const emptyRow = () => ({
 });
 
 /** "4/5/1980", "04-05-1980", "04.05.1980", "04051980" or "1980-05-04" → "1980-05-04"; null when not a real past date. */
-export function parseBirthday(text) {
+/** Digits only, the slashes come by themselves: "12031975" → "12/03/1975". */
+function maskBirthday(text) {
+  const digits = String(text || '').replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function parseBirthday(text) {
   const t = String(text || '').trim();
   let d, m, y;
   let match = t.match(/^(\d{1,2})\s*[/.\-\s]\s*(\d{1,2})\s*[/.\-\s]\s*(\d{4})$/);
@@ -69,7 +79,7 @@ function validate(row, maxSpecialties, isTawat) {
   if (!row.phone.trim()) errors.phone = 'الهاتف مطلوب';
   else if (!PHONE.test(row.phone.trim())) errors.phone = 'رقم الهاتف غير صحيح';
   if (row.phone2.trim() && !PHONE.test(row.phone2.trim())) errors.phone2 = 'رقم الهاتف الثاني غير صحيح';
-  if (!isTawat && !row.state) errors.state = 'الولاية مطلوبة';
+  if (!row.state) errors.state = 'الولاية مطلوبة';
   if (!row.city) errors.city = isTawat ? 'القصر مطلوب' : 'البلدية مطلوبة';
   if (row.specialties.length === 0) errors.specialties = 'اختر تخصصاً واحداً على الأقل';
   else if (row.specialties.length > maxSpecialties) errors.specialties = `${maxSpecialties} تخصص كحد أقصى`;
@@ -132,8 +142,7 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
 
   /** Enter on a cell: next cell, or the first cell of the next unsaved row (a new row after the last). */
   const next = (rowIndex, colIndex) => {
-    let c = colIndex + 1;
-    if (isTawat && COLUMNS[c]?.key === 'state') c += 1;
+    const c = colIndex + 1;
     if (c < COLUMNS.length) return focusCell(rowIndex, c);
     const target = rows.findIndex((r, i) => i > rowIndex && r.status !== 'saved');
     if (target !== -1) return focusCell(target, 0);
@@ -189,7 +198,7 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
             sex: r.sex,
             phone: r.phone.trim(),
             phone2: r.phone2.trim() || null,
-            state: isTawat ? 'غرداية' : r.state,
+            state: r.state,
             city: r.city,
             diseases: r.diseases.trim() || null,
             specialties: r.specialties,
@@ -251,18 +260,25 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
         <Button size="sm" icon={Save} loading={savingAll} disabled={pending === 0} onClick={saveAll}>سجّل الكل ({pending})</Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-line bg-white">
-        <table className="w-full text-sm">
+      {/* Phones keep a sideways scroll; from a laptop width the table fits */}
+      <div className="overflow-x-auto lg:overflow-visible rounded-xl border border-line bg-white">
+        <table className="w-full min-w-[64rem] lg:min-w-0 table-fixed text-sm mb-0">
+          <colgroup>
+            {/* # and the buttons keep their size; the data columns share the rest */}
+            <col style={{ width: '28px' }} />
+            {COLUMNS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+            <col style={{ width: '76px' }} />
+          </colgroup>
           <thead className="bg-paper text-muted">
             <tr>
-              <th scope="col" className="px-2 py-2 text-start font-semibold w-8">#</th>
+              <th scope="col" className="px-1 py-2 text-start font-semibold">#</th>
               {COLUMNS.map((c) => (
-                <th key={c.key} scope="col" className={cx('px-2 py-2 text-start font-semibold whitespace-nowrap', c.width)}>
+                <th key={c.key} scope="col" className="px-1 py-2 text-start font-semibold leading-tight">
                   {c.key === 'city' && isTawat ? 'القصر' : c.label}
-                  {c.optional && <span className="font-normal"> (اختياري)</span>}
+                  {c.optional && <span className="block text-xs font-normal">اختياري</span>}
                 </th>
               ))}
-              <th scope="col" className="px-2 py-2 text-start font-semibold min-w-[11rem]">الحفظ</th>
+              <th scope="col" className="px-1 py-2 text-start font-semibold"><span className="sr-only">الحفظ</span></th>
             </tr>
           </thead>
           <tbody>
@@ -274,12 +290,11 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
                 error: row.errors?.[COLUMNS[c].key],
                 label: COLUMNS[c].label,
               });
+              const tone = cx(row.status === 'saved' && 'bg-emerald-50/60', row.status === 'error' && 'bg-red-50/50');
               return (
-                <tr
-                  key={row.key}
-                  className={cx('border-t border-line align-top', row.status === 'saved' && 'bg-emerald-50/60', row.status === 'error' && 'bg-red-50/50')}
-                >
-                  <td className="px-2 py-3 text-muted tabular-nums">{r + 1}</td>
+                <Fragment key={row.key}>
+                <tr className={cx('border-t border-line align-top', tone)}>
+                  <td className="px-1 py-3 text-muted tabular-nums">{r + 1}</td>
                   <td className="p-1"><CellInput {...cellProps(0)} value={row.name} onChange={(v) => update(row.key, { name: v })} onKeyDown={onEnter(r, 0)} /></td>
                   <td className="p-1"><CellInput {...cellProps(1)} value={row.lastName} onChange={(v) => update(row.key, { lastName: v })} onKeyDown={onEnter(r, 1)} /></td>
                   <td className="p-1">
@@ -288,8 +303,9 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
                       value={row.birthday}
                       dir="ltr"
                       inputMode="numeric"
-                      placeholder="يوم/شهر/سنة"
-                      onChange={(v) => update(row.key, { birthday: v })}
+                      placeholder="ي ي ش ش س س س س"
+                      maxLength={10}
+                      onChange={(v) => update(row.key, { birthday: maskBirthday(v) })}
                       onKeyDown={onEnter(r, 2)}
                     />
                   </td>
@@ -299,16 +315,15 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
                   <td className="p-1"><CellInput {...cellProps(4)} value={row.phone} dir="ltr" inputMode="tel" onChange={(v) => update(row.key, { phone: v })} onKeyDown={onEnter(r, 4)} /></td>
                   <td className="p-1"><CellInput {...cellProps(5)} value={row.phone2} dir="ltr" inputMode="tel" onChange={(v) => update(row.key, { phone2: v })} onKeyDown={onEnter(r, 5)} /></td>
                   <td className="p-1">
-                    {isTawat ? <span className="block px-2 py-2.5 text-muted">غرداية</span> : (
-                      <Combo
-                        {...cellProps(6)}
-                        options={wilayaOptions}
-                        value={row.state}
-                        placeholder="ابحث…"
-                        onPick={(v) => update(row.key, { state: v, city: v === row.state ? row.city : '' })}
-                        onNext={() => next(r, 6)}
-                      />
-                    )}
+                    <Combo
+                      {...cellProps(6)}
+                      options={wilayaOptions}
+                      value={row.state}
+                      placeholder="ابحث…"
+                      // Tawat events: the ksar list does not depend on the wilaya
+                      onPick={(v) => update(row.key, { state: v, city: v === row.state || isTawat ? row.city : '' })}
+                      onNext={() => next(r, 6)}
+                    />
                   </td>
                   <td className="p-1">
                     <Combo
@@ -332,24 +347,39 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
                     />
                   </td>
                   <td className="p-1"><CellInput {...cellProps(9)} value={row.diseases} onChange={(v) => update(row.key, { diseases: v })} onKeyDown={onEnter(r, 9)} /></td>
-                  <td className="px-2 py-1.5">
+                  <td className="px-1 py-1">
                     {row.status === 'saved' ? (
-                      <p className="flex items-center gap-1.5 text-emerald-800 font-semibold py-2">
-                        <CheckCircle2 className="w-4 h-4 shrink-0" /> رقم الزائر #{row.patientId}
-                      </p>
+                      <CheckCircle2 className="w-5 h-5 m-2.5 text-emerald-700" aria-label="سُجّل" />
                     ) : (
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" icon={Save} loading={row.status === 'saving'} disabled={isBlank(row) || savingAll} onClick={() => saveRow(row)}>سجّل</Button>
-                        <IconButton icon={Trash2} label="احذف الصف" disabled={row.status === 'saving'} onClick={() => removeRow(row.key)} />
+                      <div className="flex items-center">
+                        <IconButton
+                          icon={row.status === 'saving' ? Loader2 : Save}
+                          label="سجّل هذا الصف"
+                          className={cx('w-9 h-10 bg-ink text-white hover:bg-ink/90 disabled:opacity-40', row.status === 'saving' && '[&>svg]:animate-spin')}
+                          disabled={isBlank(row) || savingAll || row.status === 'saving'}
+                          onClick={() => saveRow(row)}
+                        />
+                        <IconButton icon={Trash2} label="احذف الصف" className="w-8 h-10" disabled={row.status === 'saving'} onClick={() => removeRow(row.key)} />
                       </div>
-                    )}
-                    {row.status === 'error' && row.message && (
-                      <p className="flex items-start gap-1 mt-1 text-xs text-red-700 max-w-[14rem]">
-                        <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {row.message}
-                      </p>
                     )}
                   </td>
                 </tr>
+                {/* Result of the row on its own line, full width */}
+                {(row.status === 'saved' || (row.status === 'error' && row.message)) && (
+                  <tr className={tone}>
+                    <td />
+                    <td colSpan={COLUMNS.length + 1} className="px-1 pb-2">
+                      {row.status === 'saved' ? (
+                        <p className="text-sm font-semibold text-emerald-800">سُجّل {row.name} {row.lastName} برقم الزائر #{row.patientId}</p>
+                      ) : (
+                        <p className="flex items-start gap-1 text-sm text-red-700">
+                          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {row.message}
+                        </p>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -360,7 +390,7 @@ export default function QuickRegister({ event, eventId, token, load, mayExceed, 
 }
 
 const cellClass = (error, disabled) => cx(
-  'w-full h-10 rounded-lg border bg-white px-2 text-sm text-ink outline-none focus:ring-2 focus:ring-ink/30 focus:border-ink',
+  'w-full min-w-0 h-10 rounded-lg border bg-white px-1.5 text-sm text-ink outline-none focus:ring-2 focus:ring-ink/30 focus:border-ink',
   error ? 'border-red-400' : 'border-line',
   disabled && 'bg-transparent border-transparent text-ink-soft',
 );
@@ -462,6 +492,7 @@ function Combo({ inputRef, options, value, onPick, onNext, error, disabled, plac
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
+  const [moved, setMoved] = useState(false); // the arrows were used since the cell got focus
   const selected = options.find((o) => o.value === value);
   const list = filterOptions(options, query);
   const rect = useAnchorRect(open, ownRef);
@@ -489,19 +520,21 @@ function Combo({ inputRef, options, value, onPick, onNext, error, disabled, plac
         disabled={disabled}
         placeholder={placeholder}
         value={open ? query : (selected?.label || '')}
-        onFocus={() => { setOpen(true); setQuery(''); setActive(Math.max(0, options.findIndex((o) => o.value === value))); }}
+        onFocus={() => { setOpen(true); setQuery(''); setMoved(false); setActive(Math.max(0, options.findIndex((o) => o.value === value))); }}
         onBlur={() => setOpen(false)}
         onChange={(e) => { setQuery(e.target.value); setActive(0); setOpen(true); }}
         onKeyDown={(e) => {
-          if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(i + 1, list.length - 1)); }
-          else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(i - 1, 0)); }
+          if (e.key === 'ArrowDown') { e.preventDefault(); setMoved(true); setActive((i) => Math.min(i + 1, list.length - 1)); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setMoved(true); setActive((i) => Math.max(i - 1, 0)); }
           else if (e.key === 'Escape') setOpen(false);
           else if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
             e.preventDefault();
             const o = list[active];
-            // Nothing typed and a value already chosen: keep it and move on
-            if (!query && selected) { setOpen(false); onNext(); }
-            else if (o && !o.disabled) pick(o);
+            // Typed or moved with the arrows: pick the highlighted option
+            if ((query || moved) && o && !o.disabled) pick(o);
+            // Nothing typed, a value already chosen: keep it and move on.
+            // Nothing typed and nothing chosen: stay (never pick the first option by accident)
+            else if (!query && selected) { setOpen(false); onNext(); }
           }
         }}
         className={cellClass(error, disabled)}
@@ -531,6 +564,7 @@ function MultiCombo({ inputRef, options, values, max, onChange, onNext, error, d
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
+  const [moved, setMoved] = useState(false); // the arrows were used since the last add
   const list = filterOptions(options.filter((o) => !values.includes(o.value)), query);
   const rect = useAnchorRect(open, ownRef);
   const full = values.length >= max;
@@ -580,20 +614,21 @@ function MultiCombo({ inputRef, options, values, max, onChange, onNext, error, d
           aria-invalid={!!error || undefined}
           placeholder={full ? 'Enter للخانة التالية' : 'ابحث عن تخصص…'}
           value={query}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { setOpen(true); setMoved(false); }}
           onBlur={() => setOpen(false)}
           onChange={(e) => { setQuery(e.target.value); setActive(0); setOpen(true); }}
           onKeyDown={(e) => {
-            if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(i + 1, list.length - 1)); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(i - 1, 0)); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); setMoved(true); setActive((i) => Math.min(i + 1, list.length - 1)); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setMoved(true); setActive((i) => Math.max(i - 1, 0)); }
             else if (e.key === 'Escape') setOpen(false);
             else if (e.key === 'Backspace' && !query && values.length) onChange(values.slice(0, -1));
             else if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
               e.preventDefault();
               const o = list[active];
+              // Typed or moved with the arrows: add the highlighted specialty, stay for another
+              if ((query || moved) && o && !full) { add(o); setMoved(false); }
               // Nothing typed with at least one chosen (or the list is full): next cell
-              if ((!query && values.length) || full) { setOpen(false); onNext(); }
-              else if (o) add(o);
+              else if ((!query && values.length) || full) { setOpen(false); onNext(); }
             }
           }}
           className="w-full h-10 rounded-lg bg-transparent px-2 text-sm text-ink outline-none"

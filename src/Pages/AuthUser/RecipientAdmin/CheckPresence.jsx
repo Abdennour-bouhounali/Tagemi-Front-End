@@ -2561,8 +2561,9 @@ ${appointmentsList}
       />
 
       {/* Laptop: check-in panel in a sticky side column, patients in the rest */}
-      <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] lg:gap-6 lg:items-start">
-      <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+      {/* «إضافة تسجيلات» takes the whole width: the check-in panel is hidden meanwhile */}
+      <div className={cx(view !== 'add' && 'lg:grid lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] lg:gap-6 lg:items-start')}>
+      <aside className={cx('lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto', view === 'add' && 'hidden')}>
       {/* Patient number: check-in (the main job), print, special case, details */}
       <form onSubmit={(e) => { e.preventDefault(); runNumberAction(mainAction.value); }} className="bg-white border border-line rounded-2xl p-4 mb-4">
           {/* Direct Barcode Scanner & Printing Status / Controls */}
