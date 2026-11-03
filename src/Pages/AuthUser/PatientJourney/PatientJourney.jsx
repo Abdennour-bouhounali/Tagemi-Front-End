@@ -7,7 +7,7 @@ import guideHtml from './patient-journey.html?raw';
 export default function PatientJourney() {
   return (
     <iframe
-      title="رحلة المريض"
+      title="رحلة الزائر"
       srcDoc={guideHtml}
       sandbox="allow-scripts"
       className="block bg-white -mx-4 -mt-4 -mb-28 w-[calc(100%+2rem)] h-[calc(100dvh-3.5rem-4.125rem-env(safe-area-inset-bottom))] lg:m-0 lg:w-full lg:h-[calc(100dvh-7rem)] lg:rounded-2xl lg:border lg:border-line"

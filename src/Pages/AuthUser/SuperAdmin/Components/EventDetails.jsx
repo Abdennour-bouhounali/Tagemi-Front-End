@@ -128,7 +128,7 @@ const EventDetails = ({ event, onClose }) => {
     </div>
     <ol>
       <li><span class="n">1</span>امسح الرمز بهاتفك</li>
-      <li><span class="n">2</span>أدخل رقم المريض ورقم هاتفك</li>
+      <li><span class="n">2</span>أدخل رقم الزائر ورقم هاتفك</li>
       <li><span class="n">3</span>تابع دورك مباشرة</li>
     </ol>
   </div>
@@ -148,9 +148,9 @@ const EventDetails = ({ event, onClose }) => {
   const status = ev?.is_archived ? 'مؤرشف' : ev?.is_active ? 'نشط' : 'غير نشط';
 
   const links = [
-    { icon: LinkIcon, title: 'رابط الحجز', hint: 'شاركه مع المرضى ليحجزوا موعدًا', url: appointmentLink, label: 'رابط الحجز' },
+    { icon: LinkIcon, title: 'رابط الحجز', hint: 'شاركه مع الزوار ليحجزوا موعدًا', url: appointmentLink, label: 'رابط الحجز' },
     { icon: Monitor, title: 'شاشة قاعة الانتظار', hint: 'افتحه على شاشة العرض في القاعة', url: waitingListLink, label: 'رابط شاشة الانتظار' },
-    { icon: Ticket, title: 'صفحة «اعرف دورك»', hint: 'يمسح المريض رمز QR ليعرف عدد من أمامه', url: myTurnLink, label: 'رابط «اعرف دورك»' },
+    { icon: Ticket, title: 'صفحة «اعرف دورك»', hint: 'يمسح الزائر رمز QR ليعرف عدد من أمامه', url: myTurnLink, label: 'رابط «اعرف دورك»' },
   ];
 
   return (

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>رحلة المريض · تجمي</title>
+<title>رحلة الزائر · تجمي</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@600;700;800&display=swap" rel="stylesheet">
@@ -430,8 +430,8 @@ main{padding:20px 0 48px}
     <div class="brand"><i>ت</i> مؤسسة تجمي للتنمية الإنسانية · دليل منصة الحملات الطبية</div>
     <div class="hero">
       <div>
-        <h1>رحلة المريض، من الحجز إلى التقييم</h1>
-        <p>دليل تفاعلي يشرح ما يحدث للمريض في كل مرحلة، ومن يقوم بكل خطوة، وكيف تتصرف الطوابير في كل الحالات: عدة تخصصات، التمدد، الإنزال، الحالات الخاصة، الإحالة والأخطاء.</p>
+        <h1>رحلة الزائر، من الحجز إلى التقييم</h1>
+        <p>دليل تفاعلي يشرح ما يحدث للزائر في كل مرحلة، ومن يقوم بكل خطوة، وكيف تتصرف الطوابير في كل الحالات: عدة تخصصات، التمدد، الإنزال، الحالات الخاصة، الإحالة والأخطاء.</p>
       </div>
     </div>
     <nav class="tabs" role="tablist" aria-label="أقسام الدليل">
@@ -472,16 +472,16 @@ main{padding:20px 0 48px}
   <!-- ============ SANDBOX ============ -->
   <section id="tab-sandbox" role="tabpanel" aria-labelledby="t-sandbox" hidden>
     <div class="sb-top">
-      <button class="btn pri" id="sbBook">+ حجز مريض جديد</button>
-      <button class="btn" id="sbBookOther">+ مريض موعده يوم آخر</button>
+      <button class="btn pri" id="sbBook">+ حجز زائر جديد</button>
+      <button class="btn" id="sbBookOther">+ زائر موعده يوم آخر</button>
       <button class="btn" id="sbReset">إعادة من البداية</button>
       <span class="sp"></span>
     </div>
-    <p class="hint">اضغط على أي مريض لترى الأزرار المتاحة له في التطبيق. كل زر يطبّق نفس قواعد الطابور الموجودة في الخادم، والأخطاء هي نفس الرسائل التي يراها الطاقم.</p>
+    <p class="hint">اضغط على أي زائر لترى الأزرار المتاحة له في التطبيق. كل زر يطبّق نفس قواعد الطابور الموجودة في الخادم، والأخطاء هي نفس الرسائل التي يراها الطاقم.</p>
     <div class="sb-grid">
       <div class="sb-board sandbox"><div class="board" id="sbBoard"></div></div>
       <div class="sb-side">
-        <div class="panel"><h3>صفحة «دوري» <small style="font-family:var(--ui);font-weight:500;color:var(--muted);font-size:11.5px">لآخر مريض اخترته</small></h3><div id="sbTurn" class="mt-live"></div></div>
+        <div class="panel"><h3>صفحة «دوري» <small style="font-family:var(--ui);font-weight:500;color:var(--muted);font-size:11.5px">لآخر زائر اخترته</small></h3><div id="sbTurn" class="mt-live"></div></div>
         <div class="panel"><h3>سجل العمليات</h3><div class="log" id="sbLog"></div></div>
       </div>
     </div>
@@ -554,10 +554,10 @@ class Engine {
     let t = this.todays(pid);
     if (!t.length) {
       const all = this.appts.filter(a => a.pid === pid);
-      if (!all.length) throw new RuleError('لا يوجد مريض بهذا الرقم في هذا الحدث');
-      throw new RuleError('ليس للمريض موعد اليوم. مواعيده: ' + [...new Set(all.map(a => a.date))].join('، '));
+      if (!all.length) throw new RuleError('لا يوجد زائر بهذا الرقم في هذا الحدث');
+      throw new RuleError('ليس للزائر موعد اليوم. مواعيده: ' + [...new Set(all.map(a => a.date))].join('، '));
     }
-    if (t.some(a => a.status !== 'Pending')) throw new RuleError('المريض مسجل حضوره اليوم مسبقاً');
+    if (t.some(a => a.status !== 'Pending')) throw new RuleError('الزائر مسجل حضوره اليوم مسبقاً');
     const at = this.tick++;
     t.forEach(a => (a.checkedAt = at));
     const special = priority || t.some(a => a.special);
@@ -592,17 +592,17 @@ class Engine {
     });
   }
   sendDil(a) {
-    this.assert(a, QUEUE, 'المريض ليس في قائمة الانتظار');
+    this.assert(a, QUEUE, 'الزائر ليس في قائمة الانتظار');
     if (!this.spec(a.es).dil) throw new RuleError('هذا التخصص ليس له قاعة تمدد');
     a.sentAt = this.tick++; a.startedAt = 0;
     this.leaveQueue(a, 'DilatationSent');
   }
   receiveDil(a) {
-    this.assert(a, ['DilatationSent'], 'المريض ليس في الطريق إلى التمدد');
+    this.assert(a, ['DilatationSent'], 'الزائر ليس في الطريق إلى التمدد');
     a.status = 'Dilatation'; a.startedAt = Date.now();
   }
   finishDil(a) {
-    this.assert(a, DIL, 'المريض ليس في التمدد');
+    this.assert(a, DIL, 'الزائر ليس في التمدد');
     a.status = 'Present';
     this.place(a, null, true);
   }
@@ -613,8 +613,8 @@ class Engine {
     if (!notIn && !this.spec(a.es).open) throw new RuleError('هذا التخصص غير مفتوح اليوم، اختر تخصصاً مفتوحاً');
     t.forEach(x => (x.special = true));
     if (notIn) return this.checkIn(a.pid, a.id, true) || a;
-    if (a.status === 'Completed') throw new RuleError('تم فحص المريض في هذا التخصص مسبقاً');
-    if (t.some(x => DIL.includes(x.status) && x !== a)) throw new RuleError('المريض في التمدد حالياً، أنهِ التمدد أولاً');
+    if (a.status === 'Completed') throw new RuleError('تم فحص الزائر في هذا التخصص مسبقاً');
+    if (t.some(x => DIL.includes(x.status) && x !== a)) throw new RuleError('الزائر في التمدد حالياً، أنهِ التمدد أولاً');
     t.forEach(x => { if (x !== a && QUEUE.includes(x.status)) this.setWaiting(x); });
     a.status = 'Present';
     this.place(a, null, true);
@@ -623,13 +623,13 @@ class Engine {
   referCheck(cur, k) {
     const target = this.spec(k);
     if (!target.open) return 'هذا التخصص مغلق حالياً';
-    if (this.appts.some(a => a.pid === cur.pid && a.es === k)) return 'المريض مسجل في هذا التخصص مسبقاً';
+    if (this.appts.some(a => a.pid === cur.pid && a.es === k)) return 'الزائر مسجل في هذا التخصص مسبقاً';
     if (!target.today) return 'هذا التخصص لا يعمل اليوم';
     return null;
   }
   // Specialty officer: "إرسال إلى تخصص آخر"
   refer(cur, k) {
-    this.assert(cur, QUEUE, 'المريض ليس في قائمة الانتظار');
+    this.assert(cur, QUEUE, 'الزائر ليس في قائمة الانتظار');
     const why = this.referCheck(cur, k);
     if (why) throw new RuleError(why);
     const n = {
@@ -643,9 +643,9 @@ class Engine {
   }
   // Special-cases admin: change the specialty of an appointment
   transfer(a, k) {
-    if (a.status === 'Completed') throw new RuleError('تم فحص المريض في هذا التخصص، لا يمكن نقله');
-    if (a.status === 'Dilatation') throw new RuleError('المريض في التمدد، لا يمكن نقله الآن');
-    if (this.appts.some(x => x.pid === a.pid && x.es === k)) throw new RuleError('المريض مسجل في هذا التخصص مسبقاً');
+    if (a.status === 'Completed') throw new RuleError('تم فحص الزائر في هذا التخصص، لا يمكن نقله');
+    if (a.status === 'Dilatation') throw new RuleError('الزائر في التمدد، لا يمكن نقله الآن');
+    if (this.appts.some(x => x.pid === a.pid && x.es === k)) throw new RuleError('الزائر مسجل في هذا التخصص مسبقاً');
     const prev = a.status, old = a.es;
     a.es = k; a.order = 0;
     this.renumber(old);
@@ -751,7 +751,7 @@ const I = {
 const svg = (k, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
 
 const ROLES = {
-  patient: { label: 'المريض', icon: 'user', bg: '#FBE4EC', fg: '#B42656' },
+  patient: { label: 'الزائر', icon: 'user', bg: '#FBE4EC', fg: '#B42656' },
   reception: { label: 'مسؤول الاستقبال', icon: 'desk', bg: '#E3F4EE', fg: '#0F8A6C' },
   officer: { label: 'مسؤول التخصص', icon: 'steth', bg: '#E8EBF7', fg: '#4F5FA3' },
   manager: { label: 'مسؤول القاعة الصغرى', icon: 'down', bg: '#FBF0DC', fg: '#8A5300' },
@@ -952,10 +952,10 @@ function scrBooking(d) {
 function scrBooked(d) {
   return phone(`<div class="shead"><b>تم حجز موعدك بنجاح!</b><small>${esc(d.event)}</small></div>
     <div class="sbody">
-      <div class="tic"><div class="l"><small>رقم المريض</small><b>${d.pid}</b><small>${esc(d.name)}</small></div><div class="r">${QR}</div></div>
+      <div class="tic"><div class="l"><small>رقم الزائر</small><b>${d.pid}</b><small>${esc(d.name)}</small></div><div class="r">${QR}</div></div>
       ${d.rows.map((r, i) => `<div class="arow" ${delay(i, .7)}><b>${esc(r[0])}</b><small>${esc(r[1])}</small></div>`).join('')}
       ${d.warn ? `<div class="warnscr">${esc(d.warn)}</div>` : ''}
-      <div class="note" ${delay(d.rows.length + 1, .7)}>احتفظ برقم المريض: تحتاجه يوم الفحص وفي صفحة «دوري».</div>
+      <div class="note" ${delay(d.rows.length + 1, .7)}>احتفظ برقم الزائر: تحتاجه يوم الفحص وفي صفحة «دوري».</div>
     </div>`);
 }
 function scrWhatsApp(d) {
@@ -963,12 +963,12 @@ function scrWhatsApp(d) {
     <div class="wa-body"><div class="typing"><i></i><i></i><i></i></div><div class="bubble">${d.html}</div></div>`);
 }
 function scrMyTurn(d) {
-  const blocks = d.patients.map((p, pi) => `<div class="mt" ${delay(pi, 1.3, .3)}><h5>${esc(p.first)} <small>رقم المريض ${p.pid}</small></h5>
+  const blocks = d.patients.map((p, pi) => `<div class="mt" ${delay(pi, 1.3, .3)}><h5>${esc(p.first)} <small>رقم الزائر ${p.pid}</small></h5>
     ${p.rows.map(r => `<div class="mtr"><div class="a"><b>${esc(r.spec)}</b><span class="st ${r.status}">${r.label}</span></div>
       ${r.pos ? `<div class="pos"><strong>${r.pos}</strong> دورك · قبلك ${r.pos - 1}${r.pri ? ' · <span style="color:var(--rose);font-weight:700">أولوية</span>' : ''}</div>` : ''}
       ${r.go ? `<div class="go">${r.go}</div>` : ''}${r.when ? `<div class="pos">${r.when}</div>` : ''}</div>`).join('')}
   </div>`).join('');
-  return phone(`<div class="shead"><b>دوري</b><small>اكتب رقم المريض أو رقم الهاتف</small></div>
+  return phone(`<div class="shead"><b>دوري</b><small>اكتب رقم الزائر أو رقم الهاتف</small></div>
     <div class="sbody"><div class="inp" style="--n:${d.query.length}"><span>${esc(d.query)}</span></div>${blocks}
     <div style="font-size:10.5px;color:var(--muted);text-align:center;opacity:0;animation:fin .3s 2s forwards">آخر تحديث ${d.at || '10:42'}</div></div>`);
 }
@@ -1002,7 +1002,7 @@ function scrError(title, d) {
       <div class="errscr" ${d.ok ? 'style="animation-delay:1.1s;margin-top:0"' : ''}><small>${esc(d.code || '')}</small>${esc(d.msg)}</div></div>`);
 }
 function scanner(d) {
-  return `<div class="tablet"><div class="screen"><div class="shead" style="padding-top:12px"><b>الحضور</b><small>مسح QR أو كتابة رقم المريض</small></div>
+  return `<div class="tablet"><div class="screen"><div class="shead" style="padding-top:12px"><b>الحضور</b><small>مسح QR أو كتابة رقم الزائر</small></div>
     <div class="viewf"><div class="card">${QR.replace('class="qr"', 'class="qr" style="width:70px;height:70px"')}<b>#${d.pid}</b></div><div class="corner"></div><div class="laser"></div></div>
     <div class="or">أو</div>
     <div style="margin:0 12px"><div class="inp" style="--n:${String(d.pid).length}"><span>${d.pid}</span></div></div>
@@ -1020,7 +1020,7 @@ function referSheet(e, cur, keys, pick) {
   return `<div class="sheetmock"><h5>إرسال إلى تخصص آخر · #${cur.pid} ${esc(cur.name)}</h5>
     ${keys.map(k => { const why = k === cur.es ? 'التخصص الحالي' : e.referCheck(cur, k); const s = e.spec(k);
       return `<div class="opt ${why ? 'no' : k === pick ? 'yes' : ''}"><span>${esc(s.name)}</span><small>${why || (k === pick ? 'سيُختار' : 'متاح')}</small></div>`; }).join('')}
-    <div style="font-size:11.5px;color:var(--muted);margin-top:8px">تظهر فقط التخصصات العاملة اليوم والمفتوحة (وصل طبيبها)، والتي ليس للمريض موعد فيها.</div></div>`;
+    <div style="font-size:11.5px;color:var(--muted);margin-top:8px">تظهر فقط التخصصات العاملة اليوم والمفتوحة (وصل طبيبها)، والتي ليس للزائر موعد فيها.</div></div>`;
 }
 
 /* =====================================================================
@@ -1029,7 +1029,7 @@ function referSheet(e, cur, keys, pick) {
 const EVENT = 'حملة الفحوصات الطبية المجانية';
 const amina = { first: 'أمينة', last: 'بن علي', birth: '1968-04-12', place: 'الجزائر · باب الوادي', phone: '0555 12 34 56', phone2: '0661 98 76 54', event: EVENT };
 const remind = (name, rows) => `السلام عليكم ${name}،\n\nنذكر سيادتكم المحترمة ${rows.length > 1 ? 'بمواعيد' : 'بموعد'} الفحوصات الطبية:\n<b>${EVENT}</b>\n${rows.map((r, i) => `${i + 1}. التخصص: ${r[0]}\n   ${r[1]}`).join('\n')}\n\n<b>الحضور بمحرم إجباري بالنسبة للنساء</b>\n\nنرجو الحضور ربع ساعة قبل الموعد لضمان السيرورة الحسنة للفحوصات.\n\nفريق مؤسسة تجمي للتنمية الإنسانية`;
-const evalMsg = name => `<a>https://tagemi-foundation.org/evaluation/12/5481</a>\n\nالسلام عليكم ورحمة الله وبركاته ${name}،\n\nنسأل الله الشفاء لكم ولجميع مرضى المسلمين.\n\nنرجو منكم تقييم تجربتكم من خلال الرابط أعلاه.\n\nتقييمكم يساعدنا على تحسين حملاتنا الطبية مستقبلا.`;
+const evalMsg = name => `<a>https://tagemi-foundation.org/evaluation/12/5481</a>\n\nالسلام عليكم ورحمة الله وبركاته ${name}،\n\nنسأل الله الشفاء لكم ولجميع زوار المسلمين.\n\nنرجو منكم تقييم تجربتكم من خلال الرابط أعلاه.\n\nتقييمكم يساعدنا على تحسين حملاتنا الطبية مستقبلا.`;
 
 // background patients: book and check them in
 function crowd(e, k, people) { people.forEach(([pid, name]) => { e.book(pid, name, [k]); e.checkIn(pid); }); }
@@ -1052,18 +1052,18 @@ const SCENARIOS = [
         text: 'تفتح أمينة صفحة الحملة وتملأ الاستمارة: الاسم واللقب، تاريخ الميلاد، الولاية والبلدية، رقمَي هاتف، الجنس والأمراض المزمنة إن وجدت. ثم تختار التخصص واليوم والساعة المتاحة.',
         rule: 'يمكن إرفاق حتى 5 وثائق طبية (PDF، صور، Word) بحجم أقصى 10 ميغا لكل ملف. لا يقبل الحجز إلا إذا كانت الحملة نشطة وغير مؤرشفة.',
         scene: () => scrBooking({ ...amina, max: 3, specs: [{ name: 'طب الأسنان', when: 'السبت 25 أكتوبر · 09:00' }], docs: 'تحليل الدم.pdf' }) },
-      { m: 0, who: 'system', title: 'رقم المريض',
-        text: 'يُحفظ الحجز وتحصل أمينة على رقم مريض واحد (#128) يجمع كل مواعيدها في هذه الحملة. حالة موعدها الآن «لم يحضر بعد».',
-        rule: 'رقم المريض هو مفتاح كل شيء بعدها: رمز QR، تسجيل الحضور، وصفحة «دوري».',
+      { m: 0, who: 'system', title: 'رقم الزائر',
+        text: 'يُحفظ الحجز وتحصل أمينة على رقم زائر واحد (#128) يجمع كل مواعيدها في هذه الحملة. حالة موعدها الآن «لم يحضر بعد».',
+        rule: 'رقم الزائر هو مفتاح كل شيء بعدها: رمز QR، تسجيل الحضور، وصفحة «دوري».',
         scene: () => scrBooked({ event: EVENT, pid: 128, name: 'أمينة بن علي', rows: [['طب الأسنان', 'السبت 25 أكتوبر · 09:00']] }) },
       { m: 1, who: 'reception', title: 'تذكير عبر واتساب',
-        text: 'قبل يوم الفحص يفتح مسؤول الاستقبال قائمة المرضى ويرسل لكل واحد رسالة تذكير جاهزة بمواعيده. يُسجَّل التذكير، فتعرف الإحصائيات من ذُكّر ومن لم يُذكَّر بعد.',
+        text: 'قبل يوم الفحص يفتح مسؤول الاستقبال قائمة الزوار ويرسل لكل واحد رسالة تذكير جاهزة بمواعيده. يُسجَّل التذكير، فتعرف الإحصائيات من ذُكّر ومن لم يُذكَّر بعد.',
         scene: () => scrWhatsApp({ html: remind('أمينة بن علي', [['طب الأسنان', 'التاريخ: 2026-10-25 · التوقيت: 09:00']]) }) },
       { m: 2, who: 'reception', title: 'تسجيل الحضور يوم الفحص', board: false,
-        text: 'عند الباب يمسح مسؤول الاستقبال رمز QR أو يكتب رقم المريض. تنتقل أمينة إلى «في الطابور» وتأخذ آخر مكان في طابور طب الأسنان.',
+        text: 'عند الباب يمسح مسؤول الاستقبال رمز QR أو يكتب رقم الزائر. تنتقل أمينة إلى «في الطابور» وتأخذ آخر مكان في طابور طب الأسنان.',
         rule: 'لا يشارك في طوابير اليوم إلا الموعد المحجوز لتاريخ اليوم (بتوقيت الجزائر).',
         act: e => e.checkIn(128),
-        scene: e => scanner({ pid: 128, msg: 'تم تسجيل حضور المريض #128، يتوجه إلى طب الأسنان', sub: `مرتبته في الطابور: ${e.pos(e.find(128, 'dent'))}` }) },
+        scene: e => scanner({ pid: 128, msg: 'تم تسجيل حضور الزائر #128، يتوجه إلى طب الأسنان', sub: `مرتبته في الطابور: ${e.pos(e.find(128, 'dent'))}` }) },
       { m: 3, who: 'officer', title: 'شاشة طابور التخصص', board: true,
         text: 'هذا ما يراه مسؤول التخصص على هاتفه: الطابور مرتب 1، 2، 3… ومن حجزوا ولم يحضروا بعد ينتظرون «عند الباب». كل حركة تظهر على كل الشاشات خلال ثوانٍ.' },
       { m: 3, who: 'patient', title: 'صفحة «دوري»',
@@ -1072,22 +1072,22 @@ const SCENARIOS = [
         scene: e => `<div class="devrow">${scrMyTurn({ query: '128', patients: [turnData(e, 128)] })}${hallTv(e, 128, ['dent', 'intern'])}</div>`,
         note: 'وعلى شاشة القاعة الكبيرة تُعرض الطوابير للجميع: تتبدل العروض تلقائياً أو يختار المسؤول عرضاً يدوياً، ولكل شاشة تخصصاتها، مع زر ملء الشاشة.' },
       { m: 3, who: 'officer', title: 'الطابور يتقدّم', board: true,
-        text: 'كلما أنهى مريض فحصه ضغط مسؤول التخصص «إجتاز»، فيخرج من الطابور ويتقدم كل من بعده مكاناً.',
+        text: 'كلما أنهى زائر فحصه ضغط مسؤول التخصص «إجتاز»، فيخرج من الطابور ويتقدم كل من بعده مكاناً.',
         acts: passN('dent', 3) },
       { m: 4, who: 'officer', title: 'الفحص ثم «إجتاز»', board: true,
         text: 'يأتي دور أمينة، يفحصها الطبيب ويضغط المسؤول «إجتاز». ليس لها تخصص آخر اليوم، فتكتمل زيارتها.',
-        rule: 'رسالة التطبيق: «أنهى المريض كل تخصصاته لهذا اليوم».',
+        rule: 'رسالة التطبيق: «أنهى الزائر كل تخصصاته لهذا اليوم».',
         act: e => e.complete(e.find(128, 'dent')) },
       { m: 5, who: 'reception', title: 'رابط التقييم',
         text: 'بعد الفحص يرسل الاستقبال رابط التقييم عبر واتساب. تجيب أمينة عن خمسة أسئلة بالنجوم وتكتب اقتراحاتها، ويطلع عليها المدير العام في صفحة التقييمات.',
         scene: () => `<div class="devrow">${scrWhatsApp({ html: evalMsg('أمينة بن علي') })}${scrEvaluation()}</div>` },
       { m: 5, who: 'system', title: 'انتهت الرحلة',
         text: 'هذه هي الرحلة الأساسية. السيناريوهات التالية تشرح كل ما يمكن أن يتغير في الطريق.',
-        scene: e => summary(e, 128, ['حجزت', 'ذُكّرت', 'سجّلت حضورها', 'انتظرت 3 مرضى', 'فُحصت', 'قيّمت التجربة']) },
+        scene: e => summary(e, 128, ['حجزت', 'ذُكّرت', 'سجّلت حضورها', 'انتظرت 3 زوار', 'فُحصت', 'قيّمت التجربة']) },
     ],
   },
   {
-    id: 'open', title: 'فتح الطوابير عند وصول الأطباء', sub: 'المدير العام يفتح التخصص، والمنصة توزّع المرضى', focus: 128,
+    id: 'open', title: 'فتح الطوابير عند وصول الأطباء', sub: 'المدير العام يفتح التخصص، والمنصة توزّع الزوار', focus: 128,
     setup(e) {
       e.addSpec('eye', 'تصحيح النظر', { open: false }).addSpec('dent', 'طب الأسنان', { open: false }).addSpec('card', 'أمراض القلب', { open: false });
       e.book(128, 'أمينة', ['eye', 'dent']);
@@ -1099,31 +1099,31 @@ const SCENARIOS = [
     },
     steps: [
       { m: 2, who: 'admin', title: 'بداية اليوم: كل الطوابير مغلقة', board: true,
-        text: 'كل يوم فحص يبدأ والتخصصات مغلقة، لأن الأطباء لم يصلوا بعد. التخصص المغلق لا يُرسَل إليه أي مريض، ولا يظهر على شاشة القاعة.',
+        text: 'كل يوم فحص يبدأ والتخصصات مغلقة، لأن الأطباء لم يصلوا بعد. التخصص المغلق لا يُرسَل إليه أي زائر، ولا يظهر على شاشة القاعة.',
         rule: 'الفتح صالح ليوم واحد فقط: في اليوم التالي تعود كل التخصصات مغلقة تلقائياً.' },
       { m: 2, who: 'reception', title: 'الحضور قبل وصول الطبيب', board: true,
         text: 'تصل أمينة ثم يوسف وخديجة. يُسجَّل حضورهم عادياً، لكن لا يوجد تخصص مفتوح لهم، فيبقون «في الانتظار» ويُحفظ وقت وصول كل واحد.',
-        rule: 'رسالة الاستقبال: «تم تسجيل حضور المريض، لا يوجد تخصص مفتوح له حالياً، سيُوجَّه عند وصول الطبيب».',
+        rule: 'رسالة الاستقبال: «تم تسجيل حضور الزائر، لا يوجد تخصص مفتوح له حالياً، سيُوجَّه عند وصول الطبيب».',
         acts: [e => e.checkIn(128), e => e.checkIn(121), e => e.checkIn(131)] },
       { m: 3, who: 'admin', title: 'وصل طبيب تصحيح النظر', board: true,
         text: 'يرى المدير العام الطبيب في قاعته، فيضغط «افتح الطابور» في صفحة طابور التخصص، أو من قائمة الأحداث (⋮ ← «فتح الطوابير عند وصول الأطباء»). يُرسَل إليه فوراً من ينتظره، بترتيب وصولهم: أمينة ثم يوسف.',
         rule: 'فتح التخصص وإغلاقه من صلاحية المدير العام فقط.',
         act: e => e.openSpec('eye') },
       { m: 2, who: 'reception', title: 'الأسنان ما زال مغلقاً', board: true,
-        text: 'يصل ستة مرضى حجزوا تصحيح النظر والأسنان. الأسنان مغلق، فيدخلون كلهم طابور تصحيح النظر ويطول الطابور.',
+        text: 'يصل ستة زوار حجزوا تصحيح النظر والأسنان. الأسنان مغلق، فيدخلون كلهم طابور تصحيح النظر ويطول الطابور.',
         acts: [122, 123, 124, 125, 126, 127].map(pid => e => e.checkIn(pid)) },
       { m: 3, who: 'admin', title: 'فُتح الأسنان: إعادة التوزيع', board: true,
         text: 'وصل طبيب الأسنان ففتح المدير التخصص. من حجزوا الأسنان وهم في آخر طابور تصحيح النظر ينتقلون إليه ما دام ذلك يقرّبهم من الدور، ويحافظون على ترتيب وصولهم. أما أصحاب المراتب الأولى فيبقون.',
-        rule: 'أول 5 مراتب من كل طابور وأصحاب الأولوية لا يُنقلون أبداً. التخصص الذي غادره المريض يعود «في الانتظار» ليُفحص فيه لاحقاً.',
+        rule: 'أول 5 مراتب من كل طابور وأصحاب الأولوية لا يُنقلون أبداً. التخصص الذي غادره الزائر يعود «في الانتظار» ليُفحص فيه لاحقاً.',
         act: e => e.openSpec('dent') },
       { m: 2, who: 'reception', title: 'الحضور يذهب إلى الأقل انتظاراً', board: true, focus: 130,
         text: 'يصل حمزة وقد حجز التخصصين. تختار المنصة الطابور المفتوح الأقصر، فيذهب إلى الأسنان.',
         act: e => e.checkIn(130) },
-      { m: 3, who: 'patient', title: 'ماذا يرى المرضى', focus: 131,
+      { m: 3, who: 'patient', title: 'ماذا يرى الزوار', focus: 131,
         text: 'شاشة القاعة تعرض التخصصات المفتوحة فقط. وخديجة التي حجزت القلب ترى في «دوري» أنها في انتظار وصول الطبيب.',
         scene: e => `<div class="devrow">${scrMyTurn({ query: '131', patients: [turnData(e, 131)] })}${hallTv(e, 128, ['eye', 'dent', 'card'])}</div>` },
       { m: 4, who: 'admin', title: 'غادر طبيب تصحيح النظر', board: true, focus: 132,
-        text: 'عند إغلاق التخصص لا يُرسل إليه مرضى جدد، لكن من في طابوره يُفحصون، ويبقى على شاشة القاعة حتى يفرغ طابوره. نور التي وصلت بعد الإغلاق تذهب إلى الأسنان.',
+        text: 'عند إغلاق التخصص لا يُرسل إليه زوار جدد، لكن من في طابوره يُفحصون، ويبقى على شاشة القاعة حتى يفرغ طابوره. نور التي وصلت بعد الإغلاق تذهب إلى الأسنان.',
         acts: [e => e.closeSpec('eye'), e => e.checkIn(132)] },
     ],
   },
@@ -1143,7 +1143,7 @@ const SCENARIOS = [
         scene: () => scrBooking({ ...amina, max: 3, specs: [{ name: 'الطب الداخلي', when: 'السبت · 09:00' }, { name: 'طب الأسنان', when: 'السبت · 10:00' }, { name: 'أمراض القلب', when: 'السبت · 11:00' }] }) },
       { m: 2, who: 'reception', title: 'الحضور: الطابور الأقل انتظاراً', board: true,
         text: 'عند تسجيل الحضور تختار المنصة من بين تخصصاتها المفتوحة الطابورَ الأقصر: الطب الداخلي (2 فقط، مقابل 3 في الأسنان و4 في القلب). أما الأسنان والقلب فيصبحان «في الانتظار».',
-        rule: 'المريض نشط في تخصص واحد فقط في كل لحظة، فلا يُنادى عليه في قاعتين معاً. عند تساوي الطوابير يُقدَّم التخصص الرئيسي.',
+        rule: 'الزائر نشط في تخصص واحد فقط في كل لحظة، فلا يُنادى عليه في قاعتين معاً. عند تساوي الطوابير يُقدَّم التخصص الرئيسي.',
         act: e => e.checkIn(128) },
       { m: 3, who: 'officer', title: 'ينتظر في الطب الداخلي', board: true,
         text: 'يتقدم طابور الطب الداخلي. لاحظ أن أمينة لا تظهر في طابوري الأسنان والقلب بعد.',
@@ -1159,7 +1159,7 @@ const SCENARIOS = [
         text: 'تُفحص في الأسنان، فينتقل القلب تلقائياً إلى الطابور، وتعاد نفس الحركة.',
         acts: [...passN('dent', 3), e => e.complete(e.find(128, 'dent'))] },
       { m: 4, who: 'officer', title: 'أنهت كل تخصصاتها', board: true,
-        text: 'بعد آخر «إجتاز» تكتمل زيارتها. في الإحصائيات تُحسب أمينة مريضة واحدة وثلاثة مواعيد، وتُعدّ «أنهت» فقط عندما تكتمل كل مواعيدها.',
+        text: 'بعد آخر «إجتاز» تكتمل زيارتها. في الإحصائيات تُحسب أمينة زائرة واحدة وثلاثة مواعيد، وتُعدّ «أنهت» فقط عندما تكتمل كل مواعيدها.',
         acts: [...passN('card', 4), e => e.complete(e.find(128, 'card'))] },
     ],
   },
@@ -1215,12 +1215,12 @@ const SCENARIOS = [
         text: 'يضغط مسؤول القاعة الصغرى «إنزال» على بطاقة أمينة، أو يضغط «مسح للإنزال» ويمسح رمز QR الخاص بها. يختار عدد المراتب (5 افتراضياً)، فتنزل أمينة وتظهر بعلامة «تم إنزاله». يبقى ترتيب الآخرين كما هو ويتقدمون مكاناً.',
         rule: 'مسؤول القاعة الصغرى يرى الطوابير مثل مسؤول التخصص، لكن إجراءه الوحيد هو «إنزال»: لا يستطيع «إجتاز» ولا التمدد ولا الإحالة.',
         act: e => e.pushDown([e.find(128, 'dent')]) },
-      { m: 3, who: 'manager', title: 'إنزال عدة مرضى معاً', board: true,
-        text: 'يمكن تحديد عدة مرضى غائبين وإنزالهم دفعة واحدة. كل واحد يرجع 5 مراتب، ويحافظ الباقون على ترتيبهم.',
+      { m: 3, who: 'manager', title: 'إنزال عدة زوار معاً', board: true,
+        text: 'يمكن تحديد عدة زوار غائبين وإنزالهم دفعة واحدة. كل واحد يرجع 5 مراتب، ويحافظ الباقون على ترتيبهم.',
         rule: 'من له أولوية ويُنزَل يفقد أولويته، ولا يوضع أبداً داخل كتلة الأولوية.',
         act: e => e.pushDown([e.find(121, 'dent'), e.find(122, 'dent')]) },
       { m: 4, who: 'officer', title: 'تعود حين يصل دورها', board: true,
-        text: 'المريض المُنزَل يبقى في الطابور نفسه. عندما يصل دور أمينة من جديد تُفحص ويضغط المسؤول «إجتاز» كالعادة.',
+        text: 'الزائر المُنزَل يبقى في الطابور نفسه. عندما يصل دور أمينة من جديد تُفحص ويضغط المسؤول «إجتاز» كالعادة.',
         acts: [...passN('dent', 4), e => e.complete(e.find(128, 'dent'))] },
     ],
   },
@@ -1235,11 +1235,11 @@ const SCENARIOS = [
       e.book(132, 'رضا', ['dent', 'intern']); e.checkIn(132);
     },
     steps: [
-      { m: 3, who: 'officer', title: 'مريض لا يستطيع الانتظار', board: true,
+      { m: 3, who: 'officer', title: 'زائر لا يستطيع الانتظار', board: true,
         text: 'الحاج سليمان مسنّ وله تخصصان، وهو السادس في طابور الطب الداخلي.' },
       { m: 3, who: 'special', title: 'تحديده «حالة خاصة»', board: true,
         text: 'يفتح مسؤول الحالات الخاصة موعده ويضغط «حالة خاصة»، فينتقل إلى رأس الطابور بعلامة «أولوية».',
-        rule: 'الأولوية تشمل كل مواعيد المريض لهذا اليوم، لا هذا التخصص فقط.',
+        rule: 'الأولوية تشمل كل مواعيد الزائر لهذا اليوم، لا هذا التخصص فقط.',
         act: e => e.markSpecial(e.find(130, 'intern')) },
       { m: 2, who: 'special', title: 'حالة خاصة لم تُسجّل حضورها', board: true,
         text: 'الحاجة زينب وصلت ولم يُسجَّل حضورها بعد. تحديدها «حالة خاصة» يسجّل حضورها فوراً ويبدأ بهذا التخصص، في رأس طابور الأسنان.',
@@ -1251,12 +1251,12 @@ const SCENARIOS = [
         text: 'رضا في طابور الأسنان، لكن حالته تستدعي الطب الداخلي فوراً. تحديد موعد الطب الداخلي «حالة خاصة» يجعله التخصص النشط في الرأس، ويعيد الأسنان إلى «في الانتظار».',
         act: e => e.markSpecial(e.find(132, 'intern')) },
       { m: 3, who: 'special', title: 'متى يُرفض؟', board: true, focus: 132,
-        text: 'لا يمكن تحديد حالة خاصة على تخصص فُحص فيه المريض، ولا أثناء وجوده في التمدد في تخصص آخر، ولا على موعد ليس اليوم، ولا على تخصص مغلق لمريض سجّل حضوره (أما من لم يسجّل حضوره فيُسجَّل وينتظر بأولوية حتى يُفتح تخصصه).',
-        error: ['تم فحص المريض في هذا التخصص مسبقاً', 'المريض في التمدد حالياً، أنهِ التمدد أولاً', 'هذا الموعد ليس اليوم', 'هذا التخصص غير مفتوح اليوم، اختر تخصصاً مفتوحاً'] },
+        text: 'لا يمكن تحديد حالة خاصة على تخصص فُحص فيه الزائر، ولا أثناء وجوده في التمدد في تخصص آخر، ولا على موعد ليس اليوم، ولا على تخصص مغلق لزائر سجّل حضوره (أما من لم يسجّل حضوره فيُسجَّل وينتظر بأولوية حتى يُفتح تخصصه).',
+        error: ['تم فحص الزائر في هذا التخصص مسبقاً', 'الزائر في التمدد حالياً، أنهِ التمدد أولاً', 'هذا الموعد ليس اليوم', 'هذا التخصص غير مفتوح اليوم، اختر تخصصاً مفتوحاً'] },
     ],
   },
   {
-    id: 'refer', title: 'الإحالة إلى تخصص آخر', sub: 'الطبيب يطلب تخصصاً لم يحجزه المريض', focus: 128,
+    id: 'refer', title: 'الإحالة إلى تخصص آخر', sub: 'الطبيب يطلب تخصصاً لم يحجزه الزائر', focus: 128,
     setup(e) {
       e.addSpec('intern', 'الطب الداخلي').addSpec('card', 'أمراض القلب').addSpec('dent', 'طب الأسنان', { open: false }).addSpec('eye', 'تصحيح النظر', { dil: true, today: false });
       crowd(e, 'intern', [[128, 'أمينة'], [121, 'يوسف'], [122, 'خديجة']]);
@@ -1267,14 +1267,14 @@ const SCENARIOS = [
         text: 'أثناء فحص أمينة في الطب الداخلي يطلب الطبيب فحص القلب، وهو تخصص لم تحجزه.' },
       { m: 4, who: 'officer', title: 'قائمة التخصصات المتاحة',
         text: 'يضغط المسؤول «إرسال إلى تخصص آخر». الأسنان مغلق (طبيبه لم يصل بعد)، وتصحيح النظر لا يعمل اليوم، فيبقى القلب.',
-        rule: 'لا يُحال المريض إلا إلى تخصص فتحه المدير العام اليوم.',
+        rule: 'لا يُحال الزائر إلا إلى تخصص فتحه المدير العام اليوم.',
         scene: e => `<div class="devrow" style="align-items:flex-end">${referSheet(e, e.find(128, 'intern'), ['intern', 'card', 'dent', 'eye'], 'card')}</div>` },
       { m: 3, who: 'system', title: 'موعد جديد في المرتبة الثالثة', board: true,
         text: 'يُنشأ لها موعد جديد في القلب في أقرب ساعة اليوم، وتدخل المرتبة الثالثة في طابوره بدل آخره. ويعود الطب الداخلي إلى «في الانتظار».',
-        rule: 'المرتبة الثالثة لا تتخطى أصحاب الأولوية الموجودين. وإن كان المريض حالة خاصة يدخل كتلة الأولوية.',
+        rule: 'المرتبة الثالثة لا تتخطى أصحاب الأولوية الموجودين. وإن كان الزائر حالة خاصة يدخل كتلة الأولوية.',
         act: e => e.refer(e.find(128, 'intern'), 'card') },
       { m: 4, who: 'system', title: 'ثم العودة إلى الطب الداخلي', board: true,
-        text: 'بعد «إجتاز» في القلب يعود الطب الداخلي إلى الطابور تلقائياً، في آخره، كأي تخصص ينتقل إليه المريض.',
+        text: 'بعد «إجتاز» في القلب يعود الطب الداخلي إلى الطابور تلقائياً، في آخره، كأي تخصص ينتقل إليه الزائر.',
         acts: [...passN('card', 2), e => e.complete(e.find(128, 'card'))] },
     ],
   },
@@ -1291,20 +1291,20 @@ const SCENARIOS = [
         text: 'أمينة حجزت طب الأسنان، لكن شكواها ألم في الأذن. التصحيح من صلاحية مسؤول الحالات الخاصة.' },
       { m: 3, who: 'special', title: 'نقل الموعد', board: true,
         text: 'ينقل المسؤول موعدها إلى «أنف وأذن وحنجرة» (أقرب ساعة متاحة أو ساعة يختارها). لأنها كانت في الطابور، تدخل الطابور الجديد في المرتبة الثالثة.',
-        rule: 'إن كان الموعد المنقول ليوم آخر يبقى «لم يحضر بعد». وإن كان للمريض تخصص نشط آخر، يصبح المنقول «في الانتظار».',
+        rule: 'إن كان الموعد المنقول ليوم آخر يبقى «لم يحضر بعد». وإن كان للزائر تخصص نشط آخر، يصبح المنقول «في الانتظار».',
         act: e => e.transfer(e.find(128, 'dent'), 'ent') },
       { m: 4, who: 'special', title: 'متى يُرفض النقل؟', board: true,
-        text: 'لا يُنقل موعد فُحص فيه المريض، ولا موعد مريض داخل قاعة التمدد، ولا إلى تخصص للمريض موعد فيه.',
-        error: ['تم فحص المريض في هذا التخصص، لا يمكن نقله', 'المريض في التمدد، لا يمكن نقله الآن', 'المريض مسجل في هذا التخصص مسبقاً'] },
+        text: 'لا يُنقل موعد فُحص فيه الزائر، ولا موعد زائر داخل قاعة التمدد، ولا إلى تخصص للزائر موعد فيه.',
+        error: ['تم فحص الزائر في هذا التخصص، لا يمكن نقله', 'الزائر في التمدد، لا يمكن نقله الآن', 'الزائر مسجل في هذا التخصص مسبقاً'] },
     ],
   },
   {
-    id: 'errors', title: 'أخطاء الحجز والحضور', sub: 'ماذا يرى المريض والاستقبال', focus: null,
+    id: 'errors', title: 'أخطاء الحجز والحضور', sub: 'ماذا يرى الزائر والاستقبال', focus: null,
     setup(e) { e.addSpec('dent', 'طب الأسنان'); },
     steps: [
       { m: 0, who: 'patient', title: 'حجز مكرر',
-        text: 'نفس الاسم الكامل ونفس تاريخ الميلاد في نفس الحملة يعني نفس الشخص. يُرفض الحجز الثاني ويُذكَّر المريض برقمه.',
-        scene: () => scrError('حجز موعد', { sub: EVENT, fields: [['الاسم واللقب', 'أمينة بن علي'], ['تاريخ الميلاد', '1968-04-12']], code: '409', msg: 'لديك موعد مسبق في هذا الحدث. رقم المريض: 128' }) },
+        text: 'نفس الاسم الكامل ونفس تاريخ الميلاد في نفس الحملة يعني نفس الشخص. يُرفض الحجز الثاني ويُذكَّر الزائر برقمه.',
+        scene: () => scrError('حجز موعد', { sub: EVENT, fields: [['الاسم واللقب', 'أمينة بن علي'], ['تاريخ الميلاد', '1968-04-12']], code: '409', msg: 'لديك موعد مسبق في هذا الحدث. رقم الزائر: 128' }) },
       { m: 0, who: 'patient', title: 'تخصص ممتلئ',
         text: 'إذا امتلأت ساعة أحد التخصصات بين لحظة اختيارها ولحظة التأكيد، يُحجز الباقي ويظهر تنبيه. وإن امتلأت كلها يُرفض الحجز.',
         scene: () => `<div class="devrow">${scrBooked({ event: EVENT, pid: 133, name: 'يوسف قاسمي', rows: [['طب الأسنان', 'السبت · 09:00']], warn: 'تنبيه: التخصصات التالية كانت ممتلئة ولم يتم حجزها: تصحيح النظر' })}${scrError('حجز موعد', { code: '409', msg: 'جميع المواعيد المطلوبة ممتلئة.' })}</div>` },
@@ -1312,17 +1312,17 @@ const SCENARIOS = [
         text: 'لا يُقبل الحجز في حملة موقوفة أو مؤرشفة.',
         scene: () => `<div class="devrow">${scrError('حجز موعد', { code: '403', msg: 'الحدث غير نشط حالياً.' })}${scrError('حجز موعد', { code: '403', msg: 'الحدث مؤرشف ولا يمكن الحجز فيه.' })}</div>` },
       { m: 2, who: 'reception', title: 'جاء في غير يومه',
-        text: 'يُسجَّل الحضور فقط لمواعيد اليوم. إن جاء المريض في يوم آخر يخبره التطبيق بتواريخ مواعيده.',
-        scene: () => scanner({ pid: 140, bad: true, msg: 'ليس للمريض موعد اليوم. مواعيده: 2026-10-26' }) },
+        text: 'يُسجَّل الحضور فقط لمواعيد اليوم. إن جاء الزائر في يوم آخر يخبره التطبيق بتواريخ مواعيده.',
+        scene: () => scanner({ pid: 140, bad: true, msg: 'ليس للزائر موعد اليوم. مواعيده: 2026-10-26' }) },
       { m: 2, who: 'reception', title: 'تسجيل الحضور مرتين',
-        text: 'إن مُسح رمز المريض مرة ثانية لا يتغير شيء في الطوابير.',
-        scene: () => scanner({ pid: 128, bad: true, msg: 'المريض مسجل حضوره اليوم مسبقاً' }) },
+        text: 'إن مُسح رمز الزائر مرة ثانية لا يتغير شيء في الطوابير.',
+        scene: () => scanner({ pid: 128, bad: true, msg: 'الزائر مسجل حضوره اليوم مسبقاً' }) },
       { m: 2, who: 'reception', title: 'رقم غير موجود',
         text: 'رقم خاطئ أو من حملة أخرى.',
-        scene: () => scanner({ pid: 9999, bad: true, msg: 'لا يوجد مريض بهذا الرقم في هذا الحدث' }) },
-      { m: 3, who: 'patient', title: '«دوري» لم يجد المريض',
-        text: 'في صفحة «دوري» يظهر للمريض ما يجب أن يتحقق منه.',
-        scene: () => `<div class="devrow">${scrError('دوري', { fields: [['رقم المريض', '1280']], code: '404', msg: 'لم نجد مريضاً بهذا الرقم في هذه الحملة. تأكد من رقم المريض.' })}${scrError('دوري', { fields: [['رقم الهاتف', '0555 00 00 00']], code: '404', msg: 'لم نجد موعداً بهذا الرقم في هذه الحملة. تأكد من رقم الهاتف الذي حجزت به.' })}</div>` },
+        scene: () => scanner({ pid: 9999, bad: true, msg: 'لا يوجد زائر بهذا الرقم في هذا الحدث' }) },
+      { m: 3, who: 'patient', title: '«دوري» لم يجد الزائر',
+        text: 'في صفحة «دوري» يظهر للزائر ما يجب أن يتحقق منه.',
+        scene: () => `<div class="devrow">${scrError('دوري', { fields: [['رقم الزائر', '1280']], code: '404', msg: 'لم نجد زائراً بهذا الرقم في هذه الحملة. تأكد من رقم الزائر.' })}${scrError('دوري', { fields: [['رقم الهاتف', '0555 00 00 00']], code: '404', msg: 'لم نجد موعداً بهذا الرقم في هذه الحملة. تأكد من رقم الهاتف الذي حجزت به.' })}</div>` },
     ],
   },
   {
@@ -1337,12 +1337,12 @@ const SCENARIOS = [
       e.sendDil(e.find(141, 'eye'));
     },
     steps: [
-      { m: 3, who: 'patient', title: 'رقم هاتف واحد، عدة مرضى',
+      { m: 3, who: 'patient', title: 'رقم هاتف واحد، عدة زوار',
         text: 'حجز الأب لأبنائه الثلاثة برقم هاتفه. في «دوري» يكتب رقم الهاتف فيرى كل واحد منهم: عبد الله متجه إلى التمدد، مريم في الطابور، ونور موعدها يوم آخر.',
-        rule: 'تظهر الأسماء الأولى فقط، والأسماء المركّبة (عبد الله، أبو بكر) تبقى كاملة. حتى 6 مرضى لكل رقم.',
+        rule: 'تظهر الأسماء الأولى فقط، والأسماء المركّبة (عبد الله، أبو بكر) تبقى كاملة. حتى 6 زوار لكل رقم.',
         scene: e => scrMyTurn({ query: '0661987654', patients: [141, 142, 143].map(p => { const d = turnData(e, p); if (p === 141) d.first = 'عبد الله'; return d; }) }) },
       { m: 3, who: 'officer', title: 'ونفس الشيء على الطوابير', board: true,
-        text: 'لكل فرد رقم مريض مستقل وطوابيره الخاصة، فلا يؤثر أحدهم على دور الآخر.' },
+        text: 'لكل فرد رقم زائر مستقل وطوابيره الخاصة، فلا يؤثر أحدهم على دور الآخر.' },
     ],
   },
   {
@@ -1358,7 +1358,7 @@ const SCENARIOS = [
       { m: 5, who: 'officer', title: 'آخر صورة للطوابير', board: true,
         text: 'انتهى اليوم: أمينة ومحمد أنهوا، يوسف أنهى الأسنان وبقي في طابور القلب، وخديجة لم تحضر.' },
       { m: 5, who: 'admin', title: 'كيف تُحسب النتائج',
-        text: 'كل موعد يُصنَّف في النهاية إلى واحد من ثلاثة: «فُحص»، «لم يحضر» (بقي لم يحضر بعد)، أو «حضر ولم يُفحص» (في الانتظار أو في الطابور أو التمدد عند الإغلاق). والمريض يُحسب مرة واحدة مهما كان عدد تخصصاته.',
+        text: 'كل موعد يُصنَّف في النهاية إلى واحد من ثلاثة: «فُحص»، «لم يحضر» (بقي لم يحضر بعد)، أو «حضر ولم يُفحص» (في الانتظار أو في الطابور أو التمدد عند الإغلاق). والزائر يُحسب مرة واحدة مهما كان عدد تخصصاته.',
         rule: 'نفس التعريف تستعمله كل الشاشات والتقارير، فتتطابق الأرقام في كل مكان.',
         scene: e => stats(e) },
       { m: 5, who: 'admin', title: 'الأرشيف والتقرير',
@@ -1378,9 +1378,9 @@ function stats(e) {
   const out = s => s === 'Completed' ? ['فُحص', 'Completed'] : s === 'Pending' ? ['لم يحضر', 'Pending'] : ['حضر ولم يُفحص', 'Waiting'];
   const pts = Object.values(byPid);
   const c = { total: e.appts.length, arrived: pts.filter(r => r.some(a => a.status !== 'Pending')).length, finished: pts.filter(r => r.every(a => a.status === 'Completed')).length };
-  const cards = [['المرضى', pts.length, `${c.total} مواعيد`], ['حضروا', c.arrived, 'مريض'], ['أنهوا كل فحوصاتهم', c.finished, 'مريض'], ['لم يحضروا', pts.length - c.arrived, 'مريض']];
+  const cards = [['الزوار', pts.length, `${c.total} مواعيد`], ['حضروا', c.arrived, 'زائر'], ['أنهوا كل فحوصاتهم', c.finished, 'زائر'], ['لم يحضروا', pts.length - c.arrived, 'زائر']];
   return `<div style="width:100%"><div class="stats">${cards.map((x, i) => `<div class="stat" ${delay(i, .1, .15)}><small>${x[0]}</small><b>${x[1]}</b> <em>${x[2]}</em></div>`).join('')}</div>
-    <div class="outc"><table><thead><tr><th>المريض</th><th>التخصص</th><th>الحالة عند الإغلاق</th><th>النتيجة</th></tr></thead><tbody>
+    <div class="outc"><table><thead><tr><th>الزائر</th><th>التخصص</th><th>الحالة عند الإغلاق</th><th>النتيجة</th></tr></thead><tbody>
     ${e.appts.map(a => `<tr><td>#${a.pid} ${esc(a.name)}</td><td>${esc(e.spec(a.es).name)}</td><td><span class="st ${a.status}">${STATUS_LABELS[a.status]}</span></td><td><span class="st ${out(a.status)[1]}">${out(a.status)[0]}</span></td></tr>`).join('')}
     </tbody></table></div></div>`;
 }
@@ -1556,9 +1556,9 @@ function sbSetup() {
 function sbRender(flash = []) { renderBoard($('#sbBoard'), SB.e, { sandbox: true, focus: SB.sel, flash }); sbTurn(); }
 function sbTurn() {
   const e = SB.e, pid = SB.sel;
-  if (!pid || !e.appts.some(a => a.pid === pid)) { $('#sbTurn').innerHTML = '<p class="hint">اختر مريضاً.</p>'; return; }
+  if (!pid || !e.appts.some(a => a.pid === pid)) { $('#sbTurn').innerHTML = '<p class="hint">اختر زائراً.</p>'; return; }
   const d = turnData(e, pid);
-  $('#sbTurn').innerHTML = `<div class="mt"><h5>${esc(d.first)} <small>رقم المريض ${pid}</small></h5>${d.rows.map(r => `<div class="mtr"><div class="a"><b>${esc(r.spec)}</b><span class="st ${r.status}">${r.label}</span></div>
+  $('#sbTurn').innerHTML = `<div class="mt"><h5>${esc(d.first)} <small>رقم الزائر ${pid}</small></h5>${d.rows.map(r => `<div class="mtr"><div class="a"><b>${esc(r.spec)}</b><span class="st ${r.status}">${r.label}</span></div>
     ${r.pos ? `<div class="pos"><strong>${r.pos}</strong> دورك · قبلك ${r.pos - 1}${r.pri ? ' · <span style="color:var(--rose);font-weight:700">أولوية</span>' : ''}</div>` : ''}${r.go ? `<div class="go">${r.go}</div>` : ''}${r.when ? `<div class="pos">${r.when}</div>` : ''}</div>`).join('')}</div>`;
 }
 function sbLog(kind, who, title, msg, why) {
@@ -1586,24 +1586,24 @@ function sbActions(it) {
     const list = e.appts.filter(a => a.pid === pid);
     const t = e.todays(pid);
     acts.push({ who: 'reception', icon: 'desk', t: 'تسجيل الحضور', d: 'مسح QR أو كتابة الرقم. يدخل تخصصه المفتوح الأقل انتظاراً، والباقي ينتظر.',
-      run: () => sbDo('reception', `تسجيل حضور #${pid}`, e => e.checkIn(pid), a => a ? `تم تسجيل حضور المريض #${pid}، يتوجه إلى ${e.spec(a.es).name} (المرتبة ${e.pos(a)})` : `تم تسجيل حضور المريض #${pid}، لا يوجد تخصص مفتوح له حالياً، سيُوجَّه عند وصول الطبيب`) });
+      run: () => sbDo('reception', `تسجيل حضور #${pid}`, e => e.checkIn(pid), a => a ? `تم تسجيل حضور الزائر #${pid}، يتوجه إلى ${e.spec(a.es).name} (المرتبة ${e.pos(a)})` : `تم تسجيل حضور الزائر #${pid}، لا يوجد تخصص مفتوح له حالياً، سيُوجَّه عند وصول الطبيب`) });
     (t.length ? t : list).forEach(a => acts.push({ who: 'special', icon: 'star', t: `حالة خاصة: البدء بـ ${e.spec(a.es).name}`, d: 'يُسجَّل حضوره الآن ويدخل رأس طابور هذا التخصص بأولوية طوال اليوم.',
-      run: () => sbDo('special', `حالة خاصة ${nm(a)}`, e => e.markSpecial(a), 'تم تحديد المريض كحالة خاصة (أولوية)') }));
+      run: () => sbDo('special', `حالة خاصة ${nm(a)}`, e => e.markSpecial(a), 'تم تحديد الزائر كحالة خاصة (أولوية)') }));
     return { title: `#${pid} ${list[0].name}`, sub: list.map(a => `${e.spec(a.es).name}${a.today ? '' : ` (${a.date})`}`).join('، '), acts };
   }
   const a = e.get(it.id);
   const S = e.spec(a.es);
   if (QUEUE.includes(a.status)) {
-    acts.push({ who: 'officer', icon: 'check', t: 'إجتاز', d: 'انتهى الفحص. ينتقل المريض تلقائياً إلى تخصصه التالي إن وُجد.',
-      run: () => sbDo('officer', `إجتاز ${nm(a)}`, e => e.complete(a), n => n ? `تم الفحص، انتقل المريض إلى ${e.spec(n.es).name} (المرتبة ${e.pos(n)})` : 'أنهى المريض كل تخصصاته لهذا اليوم') });
+    acts.push({ who: 'officer', icon: 'check', t: 'إجتاز', d: 'انتهى الفحص. ينتقل الزائر تلقائياً إلى تخصصه التالي إن وُجد.',
+      run: () => sbDo('officer', `إجتاز ${nm(a)}`, e => e.complete(a), n => n ? `تم الفحص، انتقل الزائر إلى ${e.spec(n.es).name} (المرتبة ${e.pos(n)})` : 'أنهى الزائر كل تخصصاته لهذا اليوم') });
     acts.push({ who: 'manager', icon: 'down', t: `إنزال ${PUSH_DOWN_PLACES} مراتب`, d: 'غائب عند النداء. يبقى في الطابور ويفقد الأولوية إن كانت له. (مسؤول التخصص أو مسؤول القاعة الصغرى)',
-      run: () => sbDo('manager', `إنزال ${nm(a)}`, e => e.pushDown([a]), `تم إنزال المريض ${PUSH_DOWN_PLACES} مراتب`) });
+      run: () => sbDo('manager', `إنزال ${nm(a)}`, e => e.pushDown([a]), `تم إنزال الزائر ${PUSH_DOWN_PLACES} مراتب`) });
     if (S.dil) acts.push({ who: 'officer', icon: 'drop', t: 'إرسال إلى التمدد', d: 'يخرج من الطابور إلى قاعة التمدد، ثم يعود إلى الرأس بأولوية.',
-      run: () => sbDo('officer', `تمدد ${nm(a)}`, e => e.sendDil(a), 'المريض متجه إلى قاعة التمدد') });
-    acts.push({ who: 'officer', icon: 'send', t: 'إرسال إلى تخصص آخر…', d: 'تخصص لم يحجزه المريض. يدخل طابوره في المرتبة الثالثة.', sub: 'refer' });
+      run: () => sbDo('officer', `تمدد ${nm(a)}`, e => e.sendDil(a), 'الزائر متجه إلى قاعة التمدد') });
+    acts.push({ who: 'officer', icon: 'send', t: 'إرسال إلى تخصص آخر…', d: 'تخصص لم يحجزه الزائر. يدخل طابوره في المرتبة الثالثة.', sub: 'refer' });
   } else if (a.status === 'DilatationSent') {
     acts.push({ who: 'dil', icon: 'door', t: 'وصل إلى القاعة', d: 'يبدأ عدّاد وقت القطرات.',
-      run: () => sbDo('dil', `وصول ${nm(a)}`, e => e.receiveDil(a), 'المريض في قاعة التمدد') });
+      run: () => sbDo('dil', `وصول ${nm(a)}`, e => e.receiveDil(a), 'الزائر في قاعة التمدد') });
     acts.push({ who: 'dil', icon: 'check', t: 'انتهى التمدد', d: 'يعود إلى رأس طابور التخصص بأولوية.',
       run: () => sbDo('dil', `انتهاء تمدد ${nm(a)}`, e => e.finishDil(a), () => `عاد إلى ${S.name} في المرتبة ${e.pos(a)} بأولوية`) });
   } else if (a.status === 'Dilatation') {
@@ -1612,7 +1612,7 @@ function sbActions(it) {
   }
   if (a.status !== 'Completed') {
     acts.push({ who: 'special', icon: 'star', t: 'حالة خاصة', d: 'أولوية طوال اليوم. هذا التخصص يصبح النشط، في رأس الطابور.',
-      run: () => sbDo('special', `حالة خاصة ${nm(a)}`, e => e.markSpecial(a), 'تم تحديد المريض كحالة خاصة (أولوية)') });
+      run: () => sbDo('special', `حالة خاصة ${nm(a)}`, e => e.markSpecial(a), 'تم تحديد الزائر كحالة خاصة (أولوية)') });
     acts.push({ who: 'special', icon: 'swap', t: 'تغيير التخصص…', d: 'تصحيح موعد حُجز في التخصص الخطأ.', sub: 'transfer' });
   }
   return { title: `${nm(a)} · ${S.name}`, sub: `الحالة: ${STATUS_LABELS[a.status]}${a.pri ? ' · أولوية' : ''}${QUEUE.includes(a.status) ? ` · المرتبة ${e.pos(a)}` : ''}`, acts, a };
@@ -1623,7 +1623,7 @@ function openSheet(it) {
   R.innerHTML = `<div class="ov"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
     <h3>${esc(m.title)}</h3><div class="sub2">${esc(m.sub)}</div>
     ${m.acts.length ? m.acts.map((x, i) => `<button class="act" data-i="${i}"><span class="ic" style="background:${ROLES[x.who].bg};color:${ROLES[x.who].fg}">${svg(x.icon)}</span><span><span class="who">${ROLES[x.who].label}</span><b>${x.t}</b><small>${x.d}</small></span></button>`).join('')
-      : '<p class="hint">لا توجد إجراءات: أنهى المريض الفحص في هذا التخصص.</p>'}
+      : '<p class="hint">لا توجد إجراءات: أنهى الزائر الفحص في هذا التخصص.</p>'}
     <button class="btn" style="width:100%;justify-content:center;margin-top:12px" data-close>إغلاق</button></div></div>`;
   const ov = R.firstElementChild;
   ov.addEventListener('click', ev => {
@@ -1641,7 +1641,7 @@ function openPicker(a, kind) {
   const opts = e.specs.filter(s => s.k !== a.es).map(s => {
     let why = null;
     if (kind === 'refer') why = e.referCheck(a, s.k);
-    else if (e.appts.some(x => x.pid === a.pid && x.es === s.k)) why = 'المريض مسجل في هذا التخصص مسبقاً';
+    else if (e.appts.some(x => x.pid === a.pid && x.es === s.k)) why = 'الزائر مسجل في هذا التخصص مسبقاً';
     return { s, why };
   });
   R.innerHTML = `<div class="ov"><div class="sheet" role="dialog" aria-modal="true">
@@ -1668,10 +1668,10 @@ $('#sbBoard').addEventListener('click', ev => {
     const s = SB.e.spec(tg.dataset.toggle);
     if (s.open) {
       SB.e.closeSpec(s.k);
-      sbLog('ok', 'admin', s.name, 'أُغلق التخصص، لن يُرسل إليه مرضى جدد');
+      sbLog('ok', 'admin', s.name, 'أُغلق التخصص، لن يُرسل إليه زوار جدد');
     } else {
       const r = SB.e.openSpec(s.k);
-      sbLog('ok', 'admin', s.name, `فُتح التخصص${r.sent + r.moved ? `، أُرسل إليه ${r.sent + r.moved} مريض${r.moved ? ` (${r.moved} من طوابير أخرى)` : ''}` : ''}`);
+      sbLog('ok', 'admin', s.name, `فُتح التخصص${r.sent + r.moved ? `، أُرسل إليه ${r.sent + r.moved} زائر${r.moved ? ` (${r.moved} من طوابير أخرى)` : ''}` : ''}`);
     }
     return sbRender();
   }
@@ -1680,7 +1680,7 @@ $('#sbBoard').addEventListener('click', ev => {
     const a = SB.e.head(ph.dataset.passhead);
     if (!a) return sbLog('bad', 'officer', 'إجتاز الأول', 'الطابور فارغ');
     SB.sel = a.pid;
-    return sbDo('officer', `إجتاز ${nm(a)}`, e => e.complete(a), n => n ? `تم الفحص، انتقل المريض إلى ${SB.e.spec(n.es).name} (المرتبة ${SB.e.pos(n)})` : 'أنهى المريض كل تخصصاته لهذا اليوم');
+    return sbDo('officer', `إجتاز ${nm(a)}`, e => e.complete(a), n => n ? `تم الفحص، انتقل الزائر إلى ${SB.e.spec(n.es).name} (المرتبة ${SB.e.pos(n)})` : 'أنهى الزائر كل تخصصاته لهذا اليوم');
   }
   const it = ev.target.closest('.it');
   if (it) { SB.sel = it._pid; sbRender(); openSheet(it._item); }
@@ -1721,28 +1721,28 @@ function buildRef() {
     ['Completed', 'فُحص في هذا التخصص. انتهى هذا الموعد.', 'مسؤول التخصص'],
   ];
   const roles = [
-    ['patient', ['يحجز عبر الاستمارة ويحصل على رقم مريض', 'يتابع دوره في صفحة «دوري» (رقم المريض أو الهاتف)', 'يقيّم التجربة عبر الرابط'], 'استمارة الحجز · دوري · التقييم'],
-    ['reception', ['يسجّل الحضور بمسح QR أو كتابة الرقم', 'يرسل تذكيرات واتساب وروابط التقييم', 'يطبع بطاقة المريض بتخصصاته ورمز QR'], 'تبويب «الحضور» و«مسح QR»'],
-    ['officer', ['إجتاز، إنزال (فرداً أو مجموعة)، تمدد', 'إرسال إلى تخصص آخر مفتوح', 'كل إجراء بالزر أو بمسح QR: «مسح للإجتياز»، «مسح للإنزال»، أو مسح يفتح كل إجراءات المريض', 'ملاحظات، تحميل CSV، ويرى إن كان الطابور مفتوحاً (دون تغييره)'], 'تبويب «التخصصات» ← طابور التخصص'],
+    ['patient', ['يحجز عبر الاستمارة ويحصل على رقم زائر', 'يتابع دوره في صفحة «دوري» (رقم الزائر أو الهاتف)', 'يقيّم التجربة عبر الرابط'], 'استمارة الحجز · دوري · التقييم'],
+    ['reception', ['يسجّل الحضور بمسح QR أو كتابة الرقم', 'يرسل تذكيرات واتساب وروابط التقييم', 'يطبع بطاقة الزائر بتخصصاته ورمز QR'], 'تبويب «الحضور» و«مسح QR»'],
+    ['officer', ['إجتاز، إنزال (فرداً أو مجموعة)، تمدد', 'إرسال إلى تخصص آخر مفتوح', 'كل إجراء بالزر أو بمسح QR: «مسح للإجتياز»، «مسح للإنزال»، أو مسح يفتح كل إجراءات الزائر', 'ملاحظات، تحميل CSV، ويرى إن كان الطابور مفتوحاً (دون تغييره)'], 'تبويب «التخصصات» ← طابور التخصص'],
     ['manager', ['يرى الطوابير مثل مسؤول التخصص', 'إجراؤه الوحيد: إنزال (فرداً أو مجموعة)، بالزر أو بـ«مسح للإنزال»', 'لا يستطيع إجتاز، ولا التمدد، ولا الإحالة، ولا الملاحظات'], 'تبويب «التخصصات» ← طابور التخصص'],
-    ['dil', ['يستقبل القادمين: «وصل»', 'يتابع عدّاد كل مريض', '«انتهى» يعيده إلى الرأس بأولوية', 'زر «مسح QR»: يسجّل الوصول للقادم، أو انتهاء التمدد لمن في القاعة'], 'قاعة التمدد التابعة للتخصص'],
-    ['special', ['يحدد «حالة خاصة» (أولوية طوال اليوم)', 'يغيّر تخصص موعد ويحذف المواعيد', 'يضيف مواعيد لعدة مرضى، ويرى شاشة الطوابير'], 'الحضور · الطوابير · إضافة مواعيد'],
+    ['dil', ['يستقبل القادمين: «وصل»', 'يتابع عدّاد كل زائر', '«انتهى» يعيده إلى الرأس بأولوية', 'زر «مسح QR»: يسجّل الوصول للقادم، أو انتهاء التمدد لمن في القاعة'], 'قاعة التمدد التابعة للتخصص'],
+    ['special', ['يحدد «حالة خاصة» (أولوية طوال اليوم)', 'يغيّر تخصص موعد ويحذف المواعيد', 'يضيف مواعيد لعدة زوار، ويرى شاشة الطوابير'], 'الحضور · الطوابير · إضافة مواعيد'],
     ['admin', ['يوم الفحص: يفتح طابور التخصص عند وصول طبيبه، ويغلقه عند مغادرته', 'ينشئ الحملات والتخصصات والأيام والساعات', 'يدير حسابات الطاقم لكل حملة', 'الإحصائيات، الأرشيف، التقارير والتقييمات'], 'الأحداث (⋮ ← فتح الطوابير) · المستخدمون · التقييمات'],
   ];
   const nums = [
-    ['5', 'مراتب ينزلها المريض عند «إنزال» افتراضياً (يُختار من 1 إلى 30)'], ['3', 'المرتبة التي يدخلها المريض المحال أو المنقول'], ['1', 'تخصص نشط واحد للمريض في كل لحظة'],
-    ['الأقصر', 'يذهب المريض إلى تخصصه المفتوح ذي الطابور الأقصر'], ['5', 'أول مراتب الطابور لا تُنقل عند فتح تخصص آخر'],
+    ['5', 'مراتب ينزلها الزائر عند «إنزال» افتراضياً (يُختار من 1 إلى 30)'], ['3', 'المرتبة التي يدخلها الزائر المحال أو المنقول'], ['1', 'تخصص نشط واحد للزائر في كل لحظة'],
+    ['الأقصر', 'يذهب الزائر إلى تخصصه المفتوح ذي الطابور الأقصر'], ['5', 'أول مراتب الطابور لا تُنقل عند فتح تخصص آخر'],
     ['اليوم', 'فقط مواعيد تاريخ اليوم تدخل الطوابير (توقيت الجزائر)'], ['9', 'آخر أرقام الهاتف تُستعمل للمطابقة في «دوري»'],
-    ['6', 'مرضى كحد أقصى يظهرون لرقم هاتف واحد'], ['5 × 10MB', 'وثائق طبية مرفقة عند الحجز'],
+    ['6', 'زوار كحد أقصى يظهرون لرقم هاتف واحد'], ['5 × 10MB', 'وثائق طبية مرفقة عند الحجز'],
   ];
   $('#refRoot').innerHTML = `
-  <section><h2>خريطة الحالات</h2><p class="lead">كل موعد (مريض × تخصص) يمر بهذه الحالات. الأسهم هي الأزرار التي تنقله.</p>
+  <section><h2>خريطة الحالات</h2><p class="lead">كل موعد (زائر × تخصص) يمر بهذه الحالات. الأسهم هي الأزرار التي تنقله.</p>
     <div class="diagram">${diagram()}</div></section>
   <section><h2>قاموس الحالات</h2><p class="lead">نفس الأسماء والألوان المستعملة في كل شاشات التطبيق.</p>
     <div class="sgrid">${S.map(([k, d, by]) => `<div class="scard"><span class="st ${k}">${STATUS_LABELS[k]}</span> <code>${k}</code><p>${d}</p><div class="by">يضعه: ${by}</div></div>`).join('')}</div></section>
   <section><h2>من يفعل ماذا</h2><p class="lead">كل حساب يرى فقط حملته وأدوات دوره.</p>
     <div class="rgrid">${roles.map(([r, l, scr]) => { const R = ROLES[r]; return `<div class="rcard"><h4><span class="ic" style="background:${R.bg};color:${R.fg}">${svg(R.icon)}</span>${R.label}</h4><ul>${l.map(x => `<li>${x}</li>`).join('')}</ul><div class="scr">الشاشة: ${scr}</div></div>`; }).join('')}</div></section>
-  <section><h2>شاشة القاعة الكبيرة</h2><p class="lead">تُفتح على حاسوب أو تلفاز في القاعة ليرى المرضى أول 10 في كل تخصص.</p>
+  <section><h2>شاشة القاعة الكبيرة</h2><p class="lead">تُفتح على حاسوب أو تلفاز في القاعة ليرى الزوار أول 10 في كل تخصص.</p>
     <div class="rgrid">${[
       ['العرض', ['حتى 5 تخصصات في عرض واحد، وإن زادت قُسّمت إلى عدة عروض', '«تلقائي»: تتبدل العروض كل 10 ثوانٍ', '«يدوي»: يختار المسؤول العرض الذي يبقى ظاهراً']],
       ['التخصصات المعروضة', ['يختار كل جهاز التخصصات التي يعرضها، أو «الكل»', 'يُحفظ الاختيار في الجهاز نفسه، فلكل شاشة تخصصاتها', 'التخصص المغلق يظهر عند فتحه']],
@@ -1751,7 +1751,7 @@ function buildRef() {
   <section><h2>أرقام تحكم الطابور</h2><p class="lead">قواعد ثابتة في الخادم.</p>
     <div class="nums">${nums.map(([n, t]) => `<div class="num"><b>${n}</b><span>${t}</span></div>`).join('')}</div></section>
   <section><h2>ترتيب الطابور في جملة واحدة</h2>
-    <p style="margin:0">أصحاب <b style="color:var(--rose)">الأولوية</b> (الحالات الخاصة والعائدون من التمدد) في الرأس بترتيب وصولهم، ثم الباقون بترتيب دخولهم. المحال أو المنقول يدخل المرتبة 3 دون تخطي كتلة الأولوية، والمُنزَل يرجع 5 مراتب ولا يدخل كتلة الأولوية أبداً. ولا يُرسَل أحد إلى تخصص مغلق: يذهب المريض إلى تخصصه المفتوح الأقل انتظاراً، وعند فتح تخصص جديد ينتقل إليه من في آخر الطوابير الطويلة.</p></section>`;
+    <p style="margin:0">أصحاب <b style="color:var(--rose)">الأولوية</b> (الحالات الخاصة والعائدون من التمدد) في الرأس بترتيب وصولهم، ثم الباقون بترتيب دخولهم. المحال أو المنقول يدخل المرتبة 3 دون تخطي كتلة الأولوية، والمُنزَل يرجع 5 مراتب ولا يدخل كتلة الأولوية أبداً. ولا يُرسَل أحد إلى تخصص مغلق: يذهب الزائر إلى تخصصه المفتوح الأقل انتظاراً، وعند فتح تخصص جديد ينتقل إليه من في آخر الطوابير الطويلة.</p></section>`;
 }
 function diagram() {
   const N = {

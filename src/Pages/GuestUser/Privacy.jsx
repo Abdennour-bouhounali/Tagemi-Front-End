@@ -54,7 +54,7 @@ const printData = (data) => {
     ${data.visits.map((v) => `
       <h2>${e(v.event || "حملة")} · ${e(v.specialty || "")}</h2>
       <table>
-        <tr><td>رقم المريض</td><td>${e(v.patient_id)}</td></tr>
+        <tr><td>رقم الزائر</td><td>${e(v.patient_id)}</td></tr>
         <tr><td>الموعد</td><td>${e(v.date || "—")} ${e(v.time || "")}</td></tr>
         <tr><td>الحالة</td><td>${e(v.status)}</td></tr>
         <tr><td>ملاحظات الفريق الطبي</td><td>${e(v.comment || "—")}</td></tr>
@@ -106,11 +106,11 @@ function MyDataForm() {
         اطّلع على بياناتك الآن
       </h2>
       <p className="text-sm text-muted mb-4">
-        رقم المريض مكتوب على وصل الحجز. نطلب المعلومات الثلاث معاً لنتأكد أن البيانات لك وحدك.
+        رقم الزائر مكتوب على وصل الحجز. نطلب المعلومات الثلاث معاً لنتأكد أن البيانات لك وحدك.
       </p>
 
       <form onSubmit={submit} className="space-y-4">
-        <Field label="رقم المريض">
+        <Field label="رقم الزائر">
           <TextInput name="patient_id" inputMode="numeric" dir="ltr" className="text-start text-lg" value={form.patient_id} onChange={set} />
         </Field>
         <Field label="رقم الهاتف الذي حجزت به">
@@ -144,7 +144,7 @@ function MyDataForm() {
               <h3 className="font-semibold text-ink">{v.specialty}</h3>
               <p className="text-sm text-muted mb-1">{v.event}</p>
               <dl className="divide-y divide-line">
-                <Row label="رقم المريض" value={v.patient_id} />
+                <Row label="رقم الزائر" value={v.patient_id} />
                 <Row label="الموعد" value={<span dir="ltr">{[v.date, v.time].filter(Boolean).join(" ")}</span>} />
                 <Row label="الحالة" value={v.status} />
                 <Row label="ملاحظات الفريق الطبي" value={v.comment} />
@@ -156,7 +156,7 @@ function MyDataForm() {
 
           <Button variant="secondary" icon={Printer} block onClick={() => printData(data)}>اطبع أو احفظ نسخة PDF</Button>
           <p className="text-sm text-muted">
-            لنسخة من مستنداتك الطبية، أو لتصحيح معلومة أو حذفها، تواصل معنا وأذكر رقم المريض.
+            لنسخة من مستنداتك الطبية، أو لتصحيح معلومة أو حذفها، تواصل معنا وأذكر رقم الزائر.
           </p>
         </div>
       )}

@@ -52,7 +52,7 @@ const PatientQRCode = ({ patientId, patientName, size = 200, showDownload = true
       </div>
       <div className="text-center">
         <p className="font-semibold text-ink">{patientName}</p>
-        <p className="text-sm text-muted">رقم المريض #{patientId}</p>
+        <p className="text-sm text-muted">رقم الزائر #{patientId}</p>
       </div>
       {showDownload && (
         <Button variant="secondary" icon={Download} onClick={downloadQRCode}>

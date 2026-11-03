@@ -10,6 +10,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { QRCodeSVG } from "qrcode.react";
 import { PatientQRSection } from './PatientQRCode';
 import AppointmentDocuments from '../SuperAdmin/AppointmentDocuments';
+import SlotSheet from './SlotSheet';
+import PatientLog from './PatientLog';
 import {
   Check,
   ScanLine,
@@ -31,6 +33,11 @@ import {
   Info,
   Users,
   CheckCircle2,
+  Clock,
+  PlusCircle,
+  ArrowUpToLine,
+  GitMerge,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Button, IconButton, StatusBadge, PageHeader, StatStrip, SearchField, ChipGroup, EmptyState,
@@ -47,6 +54,7 @@ const STATUS_DOT = {
   Waiting: 'bg-st-hold',
   DilatationSent: 'bg-st-dil',
   Dilatation: 'bg-st-dil',
+  Entered: 'bg-st-visit',
   Completed: 'bg-st-done',
   Pending: 'bg-st-pending',
 };
@@ -57,6 +65,47 @@ const patientDocuments = (p) => [...new Set((p.all_appointments || [p]).flatMap(
 const hasCheckedIn = (p) => (p.all_appointments || [p]).some((a) => a.status !== 'Pending');
 const aptDay = (a) => a.day?.day_date || a.day?.date || "-";
 const aptHour = (a) => a.hour?.time || a.hour?.hour || "-";
+const todayInAlgiers = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Algiers' });
+const isTodayApt = (a) => String(aptDay(a)).slice(0, 10) === todayInAlgiers();
+// Super admin may change the time only before the patient starts in that specialty
+const canReschedule = (a) => a.status === 'Pending' || a.status === 'Waiting';
+// Place 3 of the queue: today's appointment, patient not with a doctor / in dilatation
+const BUSY_STATUSES = ['Entered', 'DilatationSent', 'Dilatation'];
+const canMoveToFront = (p, a) => isTodayApt(a) && a.status !== 'Completed'
+  && !(p.all_appointments || [p]).some((x) => BUSY_STATUSES.includes(x.status));
+/**
+ * Why this patient cannot be checked in yet (two registrations merged into
+ * one number): more appointments than the event allows, or one specialty
+ * twice. Same rule as the server; null when fine.
+ */
+const bookingProblem = (p, event) => {
+  const list = p.all_appointments || [p];
+  const limit = Math.max(1, Number(event?.nbr_of_allowed_specialties || 1));
+  const problems = [];
+  if (list.length > limit) problems.push(`للزائر ${list.length} مواعيد والحدث يسمح بـ ${limit}: احذف ${list.length - limit}.`);
+  const names = list.map((a) => a.event_specialty?.specialty?.name || a.event_specialty_id);
+  const twice = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
+  if (twice.length) problems.push(`حاجز ${twice.join('، ')} مرتين: احذف أحد الموعدين.`);
+  return problems.length ? `${problems.join(' ')} لا يُسجَّل الحضور قبل ذلك.` : null;
+};
+
+/** The appointment "move to front" acts on from the patient menu: the queued one, else the first of today. */
+const frontTarget = (p) => {
+  const list = (p.all_appointments || [p]).filter((a) => canMoveToFront(p, a));
+  return list.find((a) => a.status === 'Present' || a.status === 'Commingsoon') || list[0] || null;
+};
+
+/**
+ * The appointment «حالة خاصة» acts on: the one in a queue now, else today's
+ * first one not done (primary first). None while the patient is with a doctor
+ * or in dilatation (the server refuses it then).
+ */
+const specialTarget = (p) => {
+  const all = p.all_appointments || [p];
+  if (all.some((a) => BUSY_STATUSES.includes(a.status))) return null;
+  const today = all.filter((a) => isTodayApt(a) && a.status !== 'Completed');
+  return today.find((a) => a.status === 'Present' || a.status === 'Commingsoon') || today[0] || null;
+};
 
 /**
  * Reception desk (role 5), special-cases desk (role 3) and super admin (1).
@@ -73,6 +122,9 @@ const CheckPresence = () => {
   const isAdmin = role === 1;
   const canCheckIn = role === 1 || role === 5;
   const canManageSpecial = role === 1 || role === 3;
+  // Organizer (مسؤول التنظيم): finds patients and reads their data, changes nothing
+  const isViewer = role === 9;
+  const canMerge = canCheckIn || canManageSpecial;
 
   // Data
   const [event, setEvent] = useState(null);
@@ -105,6 +157,16 @@ const CheckPresence = () => {
   const [selectedTransferSpecialty, setSelectedTransferSpecialty] = useState(null);
   const [transferring, setTransferring] = useState(false);
   const [showExports, setShowExports] = useState(false);
+  const [slotRequest, setSlotRequest] = useState(null);   // super admin: { mode: 'reschedule'|'add', ... }
+  const [logVersion, setLogVersion] = useState(0);        // reloads the change log after an action
+  const [reopenDetails, setReopenDetails] = useState(null); // patient_id: back to their sheet after a delete
+
+  // Same name + phone registered under other numbers (for the patient in the details sheet)
+  const [duplicates, setDuplicates] = useState({ for: null, ids: [] });
+  const [notSame, setNotSame] = useState(() => new Set()); // "patientId:otherId" the desk said are different people
+  const [merging, setMerging] = useState(false);
+  const [view, setView] = useState('patients');       // 'patients' | 'duplicates'
+  const [dupGroups, setDupGroups] = useState(null);    // every same name + phone group of the event
 
   // Stats from the API
   const [reminderStats, setReminderStats] = useState({ total: 0, reminded: 0, not_reminded: 0 });
@@ -121,11 +183,12 @@ const CheckPresence = () => {
   const closeActions = useCallback(() => setActionsFor(null), []);
   const closeDetails = useCallback(() => setDetailsId(null), []);
   const closeQr = useCallback(() => setQrFor(null), []);
-  const closeDelete = useCallback(() => setAppointmentToDelete(null), []);
+  const closeDelete = useCallback(() => { setAppointmentToDelete(null); setReopenDetails(null); }, []);
   const closeTransfer = useCallback(() => { setTransferFor(null); setSelectedTransferSpecialty(null); }, []);
   const closeFilters = useCallback(() => setShowFilters(false), []);
   const closeExports = useCallback(() => setShowExports(false), []);
   const closeScanner = useCallback(() => setShowQRScanner(false), []);
+  const closeSlot = useCallback(() => setSlotRequest(null), []);
 
   const openScanner = (action) => {
     setScanAction(action);
@@ -190,7 +253,7 @@ const CheckPresence = () => {
         setLoadError("");
         return list;
       }
-      if (!silent) setLoadError("تعذر تحميل قائمة المرضى.");
+      if (!silent) setLoadError("تعذر تحميل قائمة الزوار.");
     } catch (err) {
       console.error("Error fetching appointments:", err);
       if (!silent) setLoadError("تعذر الاتصال بالخادم. تحقق من الشبكة ثم أعد المحاولة.");
@@ -207,12 +270,10 @@ const CheckPresence = () => {
     fetchEvaluatedStats();
   }, [eventId]);
 
-  // Other desks change statuses too (officers, other receptionists): reload when they do
-  useLiveRefresh(eventId, token, () => {
-    fetchAppointments(true);
-    fetchReminderStats();
-    fetchEvaluatedStats();
-  });
+  // Other desks change statuses too (officers, other receptionists): reload when
+  // they do, at most every 15 s (the whole event list is heavy). This desk's own
+  // actions reload right away. Reminder / evaluation counts don't move on visit day.
+  useLiveRefresh(eventId, token, () => fetchAppointments(true), { minGapMs: 15000 });
 
   // The "مسح QR" bottom tab links here with ?scan=present: open the camera, then drop the param
   useEffect(() => {
@@ -234,7 +295,7 @@ const CheckPresence = () => {
   const findPatient = async (patientId) => {
     const find = (list) => getUniquePatients(list).find((p) => p.patient_id?.toString() === patientId.toString());
     const patient = find(appointments) || find(await fetchAppointments(true));
-    if (!patient) toast(`لا يوجد مريض برقم #${patientId} في هذا الحدث. تحقق من الرقم.`, "error");
+    if (!patient) toast(`لا يوجد زائر برقم #${patientId} في هذا الحدث. تحقق من الرقم.`, "error");
     return patient || null;
   };
 
@@ -266,7 +327,7 @@ const CheckPresence = () => {
   const printCardFor = async (patientId, win = openPrintWindow()) => {
     const patient = await findPatient(patientId);
     if (patient && !hasCheckedIn(patient)) {
-      toast(`المريض #${patientId} لم يُسجَّل حضوره بعد. سجّل حضوره أولاً.`, "error");
+      toast(`الزائر #${patientId} لم يُسجَّل حضوره بعد. سجّل حضوره أولاً.`, "error");
     } else if (patient && win) {
       printPatientCard(patient, win);
       return true;
@@ -298,7 +359,7 @@ const CheckPresence = () => {
         setManualPatientId("");
         return await fetchAppointments(true);
       }
-      toast(data.message || `تعذر تسجيل حضور المريض #${patientId}. تحقق من الرقم.`, "error");
+      toast(data.message || `تعذر تسجيل حضور الزائر #${patientId}. تحقق من الرقم.`, "error");
     } catch (err) {
       console.error("Check-in error:", err);
       toast("تعذر الاتصال بالخادم. تحقق من الشبكة ثم أعد المحاولة.", "error");
@@ -312,7 +373,7 @@ const CheckPresence = () => {
   const typedPatientId = () => {
     const id = manualPatientId.trim();
     if (!/^\d+$/.test(id)) {
-      toast("أدخل رقم المريض بالأرقام فقط.", "error");
+      toast("أدخل رقم الزائر بالأرقام فقط.", "error");
       return null;
     }
     return id;
@@ -321,7 +382,7 @@ const CheckPresence = () => {
   // سجّل الحضور (typed or scanned): show who it is first; the receptionist
   // confirms in the sheet, which checks in and prints the follow-up card
   const showForPresence = (patient) => {
-    if (hasCheckedIn(patient)) toast(`المريض #${patient.patient_id} مسجل حاضراً من قبل.`, "info");
+    if (hasCheckedIn(patient)) toast(`الزائر #${patient.patient_id} مسجل حاضراً من قبل.`, "info");
     setDetailsId(patient.patient_id);
   };
 
@@ -330,7 +391,7 @@ const CheckPresence = () => {
     canCheckIn && { value: 'present', label: 'حاضر', icon: Check },
     canCheckIn && { value: 'print', label: 'طباعة بطاقة الحضور', icon: Printer },
     canManageSpecial && { value: 'special', label: 'حالة خاصة', icon: Star },
-    { value: 'details', label: 'تفاصيل المريض', icon: Info },
+    { value: 'details', label: 'تفاصيل الزائر', icon: Info },
   ].filter(Boolean);
   const mainAction = numberActions[0];
 
@@ -355,10 +416,15 @@ const CheckPresence = () => {
       return true;
     }
     if (isSpecialPatient(patient)) {
-      toast(`المريض #${patient.patient_id} مسجل حالةً خاصة من قبل.`, "info");
+      toast(`الزائر #${patient.patient_id} مسجل حالةً خاصة من قبل.`, "info");
       return true;
     }
-    return markAsSpecialCase(patient.id);
+    const target = specialTarget(patient);
+    if (!target) {
+      toast(`الزائر #${patient.patient_id} عند الطبيب أو في التمدد الآن، أو ليس له موعد اليوم.`, "error");
+      return false;
+    }
+    return markAsSpecialCase(target.id);
   };
 
   // Returns false on failure so the scanner stays open for another try
@@ -375,7 +441,7 @@ const CheckPresence = () => {
 
       if (scanAction === 'print') {
         if (!hasCheckedIn(patient)) {
-          toast(`المريض #${patientId} لم يُسجَّل حضوره بعد. سجّل حضوره أولاً.`, "error");
+          toast(`الزائر #${patientId} لم يُسجَّل حضوره بعد. سجّل حضوره أولاً.`, "error");
           return false;
         }
         // The scan is not a click: show the sheet, where the print button opens the window
@@ -390,6 +456,65 @@ const CheckPresence = () => {
       return false;
     }
   };
+
+  // ------------------------------------------------------------- double registrations
+
+  // When a patient's sheet opens before check-in, look for their other registrations
+  useEffect(() => {
+    if (detailsId === null || !canMerge) return;
+    const patient = allPatients.find((p) => p.patient_id === detailsId);
+    if (!patient || hasCheckedIn(patient)) return;
+    let cancelled = false;
+    setDuplicates({ for: detailsId, ids: [] });
+    fetch(`${apiUrl}/api/events/${eventId}/patients/${detailsId}/duplicates`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    })
+      .then((res) => (res.ok ? res.json() : { patient_ids: [] }))
+      .then((data) => !cancelled && setDuplicates({ for: detailsId, ids: data.patient_ids || [] }))
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [detailsId, logVersion]);
+
+  const mergePatients = async (patientId, otherIds) => {
+    setMerging(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/events/${eventId}/patients/${patientId}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ patient_ids: otherIds }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast(data.message || "دُمجت المواعيد");
+        await fetchAppointments(true);
+        setLogVersion((v) => v + 1);
+      } else {
+        toast(data.message || "تعذر الدمج. أعد المحاولة.", "error");
+      }
+    } catch (err) {
+      console.error("Merge error:", err);
+      toast("تعذر الاتصال بالخادم. تحقق من الشبكة.", "error");
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  // The «التسجيلات المكررة» tab (scans the whole event): loaded once for its
+  // count, then reloaded with the list only while the tab is open
+  const dupSource = view === 'duplicates' ? appointments : null;
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${apiUrl}/api/events/${eventId}/duplicates`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    })
+      .then((res) => (res.ok ? res.json() : { groups: [] }))
+      .then((data) => !cancelled && setDupGroups(data.groups || []))
+      .catch(() => !cancelled && setDupGroups([]));
+    return () => { cancelled = true; };
+  }, [eventId, token, dupSource]);
+
+  const markNotSame = (patientId, otherId) =>
+    setNotSame((prev) => new Set(prev).add(`${patientId}:${otherId}`));
 
   // ------------------------------------------------------------- WhatsApp
 
@@ -424,12 +549,12 @@ const CheckPresence = () => {
   const sendWhatsAppReminder = async (appointment) => {
     // Plain text for WhatsApp: no HTML escaping here
     const eventName = event?.name || "الحدث";
-    const patientName = appointment.full_name || "المريض";
+    const patientName = appointment.full_name || "الزائر";
     const phone = appointment.phone?.replace(/[^0-9]/g, '');
     const phoneNumber = formatPhoneForWhatsApp(phone);
 
     if (!phoneNumber || phoneNumber.length < 10) {
-      toast('رقم هاتف المريض غير صحيح. صحّحه من «عدّل البيانات» ثم أعد الإرسال.', 'error');
+      toast('رقم هاتف الزائر غير صحيح. صحّحه من «عدّل البيانات» ثم أعد الإرسال.', 'error');
       return;
     }
 
@@ -483,7 +608,7 @@ ${appointmentsList}
           reminded: prev.reminded + 1,
           not_reminded: prev.not_reminded > 0 ? prev.not_reminded - 1 : 0,
         }));
-        toast("سُجّل التذكير لهذا المريض");
+        toast("سُجّل التذكير لهذا الزائر");
       } else {
         toast("أُرسلت الرسالة لكن تعذر تسجيل التذكير. أعد المحاولة لاحقاً.", "error");
       }
@@ -505,7 +630,7 @@ ${appointmentsList}
 
 السلام عليكم ورحمة الله وبركاته ${appointment.full_name}،
 
-نسأل الله الشفاء لكم ولجميع مرضى المسلمين.
+نسأل الله الشفاء لكم ولجميع زوار المسلمين.
 
 نرجو منكم تقييم تجربتكم من خلال الرابط أعلاه.
 
@@ -690,6 +815,15 @@ ${appointmentsList}
   // Every patient (unfiltered): used for the details sheet so it stays live
   const allPatients = useMemo(() => getUniquePatients(appointments), [appointments]);
   const selectedPatient = detailsId === null ? null : allPatients.find((p) => p.patient_id === detailsId) || null;
+  // Before check-in: other registrations still to decide on, and a booking above the event's limit
+  const pendingDuplicates = !selectedPatient || duplicates.for !== selectedPatient.patient_id || hasCheckedIn(selectedPatient)
+    ? []
+    : duplicates.ids
+      .filter((id) => !notSame.has(`${selectedPatient.patient_id}:${id}`))
+      .map((id) => allPatients.find((p) => p.patient_id === id) || { patient_id: id, all_appointments: [] });
+  const selectedProblem = selectedPatient && !hasCheckedIn(selectedPatient) ? bookingProblem(selectedPatient, event) : null;
+  // Super admin always; the special-cases admin too when extra appointments must go
+  const canDeleteFor = (p) => isAdmin || (canManageSpecial && !!bookingProblem(p, event));
 
   // Filters apply to appointments, then rows are grouped per patient
   const filteredAppointments = useMemo(() => {
@@ -767,7 +901,7 @@ ${appointmentsList}
     setEditedData({
       name: nameParts[0] || '',
       lastName: nameParts.slice(1).join(' ') || '',
-      birthday: appointment.birthday || '',
+      birthday: appointment.birthday ? String(appointment.birthday).slice(0, 10) : '',
       state: appointment.state || '',
       city: appointment.city || '',
       diseases: appointment.diseases === 'nothing' ? '' : (appointment.diseases || ''),
@@ -799,7 +933,7 @@ ${appointmentsList}
       const data = await res.json();
 
       if (res.ok) {
-        toast("حُفظت بيانات المريض");
+        toast("حُفظت بيانات الزائر");
         await fetchAppointments(true);
         cancelEditing();
       } else {
@@ -829,6 +963,8 @@ ${appointmentsList}
         toast("حُذف الموعد");
         await fetchAppointments(true);
         setAppointmentToDelete(null);
+        setLogVersion((v) => v + 1);
+        if (reopenDetails !== null) setDetailsId(reopenDetails);
       } else {
         toast(data.message || "تعذر حذف الموعد. أعد المحاولة.", "error");
       }
@@ -881,7 +1017,7 @@ ${appointmentsList}
       const data = await res.json();
 
       if (res.ok) {
-        toast(data.message || "سُجّل المريض حالةً خاصة");
+        toast(data.message || "سُجّل الزائر حالةً خاصة");
         await fetchAppointments(true);
         return true;
       }
@@ -893,6 +1029,42 @@ ${appointmentsList}
       setUpdating(false);
     }
     return false;
+  };
+
+  // Place 3 of the queue, nothing shown on screens (unlike a special case); logged server-side
+  const moveToFront = async (appointmentId) => {
+    setUpdating(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/waitinglist/move-to-front/${appointmentId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast(data.message || "أصبح الزائر في المركز 3 من الطابور");
+        await fetchAppointments(true);
+        setLogVersion((v) => v + 1);
+      } else {
+        toast(data.message || "تعذر تقديم الزائر. أعد المحاولة.", "error");
+      }
+    } catch (err) {
+      console.error("Move to front error:", err);
+      toast("تعذر الاتصال بالخادم. تحقق من الشبكة.", "error");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const onSlotDone = () => {
+    setSlotRequest(null);
+    setLogVersion((v) => v + 1);
+    fetchAppointments(true);
+    fetchEventDetails();
+  };
+
+  const openSlot = (request) => {
+    fetchEventDetails(); // fresh hour counters
+    setSlotRequest(request);
   };
 
   // ------------------------------------------------------------- prints & exports
@@ -974,7 +1146,7 @@ ${appointmentsList}
         <div class="screenshot-note">📸 يرجى حفظ هذا المستند وإحضاره عند الحضور للفحص</div>
         ${allMedicalDocs.length > 0 ? `<div class="documents-info">✓ تم تحميل ${allMedicalDocs.length} مستند طبي بنجاح</div>` : ''}
         <div class="section">
-          <div class="section-title">معلومات المريض</div>
+          <div class="section-title">معلومات الزائر</div>
           <div class="info-line">
             <div class="info-item"><span class="info-label">الاسم:</span><span class="info-value">${full_name}</span></div>
             <span class="divider">|</span>
@@ -1083,7 +1255,7 @@ ${appointmentsList}
           <table>
             <thead>
               <tr>
-                <th>رقم المريض</th>
+                <th>رقم الزائر</th>
                 <th>الاسم الكامل</th>
                 <th>اليوم</th>
                 <th>الساعة</th>
@@ -1110,6 +1282,8 @@ ${appointmentsList}
                   ? "حاضر"
                   : apt.status === "Waiting"
                     ? "في الانتظار"
+                    : apt.status === "Entered"
+                      ? "عند الطبيب"
                     : apt.status === "Completed"
                       ? "مكتمل"
                       : "قيد الانتظار"
@@ -1275,7 +1449,7 @@ ${appointmentsList}
       <html dir="rtl">
       <head>
         <meta charset="UTF-8">
-        <title>بطاقة المريض - ${fullName}</title>
+        <title>بطاقة الزائر - ${fullName}</title>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
         <style>
           * { 
@@ -1290,6 +1464,8 @@ ${appointmentsList}
           body, table, th, td {
             font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
             direction: rtl;
+          }
+          body {
             width: 210mm;
             height: 148mm;
             margin: 0;
@@ -1663,7 +1839,7 @@ ${appointmentsList}
           </div>
           <div class="stat-box">
             <div class="number">${visitSummary.patients_arrived}</div>
-            <div class="label">مرضى حضروا</div>
+            <div class="label">زوار حضروا</div>
           </div>
           <div class="stat-box">
             <div class="number">${visitSummary.patients_finished}</div>
@@ -1682,7 +1858,7 @@ ${appointmentsList}
         <table>
           <thead>
             <tr>
-              <th>رقم المريض</th>
+              <th>رقم الزائر</th>
               <th>الاسم الكامل</th>
               <th>التخصص</th>
               <th>اليوم</th>
@@ -1710,6 +1886,8 @@ ${appointmentsList}
                 ? "حاضر"
                 : apt.status === "Waiting"
                   ? "في الانتظار"
+                  : apt.status === "Entered"
+                    ? "عند الطبيب"
                   : apt.status === "Completed"
                     ? "مكتمل"
                     : "قيد الانتظار"
@@ -1755,7 +1933,7 @@ ${appointmentsList}
     }
 
     const headers = [
-      'رقم المريض',
+      'رقم الزائر',
       'الاسم الكامل',
       'التخصص',
       'اليوم',
@@ -1869,36 +2047,125 @@ ${appointmentsList}
     );
   };
 
+  /** «التسجيلات المكررة»: one row per person, their patient numbers side by side. Tap a number to merge. */
+  const renderDuplicates = () => {
+    if (dupGroups === null) return <LoadingState />;
+    const q = searchTerm.trim().toLowerCase();
+    const digits = q.replace(/\D/g, '');
+    const groups = q
+      ? dupGroups.filter((g) => g.full_name?.toLowerCase().includes(q)
+        || (digits && (String(g.phone).replace(/\D/g, '').includes(digits) || g.patients.some((p) => String(p.patient_id).includes(digits)))))
+      : dupGroups;
+    if (dupGroups.length === 0) {
+      return <EmptyState icon={GitMerge} title="لا توجد تسجيلات مكررة">لا يوجد زائران بنفس الاسم والهاتف في هذا الحدث.</EmptyState>;
+    }
+    const columns = Math.max(2, ...dupGroups.map((g) => g.patients.length));
+    return (
+      <>
+        <p className="text-sm text-muted mb-3">
+          {groups.length} شخص سجّل أكثر من مرة. اضغط على رقم الزائر لفتحه ودمج تسجيلاته.
+        </p>
+        <div className="overflow-x-auto rounded-xl border border-line bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-paper text-muted">
+              <tr>
+                <th scope="col" className="px-3 py-2 text-start font-semibold">الاسم الكامل</th>
+                <th scope="col" className="px-3 py-2 text-start font-semibold">الهاتف</th>
+                {Array.from({ length: columns }, (_, i) => (
+                  <th key={i} scope="col" className="px-3 py-2 text-start font-semibold whitespace-nowrap">الزائر {i + 1}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g) => (
+                <tr key={g.patients[0].patient_id} className="border-t border-line align-top">
+                  <td className="px-3 py-3 font-semibold text-ink min-w-[10rem]">{g.full_name}</td>
+                  <td className="px-3 py-3 whitespace-nowrap" dir="ltr">{g.phone}</td>
+                  {Array.from({ length: columns }, (_, i) => {
+                    const p = g.patients[i];
+                    return (
+                      <td key={i} className="px-3 py-3 min-w-[9rem]">
+                        {p && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setDetailsId(p.patient_id)}
+                              className="font-semibold text-ink underline underline-offset-2 decoration-line hover:decoration-ink"
+                            >
+                              #{p.patient_id}
+                            </button>
+                            {p.checked_in && <span className="ms-1.5 text-xs font-semibold text-st-queue">حضر</span>}
+                            <ul className="mt-1 space-y-0.5 text-ink-soft">
+                              {p.specialties.map((name, k) => <li key={k}>{name}</li>)}
+                            </ul>
+                          </>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  };
+
   /** Rows of the per-patient menu; shared by the ⋮ sheet and the details sheet. */
-  const renderPatientActions = (p) => {
+  const renderPatientActions = (p, inDetails = false) => {
     const special = isSpecialPatient(p);
     const checkedIn = hasCheckedIn(p);
     const run = (fn) => () => { closeAllSheets(); fn(); };
     return (
       <div className="divide-y divide-line">
         {/* Check-in and special case live here, not on the row, so a tap while scrolling cannot trigger them */}
-        {canCheckIn && !checkedIn && (
+        {canCheckIn && !checkedIn && !inDetails && (
           <div className="pb-3">
-            <Button size="lg" block icon={Check} disabled={updating} onClick={run(() => checkInAndPrint(p.patient_id))}>
-              حاضر، واطبع بطاقة المتابعة
+            <Button size="lg" block icon={Check} disabled={updating} onClick={() => { setActionsFor(null); showForPresence(p); }}>
+              حاضر
             </Button>
           </div>
         )}
-        {canManageSpecial && !special && p.status !== "Completed" && (
-          <SheetAction icon={Star} tone="text-rose" hint="يدخل الطابور بأولوية" disabled={updating} onClick={run(() => markAsSpecialCase(p.id))}>
+        {canManageSpecial && !special && specialTarget(p) && (
+          <SheetAction icon={Star} tone="text-rose" hint={`يدخل طابور ${specialTarget(p).event_specialty?.specialty?.name || 'تخصصه'} بأولوية`} disabled={updating} onClick={run(() => markAsSpecialCase(specialTarget(p).id))}>
             سجّله حالة خاصة
           </SheetAction>
         )}
-        <SheetAction icon={MessageCircle} hint={isTrue(p.is_reminded) ? 'سبق تذكيره، يمكن إعادة الإرسال' : 'يفتح واتساب برسالة فيها مواعيده'} onClick={run(() => sendWhatsAppReminder(p))}>
-          أرسل تذكيراً بواتساب
-        </SheetAction>
-        <SheetAction icon={ClipboardList} hint={isTrue(p.is_evaluated) ? 'سبق إرسال الرابط' : 'رابط استبيان رضا المريض'} onClick={run(() => sendEvaluationLinkViaWhatsApp(p, eventId))}>
-          أرسل رابط التقييم
-        </SheetAction>
-        <SheetAction icon={Pencil} onClick={run(() => startEditing(p))}>عدّل البيانات</SheetAction>
+        {!isViewer && (
+          <>
+            <SheetAction icon={MessageCircle} hint={isTrue(p.is_reminded) ? 'سبق تذكيره، يمكن إعادة الإرسال' : 'يفتح واتساب برسالة فيها مواعيده'} onClick={run(() => sendWhatsAppReminder(p))}>
+              أرسل تذكيراً بواتساب
+            </SheetAction>
+            <SheetAction icon={ClipboardList} hint={isTrue(p.is_evaluated) ? 'سبق إرسال الرابط' : 'رابط استبيان رضا الزائر'} onClick={run(() => sendEvaluationLinkViaWhatsApp(p, eventId))}>
+              أرسل رابط التقييم
+            </SheetAction>
+            <SheetAction icon={Pencil} onClick={run(() => startEditing(p))}>عدّل البيانات</SheetAction>
+          </>
+        )}
+        {canManageSpecial && frontTarget(p) && (
+          <SheetAction
+            icon={ArrowUpToLine}
+            hint={`يصبح الثالث في طابور ${frontTarget(p).event_specialty?.specialty?.name || 'تخصصه'}، دون علامة حالة خاصة`}
+            disabled={updating}
+            onClick={run(() => moveToFront(frontTarget(p).id))}
+          >
+            قدّمه إلى المركز 3
+          </SheetAction>
+        )}
         {canManageSpecial && (
           <SheetAction icon={RefreshCw} hint="ينقل الموعد إلى أقرب موعد متاح في تخصص آخر" onClick={run(() => fetchAvailableSpecialties(p))}>
             غيّر التخصص
+          </SheetAction>
+        )}
+        {isAdmin && (p.all_appointments || [p]).length < Number(event?.nbr_of_allowed_specialties || 1) && (
+          <SheetAction icon={PlusCircle} hint={`الحدث يسمح بـ ${event?.nbr_of_allowed_specialties} تخصص لكل زائر`} onClick={run(() => openSlot({ mode: 'add', patient: p }))}>
+            أضف تخصصاً
+          </SheetAction>
+        )}
+        {isAdmin && (p.all_appointments || [p]).length === 1 && canReschedule(p) && (
+          <SheetAction icon={Clock} hint={`حالياً يوم ${aptDay(p)} الساعة ${aptHour(p)}`} onClick={run(() => openSlot({ mode: 'reschedule', appointment: p }))}>
+            غيّر وقت الموعد
           </SheetAction>
         )}
         <SheetAction icon={QrCode} onClick={run(() => setQrFor(p))}>اعرض رمز QR</SheetAction>
@@ -1925,7 +2192,7 @@ ${appointmentsList}
   // ------------------------------------------------------------- view
 
   if (loading && appointments.length === 0) {
-    return <LoadingState label="جاري تحميل المرضى..." />;
+    return <LoadingState label="جاري تحميل الزوار..." />;
   }
 
   const shownPatients = filteredAppointments.slice(0, visibleCount);
@@ -1955,7 +2222,7 @@ ${appointmentsList}
       <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
       {/* Patient number: check-in (the main job), print, special case, details */}
       <form onSubmit={(e) => { e.preventDefault(); runNumberAction(mainAction.value); }} className="bg-white border border-line rounded-2xl p-4 mb-4">
-          <label htmlFor="checkin-patient-id" className="block text-sm font-semibold text-ink mb-2">رقم المريض</label>
+          <label htmlFor="checkin-patient-id" className="block text-sm font-semibold text-ink mb-2">رقم الزائر</label>
           <div className="flex gap-2">
             <input
               id="checkin-patient-id"
@@ -2003,7 +2270,7 @@ ${appointmentsList}
       <StatStrip
         className="mb-4 lg:mb-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0 lg:pb-0"
         items={[
-          { label: `مريض (${stats.totalAppointments} موعد)`, value: stats.total },
+          { label: `زائر (${stats.totalAppointments} موعد)`, value: stats.total },
           { label: 'حضروا', value: stats.arrived, tone: 'text-st-queue' },
           { label: 'لم يحضروا بعد', value: stats.notArrived, tone: 'text-st-pending' },
           { label: 'أنهوا الفحص', value: stats.finished, tone: 'text-st-done' },
@@ -2016,9 +2283,20 @@ ${appointmentsList}
       </aside>
 
       <div className="min-w-0">
+      <ChipGroup
+        label="العرض"
+        className="mb-3"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'patients', label: 'الزوار' },
+          { value: 'duplicates', label: 'التسجيلات المكررة', count: dupGroups?.length },
+        ]}
+      />
       {/* Filters */}
       <div className="flex gap-2 mb-3">
         <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم أو الرقم أو الهاتف" className="flex-1 min-w-0" />
+        {view === 'patients' && (
         <button
           type="button"
           onClick={() => setShowFilters(true)}
@@ -2035,11 +2313,14 @@ ${appointmentsList}
             </span>
           )}
         </button>
+        )}
       </div>
+      {view === 'duplicates' ? renderDuplicates() : (
+      <>
       <ChipGroup label="تصفية حسب الحالة" value={statusFilter} onChange={setStatusFilter} options={statusOptions} className="mb-3" />
 
       {(searchTerm || statusFilter !== 'all' || extraFilterCount > 0) && (
-        <p className="text-sm text-muted mb-3">{filteredAppointments.length} مريض يطابق التصفية</p>
+        <p className="text-sm text-muted mb-3">{filteredAppointments.length} زائر يطابق التصفية</p>
       )}
 
       {/* Patients */}
@@ -2048,8 +2329,8 @@ ${appointmentsList}
           تأكد من اتصال الهاتف بالإنترنت.
         </EmptyState>
       ) : filteredAppointments.length === 0 ? (
-        <EmptyState icon={Users} title={appointments.length ? 'لا أحد يطابق البحث' : 'لا يوجد مرضى مسجلون بعد'}>
-          {appointments.length ? 'جرّب اسماً أو رقماً آخر، أو امسح التصفية.' : 'يظهر المرضى هنا بعد حجزهم من استمارة التسجيل.'}
+        <EmptyState icon={Users} title={appointments.length ? 'لا أحد يطابق البحث' : 'لا يوجد زوار مسجلون بعد'}>
+          {appointments.length ? 'جرّب اسماً أو رقماً آخر، أو امسح التصفية.' : 'يظهر الزوار هنا بعد حجزهم من استمارة التسجيل.'}
         </EmptyState>
       ) : (
         <>
@@ -2096,7 +2377,7 @@ ${appointmentsList}
                       </div>
                     </button>
                     <div className="shrink-0 flex items-center gap-1 self-center">
-                      <IconButton icon={MoreVertical} label={`خيارات المريض ${p.patient_id}`} onClick={() => setActionsFor(p)} />
+                      <IconButton icon={MoreVertical} label={`خيارات الزائر ${p.patient_id}`} onClick={() => setActionsFor(p)} />
                     </div>
                   </div>
                 </li>
@@ -2109,6 +2390,8 @@ ${appointmentsList}
             </Button>
           )}
         </>
+      )}
+      </>
       )}
       </div>
       </div>
@@ -2130,13 +2413,81 @@ ${appointmentsList}
             اطبع بطاقة المتابعة
           </Button>
         ) : (
-          <Button size="lg" block icon={Check} disabled={updating} onClick={() => { const id = selectedPatient.patient_id; closeAllSheets(); checkInAndPrint(id); }}>
-            أكّد الحضور واطبع بطاقة المتابعة
+          <Button
+            size="lg" block icon={Check}
+            disabled={updating || merging || pendingDuplicates.length > 0 || !!selectedProblem}
+            onClick={() => { const id = selectedPatient.patient_id; closeAllSheets(); checkInAndPrint(id); }}
+          >
+            {pendingDuplicates.length > 0 ? 'قرّر في التسجيل المكرر أولاً' : selectedProblem ? 'احذف المواعيد الزائدة أولاً' : 'أكّد الحضور واطبع بطاقة المتابعة'}
           </Button>
         ))}
       >
         {selectedPatient && (
           <div className="space-y-5">
+            {pendingDuplicates.length > 0 && (
+              <section className="rounded-xl border border-st-hold/40 bg-st-hold-bg p-3 space-y-3">
+                <h3 className="font-semibold text-ink flex items-center gap-1.5">
+                  <GitMerge className="w-4 h-4 shrink-0" /> سجّل مرة أخرى بنفس الاسم والهاتف
+                </h3>
+                <p className="text-sm text-ink-soft">
+                  ادمج مواعيده في الرقم #{selectedPatient.patient_id}، فيصير له رمز QR واحد. إن كان شخصاً آخر اختر «ليس نفس الشخص».
+                </p>
+                <ul className="space-y-2">
+                  {pendingDuplicates.map((d) => (
+                    <li key={d.patient_id} className="rounded-xl border border-line bg-white p-4">
+                      <p className="font-display text-xl text-ink leading-snug">
+                        <span className="text-ink-soft">#{d.patient_id}</span> {d.full_name || ''}
+                      </p>
+                      {/* Side by side with the scanned patient, to tell if it is the same person */}
+                      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 text-base">
+                        <div>
+                          <dt className="text-sm text-muted">تاريخ الميلاد</dt>
+                          <dd className={cx('font-semibold', d.birthday?.slice(0, 10) !== selectedPatient.birthday?.slice(0, 10) && 'text-st-hold')}>
+                            {d.birthday ? new Date(d.birthday).toLocaleDateString("en-GB") : '-'}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-sm text-muted">الهاتف</dt>
+                          <dd className="font-semibold" dir="ltr">{d.phone || '-'}</dd>
+                        </div>
+                      </dl>
+                      <h4 className="text-sm text-muted mt-3 mb-1">مواعيده ({(d.all_appointments || []).length})</h4>
+                      <ul className="space-y-1.5">
+                        {(d.all_appointments || []).map((a) => (
+                          <li key={a.id} className="flex items-start gap-2 text-base">
+                            <Stethoscope className="w-5 h-5 mt-0.5 shrink-0 text-ink-soft" />
+                            <span>
+                              <span className="font-semibold text-ink">{a.event_specialty?.specialty?.name || '-'}</span>
+                              <span className="block text-sm text-ink-soft">
+                                يوم {aptDay(a)}، الساعة {String(aptHour(a)).slice(0, 5)}
+                                {a.status !== 'Pending' && ` (${statusLabel(a.status)})`}
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        <Button icon={GitMerge} loading={merging} disabled={updating || isViewer} onClick={() => mergePatients(selectedPatient.patient_id, [d.patient_id])}>
+                          ادمجه في #{selectedPatient.patient_id}
+                        </Button>
+                        <Button variant="secondary" disabled={merging} onClick={() => markNotSame(selectedPatient.patient_id, d.patient_id)}>
+                          ليس نفس الشخص
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {selectedProblem && (
+              <p className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700 flex gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  {selectedProblem}
+                  {!canDeleteFor(selectedPatient) && ' الحذف من صلاحية المشرف العام أو مشرف الحالات الخاصة.'}
+                </span>
+              </p>
+            )}
             {isSpecialPatient(selectedPatient) && (
               <p className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-rose-soft text-rose text-sm font-semibold">
                 <Star className="w-4 h-4" /> حالة خاصة
@@ -2167,14 +2518,24 @@ ${appointmentsList}
                       يوم {aptDay(apt)}، الساعة {aptHour(apt)}
                     </p>
                     {(canManageSpecial || isAdmin) && (
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {isAdmin && canReschedule(apt) && (
+                          <Button variant="secondary" size="sm" icon={Clock} onClick={() => { setDetailsId(null); openSlot({ mode: 'reschedule', appointment: apt }); }}>
+                            غيّر الوقت
+                          </Button>
+                        )}
+                        {canManageSpecial && canMoveToFront(selectedPatient, apt) && (
+                          <Button variant="secondary" size="sm" icon={ArrowUpToLine} disabled={updating} onClick={() => moveToFront(apt.id)}>
+                            المركز 3
+                          </Button>
+                        )}
                         {canManageSpecial && (
                           <Button variant="secondary" size="sm" icon={RefreshCw} onClick={() => { setDetailsId(null); fetchAvailableSpecialties(apt); }}>
                             غيّر التخصص
                           </Button>
                         )}
-                        {isAdmin && (
-                          <Button variant="danger" size="sm" icon={Trash2} disabled={updating} onClick={() => { setDetailsId(null); setAppointmentToDelete(apt); }}>
+                        {canDeleteFor(selectedPatient) && (
+                          <Button variant="danger" size="sm" icon={Trash2} disabled={updating} onClick={() => { setReopenDetails(selectedPatient.patient_id); setDetailsId(null); setAppointmentToDelete(apt); }}>
                             احذف
                           </Button>
                         )}
@@ -2190,18 +2551,20 @@ ${appointmentsList}
               allowDownload={isAdmin}
             />
 
+            <PatientLog eventId={eventId} patientId={selectedPatient.patient_id} token={token} version={logVersion} />
+
             <PatientQRSection appointment={selectedPatient} />
 
             <section>
               <h3 className="font-semibold text-ink mb-1">إجراءات</h3>
-              {renderPatientActions(selectedPatient)}
+              {renderPatientActions(selectedPatient, true)}
             </section>
           </div>
         )}
       </Sheet>
 
       {/* QR of a patient */}
-      <Sheet open={!!qrFor} onClose={closeQr} title="رمز QR للمريض">
+      <Sheet open={!!qrFor} onClose={closeQr} title="رمز QR للزائر">
         {qrFor && <PatientQRSection appointment={qrFor} />}
       </Sheet>
 
@@ -2258,14 +2621,17 @@ ${appointmentsList}
         {appointmentToDelete && (
           <>
             <dl className="rounded-xl border border-line p-3 space-y-1.5 text-sm">
-              <div className="flex justify-between gap-2"><dt className="text-muted">المريض</dt><dd className="font-semibold">#{appointmentToDelete.patient_id}</dd></div>
+              <div className="flex justify-between gap-2"><dt className="text-muted">الزائر</dt><dd className="font-semibold">#{appointmentToDelete.patient_id}</dd></div>
               <div className="flex justify-between gap-2"><dt className="text-muted">الاسم</dt><dd className="font-semibold truncate">{appointmentToDelete.full_name}</dd></div>
               <div className="flex justify-between gap-2"><dt className="text-muted">التخصص</dt><dd className="font-semibold truncate">{appointmentToDelete.event_specialty?.specialty?.name || '-'}</dd></div>
             </dl>
-            <p className="mt-3 text-sm text-red-700">لا يمكن التراجع عن الحذف. مواعيد المريض الأخرى تبقى كما هي.</p>
+            <p className="mt-3 text-sm text-red-700">لا يمكن التراجع عن الحذف. مواعيد الزائر الأخرى تبقى كما هي.</p>
           </>
         )}
       </Sheet>
+
+      {/* Super admin: change time / add a specialty */}
+      <SlotSheet request={slotRequest} event={event} token={token} onClose={closeSlot} onDone={onSlotDone} />
 
       {/* Change specialty */}
       <Sheet
@@ -2284,7 +2650,7 @@ ${appointmentsList}
               موعد #{transferFor.patient_id} في {transferFor.event_specialty?.specialty?.name || 'تخصصه الحالي'} ينتقل إلى أقرب موعد متاح في التخصص المختار.
             </p>
             {availableSpecialties === null ? <LoadingState /> : availableSpecialties.length === 0 ? (
-              <EmptyState title="لا يوجد تخصص متاح">كل التخصصات الأخرى ممتلئة أو محجوزة لهذا المريض.</EmptyState>
+              <EmptyState title="لا يوجد تخصص متاح">كل التخصصات الأخرى ممتلئة أو محجوزة لهذا الزائر.</EmptyState>
             ) : (
               <div role="radiogroup" aria-label="التخصص الجديد" className="space-y-2">
                 {availableSpecialties.map((specialty) => {
@@ -2323,7 +2689,7 @@ ${appointmentsList}
         title="تصفية إضافية"
         footer={
           <>
-            <Button size="lg" className="flex-1" onClick={() => setShowFilters(false)}>اعرض {filteredAppointments.length} مريض</Button>
+            <Button size="lg" className="flex-1" onClick={() => setShowFilters(false)}>اعرض {filteredAppointments.length} زائر</Button>
             <Button size="lg" variant="secondary" disabled={!extraFilterCount} onClick={resetExtraFilters}>امسح التصفية</Button>
           </>
         }
@@ -2404,10 +2770,10 @@ ${appointmentsList}
           onClose={closeScanner}
           eventId={eventId}
           actionTitle={
-            scanAction === 'present' ? 'امسح رمز المريض: تظهر معلوماته ثم أكّد حضوره' :
-              scanAction === 'print' ? 'امسح رمز المريض لطباعة بطاقته' :
-              scanAction === 'special' ? 'امسح رمز المريض لتسجيله حالة خاصة' :
-                scanAction === 'details' ? 'امسح رمز المريض لعرض تفاصيله' :
+            scanAction === 'present' ? 'امسح رمز الزائر: تظهر معلوماته ثم أكّد حضوره' :
+              scanAction === 'print' ? 'امسح رمز الزائر لطباعة بطاقته' :
+              scanAction === 'special' ? 'امسح رمز الزائر لتسجيله حالة خاصة' :
+                scanAction === 'details' ? 'امسح رمز الزائر لعرض تفاصيله' :
                   'امسح رمز QR'
           }
         />

@@ -221,6 +221,21 @@
     animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Long-visit alarm card (أثناء الحدث): flashes until the visit ends */
+@keyframes alarm-flash {
+    0%, 100% { background-color: #FBE4EC; border-color: #E03A6F; }
+    50% { background-color: #FFFFFF; border-color: #F3B6C9; }
+}
+
+.animate-alarm-flash {
+    animation: alarm-flash 1s ease-in-out infinite;
+}
+
+/* Same flash, 5 times then steady (super admin) */
+.animate-alarm-flash-5 {
+    animation: alarm-flash 1s ease-in-out 5;
+}
+
 /* ============================================
    Custom Utilities
    ============================================ */

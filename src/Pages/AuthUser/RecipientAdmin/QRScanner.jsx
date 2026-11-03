@@ -41,7 +41,7 @@ const QRScanner = ({ onScanSuccess, onClose, eventId, actionTitle = 'امسح ر
           );
           setSelectedCamera(backCamera?.id || devices[0].id);
         } else {
-          setError('لم نجد كاميرا على هذا الجهاز. أدخل رقم المريض يدوياً في الأسفل.');
+          setError('لم نجد كاميرا على هذا الجهاز. أدخل رقم الزائر يدوياً في الأسفل.');
         }
       })
       .catch((err) => {
@@ -136,7 +136,7 @@ const QRScanner = ({ onScanSuccess, onClose, eventId, actionTitle = 'امسح ر
         resumeCamera();
         return;
       }
-      setSuccess(`تمت قراءة رقم المريض #${patientId}`);
+      setSuccess(`تمت قراءة رقم الزائر #${patientId}`);
       setManualId('');
       closeTimer.current = setTimeout(() => {
         setSuccess('');
@@ -158,7 +158,7 @@ const QRScanner = ({ onScanSuccess, onClose, eventId, actionTitle = 'امسح ر
 
     // Validate patient ID
     if (!patientId || isNaN(patientId)) {
-      setError('هذا ليس رمز مريض. امسح الرمز المطبوع على بطاقة المريض.');
+      setError('هذا ليس رمز زائر. امسح الرمز المطبوع على بطاقة الزائر.');
       setTimeout(() => setError(''), 3000);
       return;
     }
@@ -170,7 +170,7 @@ const QRScanner = ({ onScanSuccess, onClose, eventId, actionTitle = 'امسح ر
     e.preventDefault();
     const id = manualId.trim();
     if (!/^\d+$/.test(id)) {
-      setError('أدخل رقم المريض بالأرقام فقط.');
+      setError('أدخل رقم الزائر بالأرقام فقط.');
       return;
     }
     submitPatientId(id);
@@ -276,7 +276,7 @@ const QRScanner = ({ onScanSuccess, onClose, eventId, actionTitle = 'امسح ر
             </p>
           ) : (
             <p className="text-sm text-white/75 text-center">
-              ضع رمز المريض داخل الإطار وثبّت الهاتف لحظة.{torchSupported ? ' شغّل الضوء إن كانت الإضاءة ضعيفة.' : ''}
+              ضع رمز الزائر داخل الإطار وثبّت الهاتف لحظة.{torchSupported ? ' شغّل الضوء إن كانت الإضاءة ضعيفة.' : ''}
             </p>
           )}
 

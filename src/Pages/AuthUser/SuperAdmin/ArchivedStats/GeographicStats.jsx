@@ -119,7 +119,7 @@ const generatePrintDocument = () => {
           <tr>
             <th>الترتيب</th>
             <th>الولاية</th>
-            <th>عدد المرضى</th>
+            <th>عدد الزوار</th>
             <th>النسبة المئوية</th>
           </tr>
         </thead>
@@ -227,11 +227,11 @@ const generatePrintDocument = () => {
       <StatStrip
         className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
-          { label: "المرضى", value: totalPatients },
+          { label: "الزوار", value: totalPatients },
           { label: "الولايات", value: stateStats.length },
           { label: "المدن", value: cityStats.length },
-          { label: "متوسط المرضى لكل ولاية", value: average(stateStats.length) },
-          { label: "متوسط المرضى لكل مدينة", value: average(cityStats.length) },
+          { label: "متوسط الزوار لكل ولاية", value: average(stateStats.length) },
+          { label: "متوسط الزوار لكل مدينة", value: average(cityStats.length) },
         ]}
       />
 
@@ -243,7 +243,7 @@ const generatePrintDocument = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Panel title="أعلى 10 ولايات">
-              <HBarChart data={stateChartData} bars={[{ key: "value", name: "المرضى", color: CHART.inkSoft }]} />
+              <HBarChart data={stateChartData} bars={[{ key: "value", name: "الزوار", color: CHART.inkSoft }]} />
             </Panel>
 
             <Panel title={`كل الولايات (${stateStats.length})`}>
@@ -254,7 +254,7 @@ const generatePrintDocument = () => {
           </div>
 
           <Panel title="أعلى المدن" bodyClassName="xl:grid xl:grid-cols-2 xl:gap-6 xl:items-start">
-            <HBarChart data={cityChartData} bars={[{ key: "value", name: "المرضى", color: CHART.inkSoft }]} />
+            <HBarChart data={cityChartData} bars={[{ key: "value", name: "الزوار", color: CHART.inkSoft }]} />
             <div className="mt-4 xl:mt-0">
               <ResponsiveTable
                 columns={cityColumns}
@@ -268,10 +268,10 @@ const generatePrintDocument = () => {
             <Panel title="ملاحظات">
               <ul className="space-y-1.5 text-sm text-ink">
                 {stateStats[0] && (
-                  <li>أكثر ولاية تمثيلاً: <strong>{stateStats[0].state}</strong> بـ {stateStats[0].count} مريض.</li>
+                  <li>أكثر ولاية تمثيلاً: <strong>{stateStats[0].state}</strong> بـ {stateStats[0].count} زائر.</li>
                 )}
                 {cityStats[0] && (
-                  <li>أكثر مدينة تمثيلاً: <strong>{cityStats[0].city}</strong> بـ {cityStats[0].count} مريض.</li>
+                  <li>أكثر مدينة تمثيلاً: <strong>{cityStats[0].city}</strong> بـ {cityStats[0].count} زائر.</li>
                 )}
                 <li>التغطية: {stateStats.length} ولاية و{cityStats.length} مدينة.</li>
               </ul>

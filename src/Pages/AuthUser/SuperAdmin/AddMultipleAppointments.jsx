@@ -215,7 +215,7 @@ const AddMultipleAppointments = () => {
 
   const handleCreateTestAppointments = () =>
     testAction("/api/test-appointments/create-all", "POST", (data) => {
-      toast(`تم إنشاء ${data.created_count} موعد تجريبي (${data.patients_count} مريض في ${data.specialties_count} تخصص)`);
+      toast(`تم إنشاء ${data.created_count} موعد تجريبي (${data.patients_count} زائر في ${data.specialties_count} تخصص)`);
       if (data.warning_message) toast(data.warning_message, "info");
     });
   const handleResetTestAppointments = () =>
@@ -293,12 +293,12 @@ const AddMultipleAppointments = () => {
       if (!selectedDay) return fail(null, null, "اختر اليوم المشترك");
       if (!selectedHour) return fail(null, null, "اختر الساعة المشتركة");
       if (availableSlots && availableSlots.available !== undefined && appointments.length > availableSlots.available) {
-        return fail(null, null, `عدد المرضى (${appointments.length}) أكبر من الأماكن المتاحة (${availableSlots.available}). احذف بعضهم أو اختر ساعة أخرى.`);
+        return fail(null, null, `عدد الزوار (${appointments.length}) أكبر من الأماكن المتاحة (${availableSlots.available}). احذف بعضهم أو اختر ساعة أخرى.`);
       }
     }
     for (let i = 0; i < appointments.length; i++) {
       const a = appointments[i];
-      const n = `المريض ${i + 1}`;
+      const n = `الزائر ${i + 1}`;
       if (mode === "different") {
         if (!a.event_specialty_id) return fail(i, "event_specialty_id", `${n}: اختر التخصص`);
         if (!a.day_id) return fail(i, "day_id", `${n}: اختر اليوم`);
@@ -391,7 +391,7 @@ const AddMultipleAppointments = () => {
     return (
       <div className="max-w-2xl lg:max-w-none mx-auto">
         <button type="button" onClick={() => changeMode("same")} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
-          <ChevronRight className="w-4 h-4" /> رجوع إلى إضافة المرضى
+          <ChevronRight className="w-4 h-4" /> رجوع إلى إضافة الزوار
         </button>
         <PageHeader title="المواعيد التجريبية" subtitle={testEventInfo ? `حدث الاختبار: ${testEventInfo.name} (رقم ${TEST_EVENT_ID})` : `حدث الاختبار رقم ${TEST_EVENT_ID}`} />
 
@@ -399,7 +399,7 @@ const AddMultipleAppointments = () => {
           className="mb-4"
           items={[
             { label: "تخصص في الحدث", value: testSpecialties.length },
-            { label: "مريض لكل تخصص", value: TEST_PATIENTS_PER_SPECIALTY },
+            { label: "زائر لكل تخصص", value: TEST_PATIENTS_PER_SPECIALTY },
             { label: "موعد متوقع", value: testSpecialties.length * TEST_PATIENTS_PER_SPECIALTY },
             { label: "موعد تجريبي حالياً", value: counting ? "…" : testAppointmentsCount },
           ]}
@@ -450,7 +450,7 @@ const AddMultipleAppointments = () => {
 
   return (
     <div className="max-w-2xl lg:max-w-none mx-auto pb-24">
-      <PageHeader title="إضافة مواعيد" subtitle="سجّل عدة مرضى دفعة واحدة في حدث نشط" />
+      <PageHeader title="إضافة مواعيد" subtitle="سجّل عدة زوار دفعة واحدة في حدث نشط" />
 
       <ChipGroup
         label="طريقة الإضافة"
@@ -459,7 +459,7 @@ const AddMultipleAppointments = () => {
         className="mb-4"
         options={[
           { value: "same", label: "نفس الموعد للجميع" },
-          { value: "different", label: "موعد لكل مريض" },
+          { value: "different", label: "موعد لكل زائر" },
         ]}
       />
 
@@ -533,11 +533,11 @@ const AddMultipleAppointments = () => {
                   <span className="font-display text-sm text-muted w-5">{i + 1}</span>
                   <button type="button" className="flex-1 min-w-0 text-start min-h-[3rem]" onClick={() => setCurrent(i)}>
                     <span className={cx("block truncate", filled(p) ? "text-ink font-semibold" : "text-muted")}>
-                      {filled(p) ? `${p.name} ${p.lastName}`.trim() || p.phone : "مريض بلا بيانات بعد"}
+                      {filled(p) ? `${p.name} ${p.lastName}`.trim() || p.phone : "زائر بلا بيانات بعد"}
                     </span>
                   </button>
-                  {i !== current && <IconButton icon={Pencil} label={`عدّل المريض ${i + 1}`} onClick={() => setCurrent(i)} />}
-                  <IconButton icon={Trash2} label={`احذف المريض ${i + 1}`} className="text-red-700" onClick={() => removePatient(i)} />
+                  {i !== current && <IconButton icon={Pencil} label={`عدّل الزائر ${i + 1}`} onClick={() => setCurrent(i)} />}
+                  <IconButton icon={Trash2} label={`احذف الزائر ${i + 1}`} className="text-red-700" onClick={() => removePatient(i)} />
                 </li>
               ))}
             </ol>
@@ -546,7 +546,7 @@ const AddMultipleAppointments = () => {
 
         {/* Current patient */}
         <Panel
-          title={appointments.length > 1 ? `المريض ${current + 1} من ${appointments.length}` : "بيانات المريض"}
+          title={appointments.length > 1 ? `الزائر ${current + 1} من ${appointments.length}` : "بيانات الزائر"}
           actions={appointments.length === 1 && filled(a) ? (
             <Button variant="ghost" size="sm" icon={RotateCcw} onClick={() => removePatient(0)}>امسح</Button>
           ) : undefined}
@@ -638,10 +638,10 @@ const AddMultipleAppointments = () => {
             disabled={mode === "same" && (!selectedHour || sameSlotFull)}
             onClick={addPatient}
           >
-            أضف مريضاً آخر
+            أضف زائراً آخر
           </Button>
           {mode === "same" && !selectedHour && (
-            <p className="mt-2 text-xs text-muted text-center">اختر التخصص واليوم والساعة أولاً لإضافة أكثر من مريض.</p>
+            <p className="mt-2 text-xs text-muted text-center">اختر التخصص واليوم والساعة أولاً لإضافة أكثر من زائر.</p>
           )}
           {sameSlotFull && (
             <p className="mt-2 text-xs text-muted text-center">وصلت إلى عدد الأماكن المتاحة في هذه الساعة.</p>
@@ -661,10 +661,10 @@ const AddMultipleAppointments = () => {
       <div className="fixed inset-x-0 bottom-[4.75rem] lg:bottom-6 lg:ps-24 z-30 px-4 lg:px-8 pointer-events-none">
         <div className="max-w-2xl lg:max-w-[92rem] mx-auto flex items-center gap-2 bg-white border border-line rounded-2xl p-2 ps-4 shadow-lg pointer-events-auto">
           <span className="flex-1 text-sm text-muted">
-            <span className="font-display text-lg text-ink">{appointments.length}</span> {appointments.length === 1 ? "مريض" : "مرضى"}
+            <span className="font-display text-lg text-ink">{appointments.length}</span> {appointments.length === 1 ? "زائر" : "زوار"}
           </span>
           <Button size="lg" loading={loading} disabled={mode === "same" && !selectedHour} onClick={handleSubmit}>
-            {appointments.length === 1 ? "سجّل المريض" : `سجّل ${appointments.length} مرضى`}
+            {appointments.length === 1 ? "سجّل الزائر" : `سجّل ${appointments.length} زوار`}
           </Button>
         </div>
       </div>
@@ -689,13 +689,13 @@ function ResultReport({ result }) {
         {result.ok ? <CheckCircle2 className="w-6 h-6 text-st-queue shrink-0" /> : <AlertTriangle className="w-6 h-6 text-red-700 shrink-0" />}
         <div>
           <p className="font-semibold text-ink">{result.message || `تم تسجيل ${created} من ${result.requested}`}</p>
-          {result.ok && <p className="text-sm text-muted">سُجِّل {created} من أصل {result.requested_count ?? result.requested} مريض.</p>}
+          {result.ok && <p className="text-sm text-muted">سُجِّل {created} من أصل {result.requested_count ?? result.requested} زائر.</p>}
         </div>
       </div>
 
       {result.patient_ids?.length > 0 && (
         <div>
-          <p className="text-sm font-semibold text-ink mb-1">أرقام المرضى</p>
+          <p className="text-sm font-semibold text-ink mb-1">أرقام الزوار</p>
           <p className="text-sm text-ink bg-paper rounded-xl p-3 break-words" dir="ltr">{result.patient_ids.map((id) => `#${id}`).join("  ")}</p>
         </div>
       )}

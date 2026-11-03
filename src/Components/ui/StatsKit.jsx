@@ -19,6 +19,7 @@ export const CHART = {
   hold: '#4F5FA3',
   pushed: '#B26B00',
   dil: '#0E7490',
+  visit: '#6D3FC0',
   done: '#5F6B7D',
   pending: '#8A93A8',
 };

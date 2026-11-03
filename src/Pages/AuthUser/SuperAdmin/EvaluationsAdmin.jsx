@@ -222,7 +222,7 @@ const EvaluationsAdmin = () => {
         <div className="max-w-2xl lg:max-w-none mx-auto">
             <PageHeader
                 title="التقييمات"
-                subtitle="آراء المرضى بعد الحملات الطبية"
+                subtitle="آراء الزوار بعد الحملات الطبية"
                 actions={<IconButton icon={MoreVertical} label="خيارات" className="bg-white border border-line" onClick={() => setMenuOpen(true)} />}
             />
 
@@ -259,7 +259,7 @@ const EvaluationsAdmin = () => {
                 <LoadingState />
             ) : filtered.length === 0 ? (
                 <EmptyState icon={MessageSquareHeart} title={all.length ? 'لا تقييمات تطابق التصفية' : 'لا توجد تقييمات بعد'}>
-                    {all.length ? 'اختر حدثاً آخر أو «الكل» لعرض تقييمات أخرى.' : 'تظهر هنا التقييمات التي يرسلها المرضى بعد زيارتهم.'}
+                    {all.length ? 'اختر حدثاً آخر أو «الكل» لعرض تقييمات أخرى.' : 'تظهر هنا التقييمات التي يرسلها الزوار بعد زيارتهم.'}
                 </EmptyState>
             ) : (
                 <ul className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">

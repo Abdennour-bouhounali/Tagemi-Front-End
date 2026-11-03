@@ -190,7 +190,7 @@ const generatePrintDocument = () => {
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="UTF-8">
-      <title>قائمة المرضى - ${escapeHtml(event?.name)}</title>
+      <title>قائمة الزوار - ${escapeHtml(event?.name)}</title>
       <style>
         @page { size: A4 landscape; margin: 1.5cm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -267,14 +267,14 @@ const generatePrintDocument = () => {
     <body>
       <div class="header">
         <img src="/tagemi_logo.png" alt="Logo" class="logo" />
-        <h1>قائمة المرضى الكاملة</h1>
+        <h1>قائمة الزوار الكاملة</h1>
         <p class="event-name">${escapeHtml(event?.name)}</p>
         <p class="date">تاريخ الإصدار: ${escapeHtml(currentDate)}</p>
       </div>
 
       <div class="summary-box">
         <div class="value">${appointments.length}</div>
-        <div class="label">إجمالي المرضى في هذه الصفحة</div>
+        <div class="label">إجمالي الزوار في هذه الصفحة</div>
       </div>
 
       <table class="data-table">
@@ -328,7 +328,7 @@ const generatePrintDocument = () => {
       <div class="footer">
         <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة نظام إدارة الحملات الطبية</p>
         <p>جميع الحقوق محفوظة © ${new Date().getFullYear()}</p>
-        <p style="margin-top: 5px;">الصفحة ${currentPage} من ${totalPages} | إجمالي المرضى: ${appointments.length}</p>
+        <p style="margin-top: 5px;">الصفحة ${currentPage} من ${totalPages} | إجمالي الزوار: ${appointments.length}</p>
       </div>
     </body>
     </html>
@@ -377,7 +377,7 @@ const generatePrintDocument = () => {
     return (
       <div className="max-w-6xl lg:max-w-none mx-auto">
         <BackLink to={backTo} />
-        <PageHeader title="قائمة المرضى" subtitle={event?.name} />
+        <PageHeader title="قائمة الزوار" subtitle={event?.name} />
         <ErrorState message={error} onRetry={() => { setError(""); fetchPatients(); }} />
       </div>
     );
@@ -387,7 +387,7 @@ const generatePrintDocument = () => {
     <div className="max-w-6xl lg:max-w-none mx-auto">
       <BackLink to={backTo} />
       <PageHeader
-        title="قائمة المرضى"
+        title="قائمة الزوار"
         subtitle={[event?.name, total !== null ? `${total} موعد` : null].filter(Boolean).join("، ")}
         actions={
           <ActionsMenu
@@ -406,7 +406,7 @@ const generatePrintDocument = () => {
             className="flex-1"
             value={searchInput}
             onChange={setSearchInput}
-            placeholder="ابحث بالاسم أو الهاتف أو رقم المريض"
+            placeholder="ابحث بالاسم أو الهاتف أو رقم الزائر"
           />
           <button
             type="button"

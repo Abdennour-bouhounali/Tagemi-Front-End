@@ -1,17 +1,10 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import AppointmentDistribution from './AppointmentDistribution';
+import { Navigate, useParams } from 'react-router-dom';
 
-// Route wrapper: /admin/appointment-distribution/:eventId
+// Old route /admin/appointment-distribution/:eventId: the distribution now lives
+// in the "before the event" tab of the event statistics page.
 const EventAppointmentDistribution = () => {
   const { eventId } = useParams();
-  const navigate = useNavigate();
-
-  return (
-    <AppointmentDistribution
-      eventId={eventId}
-      onClose={() => navigate(`/admin/event-tracking/${eventId}`)}
-    />
-  );
+  return <Navigate to={`/admin/event-statistics/${eventId}?phase=before`} replace />;
 };
 
 export default EventAppointmentDistribution;

@@ -60,6 +60,7 @@ const STATUS_TONE = {
   Waiting: 'bg-st-hold-bg text-st-hold',
   DilatationSent: 'bg-st-dil-bg text-st-dil',
   Dilatation: 'bg-st-dil-bg text-st-dil',
+  Entered: 'bg-st-visit-bg text-st-visit',
   Completed: 'bg-st-done-bg text-st-done',
   Pending: 'bg-st-pending-bg text-st-pending',
 };
@@ -240,7 +241,7 @@ export function Sheet({ open, onClose, title, children, footer, size = 'md' }) {
         aria-label={title}
         className={cx(
           'relative w-full bg-white rounded-t-3xl sm:rounded-3xl max-h-[88vh] flex flex-col anim-sheet outline-none safe-bottom',
-          size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-md'
+          size === 'xl' ? 'sm:max-w-5xl' : size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-md'
         )}
       >
         <div className="sm:hidden mx-auto mt-2 h-1.5 w-10 rounded-full bg-line" aria-hidden="true" />

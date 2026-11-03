@@ -321,7 +321,7 @@ const DemographicStats = () => {
             <h2 class="section-title">الملخص التنفيذي</h2>
             <div class="summary-grid">
               <div class="summary-card">
-                <div class="label">إجمالي المرضى</div>
+                <div class="label">إجمالي الزوار</div>
                 <div class="value">${totalPatients}</div>
               </div>
               ${genderChartData.map(stat => `
@@ -336,7 +336,7 @@ const DemographicStats = () => {
 
           <!-- Gender Statistics -->
           <div class="section">
-            <h2 class="section-title">إحصائيات توزيع المرضى حسب الجنس</h2>
+            <h2 class="section-title">إحصائيات توزيع الزوار حسب الجنس</h2>
             <table class="data-table">
               <thead>
                 <tr>
@@ -364,12 +364,12 @@ const DemographicStats = () => {
 
           <!-- Age Statistics -->
           <div class="section">
-            <h2 class="section-title">إحصائيات توزيع المرضى حسب الفئة العمرية</h2>
+            <h2 class="section-title">إحصائيات توزيع الزوار حسب الفئة العمرية</h2>
             <table class="data-table">
               <thead>
                 <tr>
                   <th>الفئة العمرية</th>
-                  <th>عدد المرضى</th>
+                  <th>عدد الزوار</th>
                   <th>النسبة المئوية</th>
                 </tr>
               </thead>
@@ -399,8 +399,8 @@ const DemographicStats = () => {
             <div class="analysis-box">
               <h3>الملاحظات الرئيسية:</h3>
               <ul>
-                <li>إجمالي عدد المرضى المسجلين في الحملة: <strong>${totalPatients}</strong> مريض</li>
-                <li>الفئة العمرية الأكثر حضوراً: <strong>${escapeHtml(topAge?.name)} سنة</strong> بعدد <strong>${escapeHtml(topAge?.value)}</strong> مريض</li>
+                <li>إجمالي عدد الزوار المسجلين في الحملة: <strong>${totalPatients}</strong> زائر</li>
+                <li>الفئة العمرية الأكثر حضوراً: <strong>${escapeHtml(topAge?.name)} سنة</strong> بعدد <strong>${escapeHtml(topAge?.value)}</strong> زائر</li>
                 <li>التوزيع بين الجنسين: ${genderChartData.map(s => `${escapeHtml(s.name)} (${escapeHtml(s.percentage)}%)`).join(' و ')}</li>
                 <li>عدد الفئات العمرية المشمولة: <strong>${ageStats.length}</strong> فئات عمرية</li>
               </ul>
@@ -501,7 +501,7 @@ const DemographicStats = () => {
       <StatStrip
         className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
         items={[
-          { label: "المرضى", value: totalPatients },
+          { label: "الزوار", value: totalPatients },
           ...genderParts.map((g) => ({ label: g.label, value: g.value })),
           topAge && { label: "الفئة الأكثر حضوراً", value: topAge.name.replace(" سنة", "") },
         ]}
@@ -509,7 +509,7 @@ const DemographicStats = () => {
 
       {totalPatients === 0 && ageChartData.length === 0 ? (
         <Panel>
-          <p className="py-6 text-center text-sm text-muted">لا توجد بيانات مرضى مؤرشفة لهذا الحدث.</p>
+          <p className="py-6 text-center text-sm text-muted">لا توجد بيانات زوار مؤرشفة لهذا الحدث.</p>
         </Panel>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -518,10 +518,10 @@ const DemographicStats = () => {
           </Panel>
 
           <Panel title="حسب الفئة العمرية">
-            <HBarChart data={ageChartData} bars={[{ key: "value", name: "المرضى", color: CHART.inkSoft }]} labelWidth={84} />
+            <HBarChart data={ageChartData} bars={[{ key: "value", name: "الزوار", color: CHART.inkSoft }]} labelWidth={84} />
             <p className="mt-3 text-sm text-muted">
               {ageStats.length} فئات عمرية
-              {topAge && <>، أكثرها حضوراً {topAge.name} بعدد {topAge.value} مريض</>}.
+              {topAge && <>، أكثرها حضوراً {topAge.name} بعدد {topAge.value} زائر</>}.
             </p>
           </Panel>
         </div>

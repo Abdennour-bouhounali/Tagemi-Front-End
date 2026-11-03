@@ -91,7 +91,7 @@ const EvaluationStatistics = () => {
         {back}
         <PageHeader title="إحصائيات التقييمات" subtitle={event?.name} />
         <EmptyState icon={BarChart3} title="لا توجد إحصائيات لهذا الحدث">
-          تظهر الإحصائيات بعد أن يرسل المرضى أول تقييم لهذا الحدث.
+          تظهر الإحصائيات بعد أن يرسل الزوار أول تقييم لهذا الحدث.
         </EmptyState>
       </div>
     );

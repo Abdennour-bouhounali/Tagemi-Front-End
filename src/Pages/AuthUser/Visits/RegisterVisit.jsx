@@ -410,7 +410,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
       ctx.font = 'bold 40px Tahoma, sans-serif';
       ctx.fillText(String(patientId), 180, 390);
       ctx.font = '18px Tahoma, sans-serif';
-      ctx.fillText('رقم المريض', 180, 352);
+      ctx.fillText('رقم الزائر', 180, 352);
       // Long names shrink to fit the image width
       let nameSize = 26;
       do {
@@ -497,7 +497,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
         </div>
 
         <div class="patient-number">
-          <div class="label">رقم المريض</div>
+          <div class="label">رقم الزائر</div>
           <div class="value">${e(patientId)}</div>
         </div>
 
@@ -523,7 +523,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
         </div>
 
         <div class="section">
-          <div class="section-title">معلومات المريض</div>
+          <div class="section-title">معلومات الزائر</div>
           <div class="row"><span class="k">الاسم</span><span class="v">${e(fullName)}</span></div>
           <div class="row"><span class="k">تاريخ الميلاد</span><span class="v">${e(birthday)}</span></div>
           <div class="row"><span class="k">الجنس</span><span class="v">${e(gender)}</span></div>
@@ -559,7 +559,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
           {/* The ticket */}
           <article className="mt-5 bg-white border border-line rounded-2xl overflow-hidden">
             <div className="px-5 pt-5 pb-4 text-center">
-              <p className="text-sm text-muted">رقم المريض</p>
+              <p className="text-sm text-muted">رقم الزائر</p>
               <p className="font-display text-6xl text-ink leading-tight" dir="ltr">{patientId}</p>
               <p className="mt-1 text-base font-semibold text-ink">{fullName}</p>
             </div>
@@ -625,7 +625,7 @@ function Confirmation({ eventID, event, formData, appointments, patientId, docum
             <ol className="space-y-3 text-base text-ink">
               {[
                 'احضر قبل موعدك بساعة (ساعة الحضور مكتوبة تحت كل موعد).',
-                `اذهب إلى الاستقبال واعرض رقم المريض ${patientId} أو رمز QR.`,
+                `اذهب إلى الاستقبال واعرض رقم الزائر ${patientId} أو رمز QR.`,
                 'أحضر معك تقاريرك وتحاليلك السابقة إن وُجدت.',
                 'انتظر في القاعة وتابع دورك على الشاشة أو من هاتفك.',
               ].map((text, i) => (
@@ -1378,7 +1378,7 @@ const RegisterVisitInner = () => {
           )}
           {!submitNotice.list?.length && (
             <Link to={`/my-turn/${eventID}`} className="mt-3 inline-flex items-center min-h-[44px] text-sm font-semibold text-ink underline underline-offset-4">
-              اعرف مواعيدك ودورك برقم المريض
+              اعرف مواعيدك ودورك برقم الزائر
             </Link>
           )}
         </div>

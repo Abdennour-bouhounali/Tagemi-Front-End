@@ -22,6 +22,7 @@ const ROLES = [
   { id: 6, name: "Doctor" },
   { id: 7, name: "ContentAdmin" },
   { id: 8, name: "PatientManager" },
+  { id: 9, name: "Organizer" },
 ];
 
 const ROLE_LABELS = {
@@ -33,6 +34,7 @@ const ROLE_LABELS = {
   6: "طبيب",
   7: "مسؤول المحتوى",
   8: "مسؤول القاعة الصغرى",
+  9: "مسؤول التنظيم",
 };
 const getRoleName = (roleId) => ROLE_LABELS[roleId] || "غير محدد";
 

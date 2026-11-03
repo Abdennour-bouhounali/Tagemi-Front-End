@@ -17,7 +17,7 @@ const AppointmentDocuments = ({ appointment, allowDownload = true }) => {
     return (
       <p className="flex items-center gap-2 rounded-xl bg-paper px-3 py-3 text-sm text-muted">
         <FileText className="w-4 h-4 shrink-0" />
-        لم يرفق المريض أي مستند طبي.
+        لم يرفق الزائر أي مستند طبي.
       </p>
     );
   }

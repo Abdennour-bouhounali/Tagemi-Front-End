@@ -234,7 +234,7 @@ export default function DoctorScheduleEditor({ value, onChange, specialtyId, spe
 
       {Object.keys(preview).length > 0 && (
         <div className="mt-4">
-          <h4 className="text-sm font-semibold text-ink mb-1">ما يراه المريض عند الحجز</h4>
+          <h4 className="text-sm font-semibold text-ink mb-1">ما يراه الزائر عند الحجز</h4>
           <p className="text-xs text-muted mb-2">الساعات وعدد الأماكن في كل ساعة، لكل الأطباء معًا.</p>
           <ul className="space-y-2">
             {Object.entries(preview).map(([date, hours]) => (

@@ -1,9 +1,10 @@
 import { API_BASE_URL } from '../../../../config/environment';
 import { useCallback, useContext, useEffect, useState } from 'react';
-import { ChevronRight, Lock, LogIn, LogOut, Unlock } from 'lucide-react';
+import { ChevronRight, Lock, LogIn, LogOut, Unlock, UserPlus } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import useLiveRefresh from '../../../../utils/useLiveRefresh';
 import { Button, PageHeader, LoadingState, EmptyState, useToast, cx } from '../../../../Components/ui';
+import AddDoctorsSheet from './AddDoctorsSheet';
 
 const apiUrl = API_BASE_URL;
 
@@ -11,15 +12,18 @@ const apiUrl = API_BASE_URL;
  * Super admin, visit day: record each doctor's arrival and departure. The
  * first doctor of a specialty who arrives opens its queue (the waiting
  * patients are sent to it); when the last one leaves it closes (the current
- * queue is still served). The manual button stays for events planned
- * without doctors.
+ * queue is still served by the doctors, also the one who left). Once one
+ * doctor left, the specialty only takes patients up to the visits planned for
+ * the doctors still present (then «اكتمل العدد»). A queue never opens without
+ * a present doctor: opening one with no doctor here asks which doctors came.
  */
-export default function QueueOpening({ event, onClose, backLabel = 'الأحداث' }) {
+export default function QueueOpening({ event, onClose, backLabel = 'الأحداث', readOnly = false }) {
   const { token } = useContext(AppContext);
   const toast = useToast();
   const [data, setData] = useState(null);
   const [doctorsBySpecialty, setDoctorsBySpecialty] = useState({});
   const [busy, setBusy] = useState(null);
+  const [adding, setAdding] = useState(null); // station whose doctors are being picked
 
   const load = useCallback(async () => {
     const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
@@ -57,6 +61,9 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
     }
   };
 
+  const presentIds = (s) => (doctorsBySpecialty[s.event_specialty_id] || []).filter((d) => d.present).map((d) => d.doctor_id);
+  // Closed with no doctor here: pick the doctors who came first
+  const openOrClose = (s) => (!s.is_open && presentIds(s).length === 0 ? setAdding(s) : toggleOpen(s));
   const toggleOpen = (s) => run(`open-${s.event_specialty_id}`, `/api/event-specialties/${s.event_specialty_id}/toggle-open`, 'PATCH');
   const attend = (s, d, action) => run(`${action}-${s.event_specialty_id}-${d.doctor_id}`, `/api/event-specialties/${s.event_specialty_id}/doctors/${d.doctor_id}/${action}`, 'POST');
 
@@ -73,7 +80,9 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
         subtitle={data ? `${event.name} · مفتوح اليوم ${openCount} من ${stations.length}` : event.name}
       />
       <p className="text-sm text-muted mb-3">
-        سجّل وصول كل طبيب ومغادرته. وصول أول طبيب يفتح طابور تخصصه ويُوجَّه إليه المرضى المنتظرون، ومغادرة آخر طبيب حاضر تغلقه. كل التخصصات تُغلق من جديد في بداية كل يوم.
+        {readOnly
+          ? 'من وصل من الأطباء ومن لم يصل بعد، وأي طوابير مفتوحة. وصول أول طبيب يفتح طابور تخصصه، ومغادرة آخر طبيب تغلقه.'
+          : 'سجّل وصول كل طبيب ومغادرته. وصول أول طبيب يفتح طابور تخصصه ويُوجَّه إليه الزوار المنتظرون، ومغادرة آخر طبيب حاضر تغلقه (يُكمَل فحص من فيه). بعد مغادرة طبيب لا يستقبل التخصص أكثر من الزيارات المقررة للأطباء الباقين. لا يُفتح طابور دون طبيب حاضر، وكل التخصصات تُغلق من جديد في بداية كل يوم.'}
       </p>
 
       {!data ? (
@@ -92,12 +101,16 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-ink truncate">{s.name}</p>
                     <p className="text-sm text-muted">
-                      {s.is_open ? `في الطابور ${s.in_queue} · أنهى الفحص ${s.completed}` : `مغلق، ينتظره ${s.waiting} مريض`}
+                      {s.is_open ? `في الطابور ${s.in_queue} · أنهى الفحص ${s.completed}` : `مغلق، ينتظره ${s.waiting} زائر`}
+                      {s.is_full && <span className="text-rose font-semibold"> · اكتمل العدد</span>}
                     </p>
                   </div>
+                  {readOnly ? (
+                    <span className={cx('shrink-0 text-sm font-semibold', s.is_open ? 'text-st-queue' : 'text-red-700')}>{s.is_open ? 'مفتوح' : 'مغلق'}</span>
+                  ) : (
                   <button
                     type="button"
-                    onClick={() => toggleOpen(s)}
+                    onClick={() => openOrClose(s)}
                     disabled={busy !== null}
                     className={cx('shrink-0 inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-semibold border disabled:opacity-60',
                       s.is_open ? 'border-st-queue/40 text-st-queue bg-st-queue-bg' : 'border-red-300 text-red-700 bg-red-50')}
@@ -106,6 +119,7 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                     {s.is_open ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                     {busy === `open-${s.event_specialty_id}` ? '...' : s.is_open ? 'مفتوح · أغلق' : 'افتح'}
                   </button>
+                  )}
                 </div>
 
                 {doctors.length > 0 && (
@@ -125,7 +139,7 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                             </p>
                             <p className={cx('text-xs mt-0.5', d.present ? 'text-st-queue font-semibold' : 'text-muted')}>{status}</p>
                           </div>
-                          {d.present ? (
+                          {readOnly ? null : d.present ? (
                             <Button size="sm" variant="secondary" icon={LogOut} loading={busy === key('leave')} disabled={busy !== null} onClick={() => attend(s, d, 'leave')}>
                               غادر
                             </Button>
@@ -139,11 +153,29 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                     })}
                   </ul>
                 )}
+
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setAdding(s)}
+                    disabled={busy !== null}
+                    className="w-full flex items-center gap-2 px-4 min-h-[2.75rem] border-t border-line text-sm font-semibold text-ink disabled:opacity-60"
+                  >
+                    <UserPlus className="w-4 h-4" /> أضف طبيبًا
+                  </button>
+                )}
               </li>
             );
           })}
         </ul>
       )}
+
+      <AddDoctorsSheet
+        station={adding}
+        presentIds={adding ? presentIds(adding) : []}
+        onClose={() => setAdding(null)}
+        onDone={() => { setAdding(null); load(); }}
+      />
     </div>
   );
 }

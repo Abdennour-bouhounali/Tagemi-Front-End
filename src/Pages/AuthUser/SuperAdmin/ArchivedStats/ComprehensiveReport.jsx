@@ -372,7 +372,7 @@ const ComprehensiveReport = () => {
               <thead>
                 <tr>
                   <th>التخصص</th>
-                  <th>عدد المرضى</th>
+                  <th>عدد الزوار</th>
                   <th>النسبة المئوية</th>
                 </tr>
               </thead>
@@ -450,7 +450,7 @@ const ComprehensiveReport = () => {
                 <tr>
                   <th>الترتيب</th>
                   <th>الولاية</th>
-                  <th>عدد المرضى</th>
+                  <th>عدد الزوار</th>
                   <th>النسبة المئوية</th>
                 </tr>
               </thead>
@@ -479,8 +479,8 @@ const ComprehensiveReport = () => {
                 <li>إجمالي المواعيد المؤرشفة: <strong>${escapeHtml(report.total_appointments)}</strong> موعد</li>
                 <li>عدد التخصصات الطبية المشاركة: <strong>${report.specialty_breakdown.length}</strong> تخصص</li>
                 <li>التغطية الجغرافية: <strong>${report.top_states.length}+</strong> ولاية</li>
-                <li>أكبر تخصص مشاركة: <strong>${escapeHtml(report.specialty_breakdown[0]?.name)}</strong> بـ <strong>${escapeHtml(report.specialty_breakdown[0]?.count)}</strong> مريض</li>
-                <li>أكثر ولاية تمثيلاً: <strong>${escapeHtml(report.top_states[0]?.state)}</strong> بـ <strong>${escapeHtml(report.top_states[0]?.count)}</strong> مريض</li>
+                <li>أكبر تخصص مشاركة: <strong>${escapeHtml(report.specialty_breakdown[0]?.name)}</strong> بـ <strong>${escapeHtml(report.specialty_breakdown[0]?.count)}</strong> زائر</li>
+                <li>أكثر ولاية تمثيلاً: <strong>${escapeHtml(report.top_states[0]?.state)}</strong> بـ <strong>${escapeHtml(report.top_states[0]?.count)}</strong> زائر</li>
                 <li>تاريخ الأرشفة: <strong>${new Date(report.event.updated_at).toLocaleDateString('en-UK')}</strong></li>
               </ul>
             </div>
@@ -678,12 +678,12 @@ const ComprehensiveReport = () => {
             <li>التغطية الجغرافية: <strong>{report.top_states.length}+</strong> ولاية.</li>
             {report.specialty_breakdown[0] && (
               <li>
-                أكبر تخصص: <strong>{report.specialty_breakdown[0].name}</strong> ({report.specialty_breakdown[0].count} مريض).
+                أكبر تخصص: <strong>{report.specialty_breakdown[0].name}</strong> ({report.specialty_breakdown[0].count} زائر).
               </li>
             )}
             {report.top_states[0] && (
               <li>
-                أكثر ولاية تمثيلاً: <strong>{report.top_states[0].state}</strong> ({report.top_states[0].count} مريض).
+                أكثر ولاية تمثيلاً: <strong>{report.top_states[0].state}</strong> ({report.top_states[0].count} زائر).
               </li>
             )}
           </ul>

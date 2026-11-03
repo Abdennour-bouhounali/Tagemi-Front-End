@@ -490,7 +490,7 @@ const UserMenu = ({ user, language, handleLogout }) => {
             >
                 <span className="flex items-center gap-1.5 xl:gap-2">
                     <BookOpen className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-                    <span className="hidden xl:inline">{language === 'en' ? 'Patient journey' : 'دليل رحلة المريض'}</span>
+                    <span className="hidden xl:inline">{language === 'en' ? 'Patient journey' : 'دليل رحلة الزائر'}</span>
                 </span>
             </Link>
 
@@ -578,7 +578,7 @@ const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
                 className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-[#101E58] bg-white border border-[#101E58]/20 rounded-xl font-droid-arabic-kufi"
             >
                 <BookOpen className="w-5 h-5" />
-                <span>{language === 'en' ? 'Patient journey' : 'دليل رحلة المريض'}</span>
+                <span>{language === 'en' ? 'Patient journey' : 'دليل رحلة الزائر'}</span>
             </Link>
 
             {/* Logout Button */}

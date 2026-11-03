@@ -33,6 +33,10 @@ const WaitingList = () => {
   const [allSpecialities, setAllSpecialities] = useState([]);
   const [waitingList, setWaitingList] = useState({});
   const [filteredWaitingList, setFilteredWaitingList] = useState({});
+  // Patients who just went in to the doctor (دخل): shown on top in green for ~30 s
+  const [calling, setCalling] = useState({});
+  // Specialties that take no new patients now (doctors left / count reached)
+  const [closedIds, setClosedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -140,6 +144,8 @@ const WaitingList = () => {
       
       const data = await res.json();
       
+      setCalling(data.calling || {});
+      setClosedIds(data.closed_specialties || []);
       if (data.data) {
         setWaitingList(data.data);
         setLastUpdated(new Date());
@@ -253,6 +259,9 @@ const WaitingList = () => {
   };
 
   const maxRows = Math.max(...visibleSpecialities.map(s => filteredWaitingList[s.id]?.length || 0), 0);
+  const callingFor = (specialityId) => (calling[specialityId] || [])
+    .filter((patient) => sexFilter === 'all' || getPatientSex(patient) === sexFilter);
+  const callingRows = Math.max(...visibleSpecialities.map(s => callingFor(s.id).length), 0);
 
   if (loading) {
     return (
@@ -320,7 +329,7 @@ const WaitingList = () => {
           {event?.name || 'الحدث'}
         </p>
         <p className="text-gray-500 text-xs font-droid-arabic-kufi">
-          عرض أول 10 مرضى من كل تخصص
+          عرض أول 10 زوار من كل تخصص
         </p>
         <button
           onClick={() => setShowControls(!showControls)}
@@ -538,8 +547,13 @@ const WaitingList = () => {
                           <span>الاسم الكامل</span>
                         </div>
                         <div className="text-xs text-indigo-600 font-semibold">
-                          ({count} {count === 1 ? 'مريض' : 'مرضى'})
+                          ({count} {count === 1 ? 'زائر' : 'زوار'})
                         </div>
+                        {closedIds.includes(speciality.id) && (
+                          <div className="mt-2 rounded-lg bg-red-50 border border-red-200 px-2 py-1 text-xs font-semibold text-red-700">
+                            التخصص مغلق: يُفحص فقط الزوار الموجودون في القائمة
+                          </div>
+                        )}
                       </th>
                     );
                   })
@@ -547,7 +561,29 @@ const WaitingList = () => {
               </tr>
             </thead>
             <tbody className="bg-white">
-              {specialities.length === 0 || maxRows === 0 ? (
+              {/* Just entered: «تفضل بالدخول» in green above the queue */}
+              {Array.from({ length: callingRows }).map((_, rowIndex) => (
+                <tr key={`calling-${rowIndex}`}>
+                  {visibleSpecialities.map((speciality) => {
+                    const patient = callingFor(speciality.id)[rowIndex];
+                    return (
+                      <td key={speciality.id} className="px-4 py-3 border-b border-gray-200 font-droid-arabic-kufi">
+                        {patient && (
+                          <div className="flex items-center justify-between gap-2 bg-green-100 border-2 border-green-500 rounded-lg px-2 py-1 animate-pulse">
+                            <div className="w-1/3 text-sm font-bold text-green-800">{patient.patient_id}</div>
+                            <div className="w-2/3 flex items-center justify-end gap-2">
+                              <span className="text-xs font-bold text-white bg-green-600 rounded px-1.5 py-0.5 whitespace-nowrap">تفضل بالدخول</span>
+                              <span className="font-bold text-green-900">{patient.full_name}</span>
+                              {renderGenderIcon(patient)}
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+              {specialities.length === 0 || (maxRows === 0 && callingRows === 0) ? (
                 <tr>
                   <td 
                     colSpan={visibleSpecialities.length || 1} 
@@ -563,7 +599,7 @@ const WaitingList = () => {
                     <p className="text-xs text-gray-400">
                       {sexFilter !== 'all'
                         ? 'جرب تغيير الفلتر أو اختر "الكل"'
-                        : 'سيتم عرض المرضى هنا عند تأكيد حضورهم'
+                        : 'سيتم عرض الزوار هنا عند تأكيد حضورهم'
                       }
                     </p>
                   </td>
@@ -670,7 +706,7 @@ const WaitingList = () => {
                 <p className="text-2xl font-bold text-green-600">
                   {getTotalCount()}
                 </p>
-                <p className="text-sm text-gray-600 font-droid-arabic-kufi">مرضى في الإنتظار</p>
+                <p className="text-sm text-gray-600 font-droid-arabic-kufi">زوار في الإنتظار</p>
               </div>
               <div className="text-center p-3 bg-orange-50 rounded-lg">
                 <p className="text-2xl font-bold text-orange-600">

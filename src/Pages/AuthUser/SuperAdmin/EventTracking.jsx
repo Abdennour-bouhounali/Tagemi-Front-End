@@ -121,22 +121,20 @@ const EventTracking = () => {
   const dayCount = new Set(specs.flatMap((es) => (es.days || []).map((d) => d.day_date)).filter(Boolean)).size;
 
   const liveTools = [
-    { title: 'مكتب الحضور', hint: 'سجّل حضور المرضى وحدّث حالة مواعيدهم', icon: ClipboardCheck, path: `/admin/check-presence/${eventId}` },
+    { title: 'مكتب الحضور', hint: 'سجّل حضور الزوار وحدّث حالة مواعيدهم', icon: ClipboardCheck, path: `/admin/check-presence/${eventId}` },
     { title: 'الأطباء والطوابير', hint: 'سجّل وصول الأطباء ومغادرتهم، فتُفتح الطوابير وتُغلق', icon: Stethoscope, path: `/admin/doctors-today/${eventId}` },
-    { title: 'شاشة قاعة الانتظار', hint: 'أول المرضى في طابور كل تخصص', icon: Monitor, path: `/admin/big-list-waiting/${eventId}` },
-    { title: 'توزيع المواعيد', hint: 'الحجوزات والسعة لكل تخصص ويوم وساعة', icon: PieChart, path: `/admin/appointment-distribution/${eventId}` },
-    { title: 'إحصائيات الحدث', hint: 'أرقام الحضور والفحص لحظة بلحظة', icon: Activity, path: `/admin/event-statistics/${eventId}` },
+    { title: 'شاشة قاعة الانتظار', hint: 'أول الزوار في طابور كل تخصص', icon: Monitor, path: `/admin/big-list-waiting/${eventId}` },
+    { title: 'إحصائيات الحدث', hint: 'قبل الحدث وأثناءه وبعده: توزيع المواعيد، الحضور، النتائج', icon: Activity, path: `/admin/event-statistics/${eventId}` },
   ];
 
   const canSeeQueues = user && [1, 4, 6].includes(user.role_id);
   const queues = canSeeQueues
     ? [
         ...specialties
-          .filter((s) => s.id !== 6)
           .map((s) => ({ title: s.name, hint: 'طابور التخصص', icon: ListOrdered, path: `/admin/event-waiting-lists/${eventId}/${s.id}` })),
         ...dilatationStations.map((es) => ({
           title: `قاعة تمدد ${es.specialty?.name || ''}`,
-          hint: 'المرضى في الطريق وفي التمدد',
+          hint: 'الزوار في الطريق وفي التمدد',
           icon: Droplets,
           tone: 'text-st-dil',
           path: `/admin/dilatation/${eventId}/${es.id}`,
@@ -145,14 +143,15 @@ const EventTracking = () => {
     : [];
 
   const archiveReports = [
+    { title: 'إحصائيات الحدث', hint: 'الحصيلة: الحضور والغياب والنتائج حسب التخصص', icon: Activity, path: `/admin/event-statistics/${eventId}?phase=after` },
     { title: 'إحصائيات التخصصات', hint: 'المواعيد حسب التخصص', icon: BarChart3, path: `/admin/archived/specialty-stats/${eventId}` },
     { title: 'إحصائيات الحالات', hint: 'المواعيد حسب الحالة: أنهى الفحص، لم يحضر...', icon: PieChart, path: `/admin/archived/status-stats/${eventId}` },
-    { title: 'إحصائيات ديموغرافية', hint: 'المرضى حسب العمر والجنس', icon: Users, path: `/admin/archived/demographic-stats/${eventId}` },
-    { title: 'إحصائيات جغرافية', hint: 'المرضى حسب الولاية والبلدية', icon: MapPin, path: `/admin/archived/geographic-stats/${eventId}` },
-    { title: 'قائمة المرضى الكاملة', hint: 'كل المرضى ومواعيدهم', icon: ListChecks, path: `/admin/archived/patients-list/${eventId}` },
+    { title: 'إحصائيات ديموغرافية', hint: 'الزوار حسب العمر والجنس', icon: Users, path: `/admin/archived/demographic-stats/${eventId}` },
+    { title: 'إحصائيات جغرافية', hint: 'الزوار حسب الولاية والبلدية', icon: MapPin, path: `/admin/archived/geographic-stats/${eventId}` },
+    { title: 'قائمة الزوار الكاملة', hint: 'كل الزوار ومواعيدهم', icon: ListChecks, path: `/admin/archived/patients-list/${eventId}` },
     { title: 'التقرير الإحصائي', hint: 'كل الإحصائيات في صفحة واحدة للطباعة', icon: FileBarChart, path: `/admin/archived/comprehensive-report/${eventId}` },
     { title: 'تقرير الحدث الشامل', hint: 'تقرير مفصل عن الحدث', icon: FileText, path: `/admin/event-report/${eventId}` },
-    { title: 'إحصائيات التقييم', hint: 'آراء المرضى في الحدث', icon: TrendingUp, path: `/admin/evaluation_stats/${eventId}` },
+    { title: 'إحصائيات التقييم', hint: 'آراء الزوار في الحدث', icon: TrendingUp, path: `/admin/evaluation_stats/${eventId}` },
   ];
 
   const place = [event?.city, event?.state].filter(Boolean).join('، ');

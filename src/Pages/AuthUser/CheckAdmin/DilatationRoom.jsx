@@ -1,11 +1,12 @@
 import { API_BASE_URL } from '../../../config/environment';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronRight, Footprints, Timer, Undo2, Star, User, ScanLine } from 'lucide-react';
+import { ChevronRight, Footprints, Timer, Undo2, Star, User, ScanLine, History } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import useLiveRefresh from '../../../utils/useLiveRefresh';
 import QRScanner from '../RecipientAdmin/QRScanner';
-import { Button, PageHeader, StatStrip, EmptyState, LoadingState, Ticket, useToast, cx } from '../../../Components/ui';
+import { PatientHistorySheet } from '../RecipientAdmin/PatientLog';
+import { Button, IconButton, PageHeader, StatStrip, EmptyState, LoadingState, Ticket, useToast, cx } from '../../../Components/ui';
 
 const apiUrl = API_BASE_URL;
 
@@ -21,6 +22,8 @@ export default function DilatationRoom() {
   const [data, setData] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [historyFor, setHistoryFor] = useState(null);
+  const closeHistory = useCallback(() => setHistoryFor(null), []);
   // Server clock minus device clock, so timers don't depend on the phone's clock
   const [clockOffset, setClockOffset] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -43,7 +46,7 @@ export default function DilatationRoom() {
   }, [eventSpecialtyId, token, toast]);
 
   useEffect(() => { load(); }, [load]);
-  useLiveRefresh(eventId, token, load);
+  useLiveRefresh(eventId, token, load, { parts: [`es_${eventSpecialtyId}`] });
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
     return () => clearInterval(timer);
@@ -69,7 +72,7 @@ export default function DilatationRoom() {
   };
 
   const arrived = (p) => act(p, `/api/waitinglist/DilatationArrived/${p.id}`, 'تم تسجيل الوصول');
-  const finished = (p) => act(p, `/api/waitinglist/FinishedDilatation/${p.id}`, 'عاد المريض بأولوية');
+  const finished = (p) => act(p, `/api/waitinglist/FinishedDilatation/${p.id}`, 'عاد الزائر بأولوية');
 
   // Scan: on the way → arrived; in the room → dilatation done
   const handleScan = (patientId) => {
@@ -78,7 +81,7 @@ export default function DilatationRoom() {
     if (coming) return arrived(coming);
     const inRoom = data.in_room.find(same);
     if (inRoom) return finished(inRoom);
-    toast(`المريض #${patientId} ليس في الطريق إلى القاعة ولا فيها`, 'error');
+    toast(`الزائر #${patientId} ليس في الطريق إلى القاعة ولا فيها`, 'error');
     return false;
   };
 
@@ -87,10 +90,15 @@ export default function DilatationRoom() {
   if (!data) return <LoadingState />;
 
   const backTo = user?.role_id === 1 ? `/admin/event-tracking/${eventId}` : `/admin/stations/${eventId}`;
+  // Organizer, doctors and the patient manager look only
+  const isViewer = [6, 8, 9].includes(user?.role_id);
 
   const Who = ({ p }) => (
     <>
-      <p className="font-semibold text-ink truncate">{p.full_name}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-semibold text-ink truncate">{p.full_name}</p>
+        <IconButton icon={History} label={`سجل الزائر ${p.patient_id}`} className="-mt-2 -me-2 shrink-0" onClick={() => setHistoryFor(p)} />
+      </div>
       <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
         <span className="font-semibold text-ink">#{p.patient_id}</span>
         <User className={cx('w-3.5 h-3.5', String(p.sex) === '1' ? 'text-rose' : 'text-ink-soft')} />
@@ -104,11 +112,13 @@ export default function DilatationRoom() {
       <Link to={backTo} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
         <ChevronRight className="w-4 h-4" /> كل الطوابير
       </Link>
-      <PageHeader title={`قاعة تمدد ${data.specialty}`} subtitle={`بعد التمدد يعود المريض إلى رأس طابور ${data.specialty}`} />
+      <PageHeader title={`قاعة تمدد ${data.specialty}`} subtitle={`بعد التمدد يعود الزائر إلى رأس طابور ${data.specialty}`} />
 
-      <Button variant="primary" size="lg" block icon={ScanLine} className="mb-4 lg:max-w-md" onClick={() => setScanning(true)}>
-        مسح QR: وصل إلى القاعة أو انتهى التمدد
-      </Button>
+      {!isViewer && (
+        <Button variant="primary" size="lg" block icon={ScanLine} className="mb-4 lg:max-w-md" onClick={() => setScanning(true)}>
+          مسح QR: وصل إلى القاعة أو انتهى التمدد
+        </Button>
+      )}
 
       <StatStrip
         className="mb-5"
@@ -131,10 +141,12 @@ export default function DilatationRoom() {
             <li key={p.id}>
               <Ticket position={minutesSince(p.dilatation_sent_at)} stubCaption="دقيقة">
                 <Who p={p} />
-                <Button variant="primary" size="lg" block className="mt-3" loading={busyId === p.id}
-                  onClick={() => arrived(p)}>
-                  وصل إلى القاعة
-                </Button>
+                {!isViewer && (
+                  <Button variant="primary" size="lg" block className="mt-3" loading={busyId === p.id}
+                    onClick={() => arrived(p)}>
+                    وصل إلى القاعة
+                  </Button>
+                )}
               </Ticket>
             </li>
           ))}
@@ -147,17 +159,19 @@ export default function DilatationRoom() {
         <Timer className="w-5 h-5 text-st-dil" /> في التمدد
       </h2>
       {data.in_room.length === 0 ? (
-        <EmptyState title="القاعة فارغة">يظهر المرضى هنا بعد تسجيل وصولهم.</EmptyState>
+        <EmptyState title="القاعة فارغة">يظهر الزوار هنا بعد تسجيل وصولهم.</EmptyState>
       ) : (
         <ol className="space-y-3 2xl:grid 2xl:grid-cols-2 2xl:gap-3 2xl:space-y-0">
           {data.in_room.map((p) => (
             <li key={p.id}>
               <Ticket position={minutesSince(p.dilatation_started_at)} stubCaption="دقيقة">
                 <Who p={p} />
-                <Button variant="success" size="lg" block icon={Undo2} className="mt-3" loading={busyId === p.id}
-                  onClick={() => finished(p)}>
-                  انتهى التمدد، أرجعه إلى {data.specialty}
-                </Button>
+                {!isViewer && (
+                  <Button variant="success" size="lg" block icon={Undo2} className="mt-3" loading={busyId === p.id}
+                    onClick={() => finished(p)}>
+                    انتهى التمدد، أرجعه إلى {data.specialty}
+                  </Button>
+                )}
               </Ticket>
             </li>
           ))}
@@ -166,12 +180,14 @@ export default function DilatationRoom() {
       </section>
       </div>
 
+      <PatientHistorySheet patient={historyFor} eventId={eventId} token={token} onClose={closeHistory} />
+
       {scanning && (
         <QRScanner
           onScanSuccess={handleScan}
           onClose={() => setScanning(false)}
           eventId={eventId}
-          actionTitle="امسح رمز المريض لتسجيل وصوله أو انتهاء تمدده"
+          actionTitle="امسح رمز الزائر لتسجيل وصوله أو انتهاء تمدده"
         />
       )}
     </div>

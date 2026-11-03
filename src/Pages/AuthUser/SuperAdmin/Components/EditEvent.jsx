@@ -240,7 +240,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
             <div className="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6 lg:items-start">
               <section>
                 <h2 className="font-display text-lg text-ink mb-1">ضوابط الحدث</h2>
-                <p className="text-sm text-muted mb-3">يقرأ المريض هذه الضوابط قبل الحجز.</p>
+                <p className="text-sm text-muted mb-3">يقرأ الزائر هذه الضوابط قبل الحجز.</p>
                 <RulesPicker rules={rules} selected={selectedRules} onToggle={toggleRule} />
               </section>
               <EventReview form={form} specialtiesList={eventSpecialties} specialtyName={specialtyName} doctorName={doctorName} rulesCount={selectedRules.length} />

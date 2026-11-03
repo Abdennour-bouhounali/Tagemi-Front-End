@@ -6,6 +6,7 @@ export const STATUS_GROUPS = {
   waiting: ['Waiting'], // arrived, on hold for this specialty
   in_queue: ['Present', 'Commingsoon'], // in this specialty's queue
   dilatation: ['DilatationSent', 'Dilatation'], // sent to / in the dilatation room
+  in_visit: ['Entered'], // with a doctor now
   completed: ['Completed'],
 };
 
@@ -14,6 +15,7 @@ export const GROUP_LABELS = {
   waiting: 'في الانتظار (تخصص آخر أولاً)',
   in_queue: 'في الطابور',
   dilatation: 'في التمدد',
+  in_visit: 'عند الطبيب',
   completed: 'أنهى الفحص',
 };
 
@@ -24,6 +26,7 @@ export const STATUS_LABELS = {
   Commingsoon: 'تم إنزاله',
   DilatationSent: 'متجه إلى التمدد',
   Dilatation: 'في التمدد',
+  Entered: 'عند الطبيب',
   Completed: 'أنهى الفحص',
 };
 

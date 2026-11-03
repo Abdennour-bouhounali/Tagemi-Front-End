@@ -41,7 +41,7 @@ export const exportDemographicCSV = (event, genderStats, ageStats) => {
   // Build CSV content
   const csvRows = [
     ...addCSVHeader(event.name, 'الإحصائيات الديموغرافية', {
-      'إجمالي المرضى': totalPatients,
+      'إجمالي الزوار': totalPatients,
     }),
     
     // Gender Statistics Section
@@ -238,11 +238,11 @@ export const exportGeographicCSV = (event, statistics) => {
   const csvRows = [
     ...addCSVHeader(event.name, 'الإحصائيات الجغرافية', {
       'عدد المحافظات': statistics.length,
-      'إجمالي المرضى': totalPatients,
+      'إجمالي الزوار': totalPatients,
     }),
     
     // Geographic Distribution Section
-    ['قسم: التوزيع الجغرافي للمرضى'],
+    ['قسم: التوزيع الجغرافي للزوار'],
     ['-'.repeat(80)],
     ['الترتيب', 'المحافظة', 'العدد', 'النسبة المئوية', 'التصنيف'],
   ];
@@ -304,7 +304,7 @@ export const exportGeographicCSV = (event, statistics) => {
     ['-'.repeat(60)],
     ['المؤشر', 'القيمة'],
     ['أكثر محافظة', sortedStats[0]?.governorate || 'N/A'],
-    ['عدد المرضى من أكثر محافظة', sortedStats[0]?.count || '0'],
+    ['عدد الزوار من أكثر محافظة', sortedStats[0]?.count || '0'],
     ['نسبة أكثر محافظة', `${((parseInt(sortedStats[0]?.count || 0) / totalPatients) * 100).toFixed(1)}%`],
     ['نسبة أكثر 3 محافظات مجتمعة', `${top3Percentage}%`],
     ['التوزيع الجغرافي', sortedStats.length > 10 ? 'واسع جداً' : sortedStats.length > 5 ? 'واسع' : 'محدود'],
@@ -410,10 +410,10 @@ export const exportStatusCSV = (event, statistics) => {
     csvRows.push(['• العمل على رفع معدل الإكمال إلى 80% أو أكثر']);
   }
   if (parseFloat(cancellationRate) > 10) {
-    csvRows.push(['• تقليل معدل الإلغاءات من خلال تذكير المرضى وتحسين جدولة المواعيد']);
+    csvRows.push(['• تقليل معدل الإلغاءات من خلال تذكير الزوار وتحسين جدولة المواعيد']);
   }
   if (parseFloat(noShowRate) > 5) {
-    csvRows.push(['• معالجة مشكلة غياب المرضى من خلال التأكيد المسبق والتذكيرات']);
+    csvRows.push(['• معالجة مشكلة غياب الزوار من خلال التأكيد المسبق والتذكيرات']);
   }
   if (parseFloat(pendingRate) > 20) {
     csvRows.push(['• متابعة المواعيد المعلقة وإتمامها في أسرع وقت']);
@@ -456,7 +456,7 @@ export const exportComprehensiveCSV = (event, demographicData, specialtyData, ge
     ['قسم: الملخص التنفيذي'],
     ['-'.repeat(80)],
     ['المؤشر', 'القيمة'],
-    ['إجمالي عدد المرضى', totalPatients],
+    ['إجمالي عدد الزوار', totalPatients],
     ['إجمالي عدد المواعيد', totalAppointments],
     ['المواعيد المكتملة', completedAppointments],
     ['معدل الإكمال', `${completionRate}%`],

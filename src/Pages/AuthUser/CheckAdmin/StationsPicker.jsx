@@ -30,7 +30,8 @@ export default function StationsPicker() {
   }, [eventId, token, toast]);
 
   useEffect(() => { load(); }, [load]);
-  useLiveRefresh(eventId, token, load);
+  // Counts only: every 10 s at most is plenty
+  useLiveRefresh(eventId, token, load, { minGapMs: 10000 });
 
   if (!data) return <LoadingState />;
 
@@ -50,10 +51,12 @@ export default function StationsPicker() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-ink truncate flex items-center gap-2">
                     {s.name}
-                    {!s.is_open && <Lock className="w-4 h-4 text-muted" aria-label="الطابور مغلق" />}
+                    {(!s.is_open || s.is_full) && <Lock className="w-4 h-4 text-muted" aria-label="لا يستقبل زوار جدد" />}
                   </p>
                   <p className="text-sm text-muted">
-                    {s.is_open ? `أنهى الفحص اليوم: ${s.completed}` : `مغلق، ينتظره ${s.waiting} مريض`}
+                    {s.is_full
+                      ? 'اكتمل العدد، يُفحص فقط من فيه'
+                      : s.is_open ? `أنهى الفحص اليوم: ${s.completed}` : `مغلق، ينتظره ${s.waiting} زائر`}
                   </p>
                 </div>
                 <div className="text-center">

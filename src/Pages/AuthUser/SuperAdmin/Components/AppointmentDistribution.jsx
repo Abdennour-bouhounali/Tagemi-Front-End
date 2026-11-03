@@ -1,10 +1,5 @@
-import { API_BASE_URL } from '../../../../config/environment';
-import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
-import { ChevronRight } from 'lucide-react';
-import { AppContext } from '../../../../Context/AppContext';
-import { PageHeader, StatStrip, ChipGroup, Panel, LoadingState, EmptyState, Button, cx } from '../../../../Components/ui';
-
-const apiUrl = API_BASE_URL;
+import { useState, useMemo } from 'react';
+import { ChipGroup, Panel, EmptyState, cx } from '../../../../Components/ui';
 
 // Hour fill status from the API → st-* colours
 const STATUS = {
@@ -18,33 +13,12 @@ const statusOf = (s) => STATUS[s] || STATUS.empty;
 
 const pct = (value) => Math.max(0, Math.min(100, Number(value) || 0));
 
-/** Booked vs capacity per specialty, day and hour. Page body, not a modal. */
-export default function AppointmentDistribution({ eventId, onClose }) {
-  const { token } = useContext(AppContext);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+/**
+ * Booked vs capacity per specialty, day and hour. Body only: the event
+ * statistics page loads /events/{id}/appointment-distribution and passes it in.
+ */
+export default function AppointmentDistribution({ data }) {
   const [day, setDay] = useState('all');
-
-  const fetchDistribution = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(`${apiUrl}/api/events/${eventId}/appointment-distribution`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error();
-      setData(await res.json());
-    } catch {
-      setError('تعذر تحميل توزيع المواعيد');
-    } finally {
-      setLoading(false);
-    }
-  }, [eventId, token]);
-
-  useEffect(() => {
-    fetchDistribution();
-  }, [fetchDistribution]);
 
   const dayOptions = useMemo(() => {
     const seen = new Map();
@@ -54,47 +28,10 @@ export default function AppointmentDistribution({ eventId, onClose }) {
     return [...seen.entries()].map(([date, name]) => ({ value: date, label: name ? `${name} ${date}` : date }));
   }, [data]);
 
-  const back = onClose && (
-    <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm text-muted mb-2 min-h-[2.75rem]">
-      <ChevronRight className="w-4 h-4" /> متابعة الحدث
-    </button>
-  );
-
-  if (loading && !data) return <LoadingState />;
-
-  if (error) {
-    return (
-      <div className="max-w-2xl lg:max-w-none mx-auto">
-        {back}
-        <div className="bg-white border border-line rounded-2xl">
-          <EmptyState title={error} action={<Button variant="secondary" onClick={fetchDistribution}>أعد المحاولة</Button>}>
-            تحقق من الشبكة ثم أعد المحاولة.
-          </EmptyState>
-        </div>
-      </div>
-    );
-  }
-
   if (!data) return null;
 
-  const stats = data.statistics || {};
-
   return (
-    <div className="max-w-2xl lg:max-w-none mx-auto">
-      {back}
-      <PageHeader title="توزيع المواعيد" subtitle={data.event?.name} />
-
-      <StatStrip
-        className="mb-4"
-        items={[
-          { label: 'الحجوزات', value: stats.total_appointments },
-          { label: 'السعة', value: stats.total_capacity },
-          { label: 'أماكن متاحة', value: stats.total_available, tone: 'text-st-queue' },
-          { label: 'نسبة الامتلاء', value: `${stats.percentage_full ?? 0}%` },
-          { label: 'المرضى', value: stats.total_patients },
-        ]}
-      />
-
+    <div>
       {dayOptions.length > 1 && (
         <ChipGroup
           className="mb-4"

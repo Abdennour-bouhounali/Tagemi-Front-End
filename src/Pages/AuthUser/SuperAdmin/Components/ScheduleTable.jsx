@@ -764,12 +764,12 @@ export function ScheduleTable({
                 className="w-full rounded-xl border border-line bg-white px-3 py-3 text-base text-ink placeholder:text-muted focus:border-ink focus:outline-none resize-none"
                 value={settingsSpec.description || ''}
                 onChange={(e) => patchSpec(settingsSpec.key, { description: e.target.value })}
-                placeholder="ملاحظات تظهر للمرضى عند الحجز"
+                placeholder="ملاحظات تظهر للزوار عند الحجز"
               />
             </Field>
             <div className="divide-y divide-line border-y border-line">
               <SwitchRow checked={settingsSpec.is_saturated} onChange={(v) => patchSpec(settingsSpec.key, { is_saturated: v })} label="التخصص مشبع" hint="يوقف الحجز في هذا التخصص" />
-              <SwitchRow checked={settingsSpec.has_dilatation} onChange={(v) => patchSpec(settingsSpec.key, { has_dilatation: v })} icon={Droplets} label="قاعة تمدد" hint="يرسل مسؤول التخصص المرضى إلى التمدد ثم يعودون بأولوية" />
+              <SwitchRow checked={settingsSpec.has_dilatation} onChange={(v) => patchSpec(settingsSpec.key, { has_dilatation: v })} icon={Droplets} label="قاعة تمدد" hint="يرسل مسؤول التخصص الزوار إلى التمدد ثم يعودون بأولوية" />
             </div>
           </div>
         )}
@@ -935,7 +935,7 @@ export function ScheduleSummary({ value, specialties, doctors, dates, selectedKe
 
       {selected && Object.keys(preview).length > 0 && (
         <div className="mt-5 pt-4 border-t border-line">
-          <h3 className="text-sm font-semibold text-ink mb-1">ما يراه المريض عند الحجز</h3>
+          <h3 className="text-sm font-semibold text-ink mb-1">ما يراه الزائر عند الحجز</h3>
           <p className="text-xs text-muted mb-2">الساعات وعدد الأماكن في كل ساعة، لكل الأطباء معًا.</p>
           <ul className="space-y-2">
             {Object.entries(preview).map(([date, hours]) => (

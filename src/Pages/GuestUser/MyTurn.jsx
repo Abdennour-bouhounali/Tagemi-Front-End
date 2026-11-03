@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { RefreshCw, UserRoundPen, AlertTriangle, CheckCircle2, Clock, Eye, Hourglass, CalendarDays, Ticket as TicketIcon } from "lucide-react";
+import { RefreshCw, UserRoundPen, AlertTriangle, CheckCircle2, Clock, DoorOpen, Eye, Hourglass, CalendarDays, Ticket as TicketIcon } from "lucide-react";
 import { apiUrl } from "../../Context/AppContext";
 import { Button, Field, TextInput, PriorityBadge, EmptyState, cx } from "../../Components/ui";
 
@@ -63,6 +63,7 @@ const STATE_STYLE = {
   pending: { icon: CalendarDays, cls: "text-st-pending", bg: "" },
   waiting: { icon: Hourglass, cls: "text-st-hold", bg: "bg-st-hold-bg" },
   dilatation: { icon: Eye, cls: "text-st-dil", bg: "bg-st-dil-bg" },
+  in_visit: { icon: DoorOpen, cls: "text-st-visit", bg: "bg-st-visit-bg" },
   completed: { icon: CheckCircle2, cls: "text-st-done", bg: "bg-st-done-bg" },
 };
 
@@ -86,6 +87,9 @@ function StateCard({ appt, showDate }) {
       break;
     case "dilatation":
       message = appt.dilatation_step === "sent" ? "توجّه إلى قاعة التمدد" : "أنت في فترة التمدد، ستعود بأولوية بعد انتهائها";
+      break;
+    case "in_visit":
+      message = "أنت الآن عند الطبيب، تفضل بالدخول";
       break;
     case "completed":
       message = "تم الفحص";
@@ -141,7 +145,7 @@ function PatientTurn({ patient, single }) {
     <div className="space-y-4">
       <div className="flex items-baseline justify-between gap-2 border-b border-line pb-2">
         {!single && <h2 className="font-display text-xl text-ink">{patient.first_name}</h2>}
-        <p className="text-sm text-muted">رقم المريض <span className="font-semibold text-ink" dir="ltr">{patient.patient_id}</span></p>
+        <p className="text-sm text-muted">رقم الزائر <span className="font-semibold text-ink" dir="ltr">{patient.patient_id}</span></p>
       </div>
 
       <section className="space-y-3">
@@ -272,7 +276,7 @@ export default function MyTurn() {
     e.preventDefault();
     const value = query.trim();
     if (!value.replace(/\D/g, "")) {
-      setError("يرجى إدخال رقم المريض أو رقم الهاتف");
+      setError("يرجى إدخال رقم الزائر أو رقم الهاتف");
       return;
     }
     lookup(isPhone(value) ? { phone: value } : { patient_id: value.replace(/\D/g, "") });
@@ -301,11 +305,11 @@ export default function MyTurn() {
             <div className="mb-5 text-center">
               <TicketIcon className="w-10 h-10 mx-auto mb-2 text-ink" />
               <h1 className="font-display text-2xl text-ink">اعرف دورك</h1>
-              <p className="mt-1 text-sm text-muted">أدخل رقم المريض المكتوب على وصل الحجز، أو رقم الهاتف الذي حجزت به.</p>
+              <p className="mt-1 text-sm text-muted">أدخل رقم الزائر المكتوب على وصل الحجز، أو رقم الهاتف الذي حجزت به.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              <Field label="رقم المريض أو رقم الهاتف" error={queryError} hint="رقم الهاتف يعرض كل المرضى الذين حُجز لهم بهذا الرقم">
+              <Field label="رقم الزائر أو رقم الهاتف" error={queryError} hint="رقم الهاتف يعرض كل الزوار الذين حُجز لهم بهذا الرقم">
                 <TextInput
                   id="query"
                   type="text"
@@ -335,7 +339,7 @@ export default function MyTurn() {
           <div className="space-y-5">
             <div>
               <h1 className="font-display text-2xl text-ink">
-                {patients.length === 1 ? `مرحبًا ${patients[0].first_name}` : `${patients.length} مرضى بهذا الرقم`}
+                {patients.length === 1 ? `مرحبًا ${patients[0].first_name}` : `${patients.length} زوار بهذا الرقم`}
               </h1>
               {result.event?.name && <p className="mt-1 text-sm text-muted">{result.event.name}</p>}
             </div>
@@ -367,7 +371,7 @@ export default function MyTurn() {
                 حدّث الآن
               </Button>
               <Button size="lg" variant="secondary" icon={UserRoundPen} onClick={handleChangePatient}>
-                مريض آخر
+                زائر آخر
               </Button>
             </div>
           </div>

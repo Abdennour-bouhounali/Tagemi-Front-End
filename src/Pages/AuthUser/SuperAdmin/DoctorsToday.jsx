@@ -10,7 +10,7 @@ const apiUrl = API_BASE_URL;
 /** «أدوات اليوم» › الأطباء والطوابير: doctors' arrival/departure for one event. */
 export default function DoctorsToday() {
   const { eventId } = useParams();
-  const { token } = useContext(AppContext);
+  const { token, user } = useContext(AppContext);
   const toast = useToast();
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
@@ -29,8 +29,9 @@ export default function DoctorsToday() {
   return (
     <QueueOpening
       event={event}
-      backLabel="متابعة الحدث"
-      onClose={() => navigate(`/admin/event-tracking/${eventId}`)}
+      readOnly={user?.role_id === 9}
+      backLabel={user?.role_id === 9 ? 'أثناء الحدث' : 'متابعة الحدث'}
+      onClose={() => navigate(user?.role_id === 9 ? `/admin/event-statistics/${eventId}` : `/admin/event-tracking/${eventId}`)}
     />
   );
 }

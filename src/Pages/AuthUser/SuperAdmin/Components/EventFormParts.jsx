@@ -171,9 +171,9 @@ export function EventInfoFields({ form, setForm, errors = {}, onStateChange }) {
         onCityChange={(value) => set('city', value)}
       />
       <Field label="الوصف">
-        <textarea rows={3} className={textareaClass} value={form.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="معلومات تظهر للمرضى عن الحدث" />
+        <textarea rows={3} className={textareaClass} value={form.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="معلومات تظهر للزوار عن الحدث" />
       </Field>
-      <Field label="عدد التخصصات التي يحجزها المريض" hint="من 1 إلى 5 تخصصات" error={errors.nbr_of_allowed_specialties}>
+      <Field label="عدد التخصصات التي يحجزها الزائر" hint="من 1 إلى 5 تخصصات" error={errors.nbr_of_allowed_specialties}>
         <TextInput
           type="number" inputMode="numeric" min="1" max="5"
           value={form.nbr_of_allowed_specialties}
@@ -476,13 +476,13 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoc
                         className={textareaClass}
                         value={spec.description || ''}
                         onChange={(e) => patchSpec(i, { description: e.target.value })}
-                        placeholder="ملاحظات تظهر للمرضى عند الحجز"
+                        placeholder="ملاحظات تظهر للزوار عند الحجز"
                       />
                     </Field>
 
                     <div className="divide-y divide-line border-y border-line">
                       <SwitchRow checked={spec.is_saturated} onChange={(v) => patchSpec(i, { is_saturated: v })} label="التخصص مشبع" hint="يوقف الحجز في هذا التخصص" />
-                      <SwitchRow checked={spec.has_dilatation} onChange={(v) => patchSpec(i, { has_dilatation: v })} icon={Droplets} label="قاعة تمدد" hint="يرسل مسؤول التخصص المرضى إلى التمدد ثم يعودون بأولوية" />
+                      <SwitchRow checked={spec.has_dilatation} onChange={(v) => patchSpec(i, { has_dilatation: v })} icon={Droplets} label="قاعة تمدد" hint="يرسل مسؤول التخصص الزوار إلى التمدد ثم يعودون بأولوية" />
                     </div>
 
                     {spec.schedule ? (
@@ -499,7 +499,7 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoc
                       />
                     ) : (
                     <div>
-                      <p className="text-xs text-muted mb-2">تخصص قديم بساعات وعدد مرضى ثابت في الساعة.</p>
+                      <p className="text-xs text-muted mb-2">تخصص قديم بساعات وعدد زوار ثابت في الساعة.</p>
                       <h3 className="font-semibold text-ink mb-2">الأيام</h3>
                       {spec.days.length === 0 && <p className="text-sm text-muted mb-2">أضف يوم عمل واحدًا على الأقل.</p>}
                       <ul className="space-y-3">
@@ -516,7 +516,7 @@ export function SpecialtiesEditor({ value, onChange, specialties, doctors, onDoc
                               <Field label="التاريخ">
                                 <TextInput type="date" value={day.day_date || ''} onChange={(e) => patchDay(i, j, { day_date: e.target.value })} />
                               </Field>
-                              <Field label="مرضى في الساعة">
+                              <Field label="زوار في الساعة">
                                 <TextInput
                                   type="number" inputMode="numeric" min="1" max="400"
                                   value={day.number_per_hour}
@@ -601,7 +601,7 @@ export function EventReview({ form, specialtiesList, specialtyName, doctorName =
     ['التاريخ', !form.date ? '—' : form.end_date && form.end_date !== form.date ? `من ${formatDay(form.date)} إلى ${formatDay(form.end_date)}` : formatDay(form.date)],
     ['المكان', [form.city, form.state].filter(Boolean).join('، ') || '—'],
     ['الحالة', form.is_active ? 'نشط، يقبل الحجوزات' : 'غير نشط'],
-    ['تخصصات لكل مريض', form.nbr_of_allowed_specialties],
+    ['تخصصات لكل زائر', form.nbr_of_allowed_specialties],
     ['الضوابط المختارة', rulesCount],
   ];
   return (

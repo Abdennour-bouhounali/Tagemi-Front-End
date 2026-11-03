@@ -123,7 +123,7 @@ export default function StaffShell() {
                 {link.label}
               </SheetAction>
             ))}
-            <SheetAction icon={BookOpen} onClick={() => { setMoreOpen(false); navigate('/admin/patient-journey'); }}>دليل رحلة المريض</SheetAction>
+            <SheetAction icon={BookOpen} onClick={() => { setMoreOpen(false); navigate('/admin/patient-journey'); }}>دليل رحلة الزائر</SheetAction>
             <SheetAction icon={Globe} onClick={() => { setMoreOpen(false); navigate('/home'); }}>موقع المؤسسة</SheetAction>
             <SheetAction icon={LogOut} tone="text-red-700" onClick={logout}>تسجيل الخروج</SheetAction>
           </div>

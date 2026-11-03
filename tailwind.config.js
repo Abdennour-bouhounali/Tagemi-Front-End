@@ -36,6 +36,7 @@ export default {
           hold: '#4F5FA3', 'hold-bg': '#E8EBF7',
           pushed: '#B26B00', 'pushed-bg': '#FBF0DC',
           dil: '#0E7490', 'dil-bg': '#E0F2F6',
+          visit: '#6D3FC0', 'visit-bg': '#EFE9FA',
           done: '#5F6B7D', 'done-bg': '#ECEEF2',
           pending: '#8A93A8', 'pending-bg': '#F1F2F6',
         },

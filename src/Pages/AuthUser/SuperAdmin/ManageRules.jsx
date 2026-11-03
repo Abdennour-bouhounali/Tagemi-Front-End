@@ -106,7 +106,7 @@ export default function ManageRules() {
         <div className="max-w-2xl lg:max-w-none mx-auto">
             <PageHeader
                 title="ضوابط الفحوصات"
-                subtitle={rules ? `${rules.length} ضابط، تظهر للمرضى قبل الفحص` : 'تظهر للمرضى قبل الفحص'}
+                subtitle={rules ? `${rules.length} ضابط، تظهر للزوار قبل الفحص` : 'تظهر للزوار قبل الفحص'}
                 actions={<Button icon={Plus} onClick={() => openForm(null)}>أضف ضابطاً</Button>}
             />
 
@@ -118,7 +118,7 @@ export default function ManageRules() {
                     title="لا توجد ضوابط بعد"
                     action={<Button icon={Plus} onClick={() => openForm(null)}>أضف أول ضابط</Button>}
                 >
-                    أضف الضوابط التي يجب أن يعرفها المريض قبل حضوره.
+                    أضف الضوابط التي يجب أن يعرفها الزائر قبل حضوره.
                 </EmptyState>
             ) : (
                 <ol className="bg-white border border-line rounded-2xl divide-y divide-line lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-3 lg:bg-transparent lg:border-0 lg:rounded-none lg:divide-y-0">
@@ -178,7 +178,7 @@ export default function ManageRules() {
                     </>
                 )}
             >
-                <p className="text-sm text-ink">سيختفي هذا الضابط من صفحات المرضى، ولا يمكن التراجع عن الحذف.</p>
+                <p className="text-sm text-ink">سيختفي هذا الضابط من صفحات الزوار، ولا يمكن التراجع عن الحذف.</p>
                 {deleteFor && <p className="mt-2 text-sm text-muted bg-paper rounded-xl p-3">{deleteFor.rule}</p>}
             </Sheet>
         </div>

@@ -3,14 +3,18 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { useParams, Link } from 'react-router-dom';
 import {
     Check, ChevronsDown, MoreVertical, ScanLine, Droplets, Send, MessageSquare, Info, QrCode,
-    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, ChevronDown,
+    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, DoorOpen, Undo2, Stethoscope, History,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { csvSafe } from '../../../utils/safeHtml';
 import useLiveRefresh from '../../../utils/useLiveRefresh';
 import { statusLabel } from '../../../utils/visitStatus';
+import { elapsedSeconds, formatElapsed, serverOffset, useNow } from '../../../utils/visitTimer';
+import DoctorsStrip from './DoctorsStrip';
+import EnterSheet from './EnterSheet';
 import QRScanner from '../RecipientAdmin/QRScanner';
 import { PatientQRSection } from '../RecipientAdmin/PatientQRCode';
+import { PatientHistorySheet } from '../RecipientAdmin/PatientLog';
 import {
     Button, IconButton, Ticket, StatusBadge, PriorityBadge, PageHeader, StatStrip, SearchField,
     ChipGroup, EmptyState, LoadingState, Sheet, SheetAction, useToast, cx,
@@ -20,15 +24,19 @@ const apiUrl = API_BASE_URL;
 const QUEUED = ['Present', 'Commingsoon'];
 const AWAY = ['DilatationSent', 'Dilatation'];
 const inQueue = (a) => QUEUED.includes(a.status);
+const inside = (a) => a.status === 'Entered';
+const doctorKey = (specialityId) => `tagemi.doctor.${specialityId}`;
 const DEFAULT_PUSH_PLACES = 5;
 const MAX_PUSH_PLACES = 30;
 
 /**
  * Specialty queue (مسؤول التخصص / الطبيب). Patients are shown as tickets in
- * queue order. The officer passes, pushes down, sends to dilatation or to
- * another specialty; the patient manager (مسؤول القاعة الصغرى) only pushes down; the
- * doctor reads and writes notes. Every action works from the buttons and from
- * a QR scan of the patient's card.
+ * queue order. The officer picks one of the present doctors, marks the
+ * patient «دخل» (alone or with family members) and later «إجتاز», which times
+ * the visit; they also push down, send to dilatation or to another specialty.
+ * The patient manager (مسؤول القاعة الصغرى) only pushes down; the doctor reads
+ * and writes notes; the organizer (مسؤول التنظيم) only looks. Every action works
+ * from the buttons and from a QR scan of the patient's card.
  */
 export default function CheckPatient() {
     const { eventId, specialityId } = useParams();
@@ -60,12 +68,27 @@ export default function CheckPatient() {
     const [referralFor, setReferralFor] = useState(null);
     const [referralOptions, setReferralOptions] = useState(null);
     const [qrFor, setQrFor] = useState(null);
+    const [historyFor, setHistoryFor] = useState(null);
+    const closeHistory = useCallback(() => setHistoryFor(null), []);
     const [scanAction, setScanAction] = useState(null);
 
     // Push down (إنزال): the appointments to move and how many places, picked with the slider
     const [pushFor, setPushFor] = useState(null);
     const [pushPlaces, setPushPlaces] = useState(DEFAULT_PUSH_PLACES);
-    const [cardMenuId, setCardMenuId] = useState(null);
+
+    // Doctors of the specialty; the chosen one receives the next «دخل»
+    const [doctors, setDoctors] = useState(null);
+    const [offsetMs, setOffsetMs] = useState(0);
+    const [doctorId, setDoctorId] = useState(() => {
+        try { return Number(localStorage.getItem(doctorKey(specialityId))) || null; } catch { return null; }
+    });
+    const [attendBusy, setAttendBusy] = useState(null);
+
+    // «دخل» sheet: the patient, proposed relatives and family added by hand
+    const [enterMembers, setEnterMembers] = useState(null);
+    const [enterLoading, setEnterLoading] = useState(false);
+    const [picked, setPicked] = useState([]);
+    const [cancelFor, setCancelFor] = useState(null);
 
     const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, Accept: 'application/json' }), [token]);
 
@@ -78,6 +101,16 @@ export default function CheckPatient() {
                 setData(json);
                 const list = json.appointments || [];
                 setSelectedIds((prev) => prev.filter((id) => list.some((a) => a.id === id && inQueue(a))));
+                if (json.event_specialty_id) {
+                    const dr = await fetch(`${apiUrl}/api/event-specialties/${json.event_specialty_id}/doctors-present`, { headers: authHeaders });
+                    const drJson = await dr.json().catch(() => ({}));
+                    if (dr.ok) {
+                        setDoctors(drJson.doctors || []);
+                        setOffsetMs(serverOffset(drJson.server_time));
+                    }
+                } else {
+                    setDoctors([]);
+                }
             } else {
                 toast(json.message || 'تعذر تحميل الطابور', 'error');
             }
@@ -90,7 +123,10 @@ export default function CheckPatient() {
 
     useEffect(() => { load(); }, [load]);
     // Reception, other officers and the dilatation room change this queue too
-    useLiveRefresh(eventId, token, () => load(true));
+    // Only this specialty, its doctors (arrive / leave) and which queues are open
+    useLiveRefresh(eventId, token, () => load(true), {
+        parts: data?.event_specialty_id ? [`es_${data.event_specialty_id}`, 'doctors', 'open'] : null,
+    });
 
     /** POST/PATCH an action and show the server's answer. Returns the JSON on success. */
     const run = async (url, { method = 'POST', body, success } = {}) => {
@@ -117,8 +153,28 @@ export default function CheckPatient() {
         }
     };
 
-    const appointments = data?.appointments || [];
+    const all = data?.appointments || [];
+    const appointments = all.filter((a) => !inside(a));
     const hasDilatation = !!data?.has_dilatation;
+    const doctorName = (id) => doctors?.find((d) => d.doctor_id === id)?.full_name || 'الطبيب';
+    // A doctor who left still finishes the patients already in the queue
+    const selectedDoctor = doctors?.find((d) => d.doctor_id === doctorId && (d.present || d.left_at) && !d.busy) || null;
+
+    // Patients with a doctor now, one card per visit (a family entered together)
+    const visits = Object.values(all.filter(inside).reduce((groups, a) => {
+        const key = a.visit_group || `a${a.id}`;
+        (groups[key] ||= []).push(a);
+        return groups;
+    }, {})).map((patients) => {
+        const doctor = doctors?.find((d) => d.doctor_id === patients[0].doctor_id);
+        return {
+            key: patients[0].visit_group || patients[0].id,
+            patients,
+            doctorName: doctorName(patients[0].doctor_id),
+            enteredAt: patients[0].entered_at,
+            alarmAfter: doctor?.current?.alarm_after_seconds ?? (doctor?.planned_minutes ? doctor.planned_minutes * 90 * patients.length : null),
+        };
+    });
 
     const visible = appointments.filter((a) => {
         const q = search.trim();
@@ -139,6 +195,73 @@ export default function CheckPatient() {
     // ---------------------------------------------------------------- actions
 
     const pass = (a) => run(`/api/waitinglist/Complete/${a.id}`, { success: 'تم الفحص' });
+
+    const chooseDoctor = (id) => {
+        setDoctorId(id);
+        try {
+            if (id) localStorage.setItem(doctorKey(specialityId), String(id));
+            else localStorage.removeItem(doctorKey(specialityId));
+        } catch { /* private mode: the choice just isn't remembered */ }
+    };
+
+    const attend = async (d, action) => {
+        setAttendBusy(`${action}-${d.doctor_id}`);
+        await run(`/api/event-specialties/${data.event_specialty_id}/doctors/${d.doctor_id}/${action}`);
+        setAttendBusy(null);
+    };
+
+    const asMember = (a) => ({ id: a.id, patient_id: a.patient_id, full_name: a.full_name, place: a.orderList, can_enter: true, reason: null });
+
+    /** «دخل» on one patient: their family in this queue is proposed, ticked. */
+    const openEnter = async (a) => {
+        if (!selectedDoctor) {
+            toast('اختر الطبيب أولاً من أعلى الصفحة', 'error');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+        setEnterMembers([asMember(a)]);
+        setPicked([a.id]);
+        setEnterLoading(true);
+        try {
+            const res = await fetch(`${apiUrl}/api/waitinglist/relatives/${a.id}`, { headers: authHeaders });
+            const json = await res.json().catch(() => ({}));
+            const relatives = res.ok ? json.relatives || [] : [];
+            setEnterMembers([asMember(a), ...relatives]);
+            setPicked([a.id, ...relatives.filter((r) => r.can_enter).map((r) => r.id)]);
+        } catch {
+            toast('تعذر جلب أفراد العائلة، يمكنك إضافتهم يدوياً', 'error');
+        } finally {
+            setEnterLoading(false);
+        }
+    };
+
+    /** «دخل (n)» from the selection bar: the ticked patients enter together. */
+    const openEnterMany = (list) => {
+        if (!selectedDoctor) {
+            toast('اختر الطبيب أولاً من أعلى الصفحة', 'error');
+            return;
+        }
+        setEnterMembers(list.map(asMember));
+        setPicked(list.map((a) => a.id));
+    };
+
+    const addMember = (a) => {
+        setEnterMembers((prev) => (prev.some((m) => m.id === a.id) ? prev : [...prev, asMember(a)]));
+        setPicked((prev) => (prev.includes(a.id) ? prev : [...prev, a.id]));
+    };
+
+    const confirmEnter = async () => {
+        const ok = await run('/api/waitinglist/enter', { body: { ids: picked, doctor_id: selectedDoctor?.doctor_id } });
+        if (ok) { setEnterMembers(null); setSelectedIds([]); setSelecting(false); }
+    };
+
+    const cancelEnter = async (visit) => {
+        setCancelFor(null);
+        for (const a of visit.patients) {
+            // eslint-disable-next-line no-await-in-loop
+            await run(`/api/waitinglist/cancel-enter/${a.id}`);
+        }
+    };
     const openPushDown = (list) => { setPushPlaces(DEFAULT_PUSH_PLACES); setPushFor(list); };
     const toDilatation = (a) => run(`/api/waitinglist/Dilatation/${a.id}`, { success: 'أُرسل إلى قاعة التمدد' });
 
@@ -183,16 +306,27 @@ export default function CheckPatient() {
 
     // Returns false so the scanner stays open when the patient can't take the action
     const handleScan = async (patientId) => {
-        const a = appointments.find((x) => String(x.patient_id) === String(patientId));
+        const a = all.find((x) => String(x.patient_id) === String(patientId));
         if (!a) {
-            toast(`المريض #${patientId} ليس في هذا الطابور اليوم`, 'error');
+            toast(`الزائر #${patientId} ليس في هذا الطابور اليوم`, 'error');
             return false;
         }
-        if (['complete', 'pushdown'].includes(scanAction) && !inQueue(a)) {
-            toast(`المريض #${patientId} ليس في الطابور الآن (${statusLabel(a.status)})`, 'error');
+        if (scanAction === 'complete' && !inside(a)) {
+            toast(inQueue(a) ? `الزائر #${patientId} لم يدخل بعد، اضغط «دخل» أولاً` : `الزائر #${patientId} ليس عند الطبيب (${statusLabel(a.status)})`, 'error');
+            return false;
+        }
+        if (['enter', 'relative', 'pushdown'].includes(scanAction) && !inQueue(a)) {
+            toast(`الزائر #${patientId} ليس في الطابور الآن (${statusLabel(a.status)})`, 'error');
+            return false;
+        }
+        if (scanAction === 'relative') {
+            // Family members one after another: the scanner stays open
+            addMember(a);
+            toast(`أضيف ${a.full_name}`);
             return false;
         }
         setScanAction(null);
+        if (scanAction === 'enter') return openEnter(a);
         if (scanAction === 'complete') return pass(a);
         if (scanAction === 'pushdown') return openPushDown([a]);
         // "actions": the same menu as tapping the patient's card
@@ -200,7 +334,7 @@ export default function CheckPatient() {
     };
 
     const exportCsv = () => {
-        const rows = [['الترتيب', 'رقم المريض', 'الاسم', 'الحالة', 'الساعة', 'الهاتف', 'ملاحظة']];
+        const rows = [['الترتيب', 'رقم الزائر', 'الاسم', 'الحالة', 'الساعة', 'الهاتف', 'ملاحظة']];
         appointments.forEach((a) => rows.push([
             inQueue(a) ? a.orderList : '', a.patient_id, a.full_name, statusLabel(a.status), a.hour?.time || '', a.phone || '', a.comment || '',
         ]));
@@ -236,7 +370,7 @@ export default function CheckPatient() {
                         disabled={busy}
                         className={cx('inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold border disabled:opacity-60',
                             data.is_open ? 'border-line text-muted bg-white' : 'border-st-queue/40 text-st-queue bg-st-queue-bg')}
-                        title={data.is_open ? 'لن يُرسل مرضى جدد، ويُفحص من في الطابور' : 'يُرسل إليه المرضى المنتظرون فوراً'}
+                        title={data.is_open ? 'لن يُرسل زوار جدد، ويُفحص من في الطابور' : 'يُرسل إليه الزوار المنتظرون فوراً'}
                     >
                         {data.is_open ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                         {data.is_open ? 'أغلق الطابور' : 'افتح الطابور'}
@@ -244,10 +378,33 @@ export default function CheckPatient() {
                 )}
             />
 
+            {data?.event_specialty_id && (data.is_open === false || data.capacity?.full) && (
+                <div role="status" className="mb-4 flex items-start gap-2 rounded-2xl border border-rose/40 bg-rose-soft px-4 py-3 text-sm text-ink">
+                    <Lock className="w-4 h-4 mt-0.5 shrink-0 text-rose" />
+                    <p>
+                        <span className="font-semibold">هذا التخصص مغلق: لن يُرسل إليه زوار جدد، ويُفحص فقط الزوار الموجودون فيه.</span>
+                        {data.capacity?.full && ` بلغ عدد الزوار ${data.capacity.load} من ${data.capacity.capacity} زيارة مقررة للأطباء الحاضرين.`}
+                        {data.is_open === false && isSuperAdmin && ' يُفتح عند تسجيل وصول طبيب.'}
+                    </p>
+                </div>
+            )}
+
+            {doctors && (
+                <DoctorsStrip
+                    doctors={doctors}
+                    selectedId={selectedDoctor?.doctor_id ?? null}
+                    onSelect={isOfficer ? chooseDoctor : null}
+                    onAttend={isSuperAdmin ? attend : null}
+                    busyKey={attendBusy}
+                    offsetMs={offsetMs}
+                />
+            )}
+
             <StatStrip
                 className="mb-4"
                 items={[
                     { label: 'في الطابور', value: summary.in_queue, tone: 'text-st-queue' },
+                    { label: 'عند الطبيب', value: summary.in_visit, tone: 'text-st-visit' },
                     hasDilatation && { label: 'في التمدد', value: summary.dilatation, tone: 'text-st-dil' },
                     { label: 'أنهوا الفحص', value: summary.completed, tone: 'text-st-done' },
                     { label: 'في تخصص آخر أولاً', value: summary.waiting, tone: 'text-st-hold' },
@@ -259,20 +416,25 @@ export default function CheckPatient() {
             <div className="lg:max-w-3xl">
             <div className="flex gap-2 mb-3">
                 {isOfficer && (
-                    <Button variant="primary" icon={ScanLine} className="flex-1" onClick={() => setScanAction('complete')}>
-                        مسح للإجتياز
-                    </Button>
+                    <>
+                        <Button variant="primary" icon={ScanLine} className="flex-1" onClick={() => setScanAction('enter')}>
+                            مسح للدخول
+                        </Button>
+                        <Button variant="secondary" icon={Check} className="flex-1" onClick={() => setScanAction('complete')}>
+                            مسح للإجتياز
+                        </Button>
+                    </>
                 )}
-                {canPushDown && (
-                    <Button variant={isOfficer ? 'secondary' : 'primary'} icon={ChevronsDown} className="flex-1" onClick={() => setScanAction('pushdown')}>
+                {canPushDown && !isOfficer && (
+                    <Button variant="primary" icon={ChevronsDown} className="flex-1" onClick={() => setScanAction('pushdown')}>
                         مسح للإنزال
                     </Button>
                 )}
-                <IconButton icon={QrCode} label="مسح لعرض إجراءات المريض" className="bg-white border border-line" onClick={() => setScanAction('actions')} />
+                <IconButton icon={QrCode} label="مسح لعرض إجراءات الزائر" className="bg-white border border-line" onClick={() => setScanAction('actions')} />
                 {canPushDown && (
                     <IconButton
                         icon={selecting ? X : ListChecks}
-                        label={selecting ? 'إلغاء التحديد' : 'تحديد عدة مرضى للإنزال'}
+                        label={selecting ? 'إلغاء التحديد' : isOfficer ? 'تحديد عدة زوار (دخول عائلة أو إنزال)' : 'تحديد عدة زوار للإنزال'}
                         className={cx('border border-line', selecting ? 'bg-ink text-white hover:bg-ink' : 'bg-white')}
                         onClick={() => { setSelecting(!selecting); setSelectedIds([]); }}
                     />
@@ -282,7 +444,7 @@ export default function CheckPatient() {
                 )}
             </div>
 
-            <SearchField value={search} onChange={setSearch} placeholder="ابحث بالاسم أو رقم المريض" className="mb-3" />
+            <SearchField value={search} onChange={setSearch} placeholder="ابحث بالاسم أو رقم الزائر" className="mb-3" />
             <ChipGroup
                 label="تصفية حسب الحالة"
                 value={filter}
@@ -308,17 +470,42 @@ export default function CheckPatient() {
             />
             </div>
 
+            {visits.length > 0 && (
+                <section className="mb-5" aria-label="عند الطبيب الآن">
+                    <h2 className="flex items-center gap-1.5 font-semibold text-ink mb-2">
+                        <Stethoscope className="w-4 h-4 text-st-visit" /> عند الطبيب الآن
+                    </h2>
+                    <ul className="space-y-3 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-4 lg:space-y-0">
+                        {visits.map((v) => (
+                            <li key={v.key}>
+                                <VisitCard
+                                    visit={v}
+                                    offsetMs={offsetMs}
+                                    canAct={isOfficer}
+                                    busy={busy}
+                                    onPass={() => pass(v.patients[0])}
+                                    onCancel={() => setCancelFor(v)}
+                                    onOpen={(a) => setActionsFor(a)}
+                                />
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
             {selecting ? (
-                <p className="text-sm text-muted mb-3">اختر المرضى غير الموجودين عند الباب، ثم اضغط «إنزال المحددين».</p>
+                <p className="text-sm text-muted mb-3">
+                    {isOfficer ? 'اختر أفراد العائلة ثم «دخل»، أو الزوار غير الموجودين عند الباب ثم «إنزال».' : 'اختر الزوار غير الموجودين عند الباب، ثم اضغط «إنزال المحددين».'}
+                </p>
             ) : canPushDown && (
                 <p className="text-sm text-muted mb-3">
-                    {isOfficer ? 'اضغط على بطاقة المريض لتسجيل الإجتياز أو الإنزال، أو امسح رمزه.' : 'اضغط على بطاقة المريض لإنزاله، أو امسح رمزه.'}
+                    {isOfficer ? 'اختر الطبيب ثم اضغط «دخل» على بطاقة الزائر، أو امسح رمزه.' : 'اضغط على بطاقة الزائر لإنزاله، أو امسح رمزه.'}
                 </p>
             )}
 
             {visible.length === 0 ? (
                 <EmptyState title={appointments.length ? 'لا أحد يطابق البحث' : 'الطابور فارغ'}>
-                    {appointments.length ? 'جرّب اسماً أو رقماً آخر.' : 'يظهر المرضى هنا عند تسجيل حضورهم في الاستقبال.'}
+                    {appointments.length ? 'جرّب اسماً أو رقماً آخر.' : 'يظهر الزوار هنا عند تسجيل حضورهم في الاستقبال.'}
                 </EmptyState>
             ) : (
                 <ol className="space-y-3 lg:grid lg:grid-cols-2 2xl:grid-cols-3 lg:gap-4 lg:space-y-0">
@@ -335,7 +522,7 @@ export default function CheckPatient() {
                                     >
                                         {selecting && queued && (
                                             <input type="checkbox" checked={selected} onChange={select} onClick={(e) => e.stopPropagation()}
-                                                className="mt-1 w-5 h-5 accent-[#101E58]" aria-label={`تحديد المريض ${a.patient_id}`} />
+                                                className="mt-1 w-5 h-5 accent-[#101E58]" aria-label={`تحديد الزائر ${a.patient_id}`} />
                                         )}
                                         <div className="min-w-0 flex-1">
                                             <p className="font-semibold text-ink leading-snug truncate">{a.full_name}</p>
@@ -351,39 +538,20 @@ export default function CheckPatient() {
                                             )}
                                         </div>
                                         {!selecting && (
-                                            <IconButton icon={MoreVertical} label="إجراءات المريض" className="-me-2 -mt-1" />
+                                            <IconButton icon={MoreVertical} label="إجراءات الزائر" className="-me-2 -mt-1" />
                                         )}
                                     </div>
 
                                     {canPushDown && queued && !selecting && (
-                                        <div className="mt-3">
-                                            <button
-                                                type="button"
-                                                aria-haspopup="menu"
-                                                aria-expanded={cardMenuId === a.id}
-                                                disabled={busy}
-                                                onClick={() => setCardMenuId(cardMenuId === a.id ? null : a.id)}
-                                                className="w-full flex items-center justify-between gap-2 h-11 px-4 rounded-xl border border-line bg-white font-semibold text-ink disabled:opacity-60"
-                                            >
-                                                <span>الإجراء في الطابور</span>
-                                                <ChevronDown className={cx('w-5 h-5 transition-transform', cardMenuId === a.id && 'rotate-180')} />
-                                            </button>
-                                            {cardMenuId === a.id && (
-                                                <div role="menu" className="mt-1 rounded-xl border border-line bg-white overflow-hidden divide-y divide-line">
-                                                    {isOfficer && (
-                                                        <button type="button" role="menuitem" disabled={busy}
-                                                            className="w-full flex items-center gap-2 h-12 px-4 text-st-done font-semibold hover:bg-paper disabled:opacity-60"
-                                                            onClick={() => { setCardMenuId(null); pass(a); }}>
-                                                            <Check className="w-5 h-5" /> إجتاز
-                                                        </button>
-                                                    )}
-                                                    <button type="button" role="menuitem" disabled={busy}
-                                                        className="w-full flex items-center gap-2 h-12 px-4 text-ink font-semibold hover:bg-paper disabled:opacity-60"
-                                                        onClick={() => { setCardMenuId(null); openPushDown([a]); }}>
-                                                        <ChevronsDown className="w-5 h-5" /> إنزال
-                                                    </button>
-                                                </div>
+                                        <div className="mt-3 flex gap-2">
+                                            {isOfficer && (
+                                                <Button icon={DoorOpen} className="flex-1" disabled={busy} onClick={() => openEnter(a)}>
+                                                    دخل
+                                                </Button>
                                             )}
+                                            <Button variant="secondary" icon={ChevronsDown} className={isOfficer ? '' : 'flex-1'} disabled={busy} onClick={() => openPushDown([a])}>
+                                                إنزال
+                                            </Button>
                                         </div>
                                     )}
 
@@ -402,8 +570,13 @@ export default function CheckPatient() {
                 <div className="fixed inset-x-0 lg:start-24 bottom-[4.75rem] lg:bottom-6 z-40 px-4 lg:px-8">
                     <div className="max-w-2xl lg:max-w-3xl mx-auto flex items-center gap-2 bg-ink text-white rounded-2xl p-2 ps-4 shadow-lg">
                         <span className="flex-1 text-sm font-semibold">تم تحديد {selectedIds.length}</span>
+                        {isOfficer && (
+                            <Button variant="success" icon={DoorOpen} disabled={!selectedIds.length || busy} onClick={() => openEnterMany(appointments.filter((a) => selectedIds.includes(a.id)))}>
+                                دخل ({selectedIds.length})
+                            </Button>
+                        )}
                         <Button variant="warning" icon={ChevronsDown} disabled={!selectedIds.length || busy} onClick={() => openPushDown(appointments.filter((a) => selectedIds.includes(a.id)))}>
-                            إنزال المحددين
+                            {isOfficer ? 'إنزال' : 'إنزال المحددين'}
                         </Button>
                     </div>
                 </div>
@@ -414,7 +587,12 @@ export default function CheckPatient() {
                 {actionsFor && (
                     <div className="divide-y divide-line">
                         {isOfficer && inQueue(actionsFor) && (
-                            <SheetAction icon={Check} hint="انتهى فحصه، ينتقل إلى تخصصه التالي" onClick={() => { pass(actionsFor); setActionsFor(null); }}>
+                            <SheetAction icon={DoorOpen} hint={selectedDoctor ? `عند ${selectedDoctor.full_name}` : 'اختر الطبيب أولاً من أعلى الصفحة'} onClick={() => { openEnter(actionsFor); setActionsFor(null); }}>
+                                دخل
+                            </SheetAction>
+                        )}
+                        {isOfficer && inside(actionsFor) && (
+                            <SheetAction icon={Check} hint="انتهى فحصه، ينتقل إلى تخصصه التالي (مع من دخل معه)" onClick={() => { pass(actionsFor); setActionsFor(null); }}>
                                 إجتاز
                             </SheetAction>
                         )}
@@ -423,12 +601,12 @@ export default function CheckPatient() {
                                 إنزال
                             </SheetAction>
                         )}
-                        {isOfficer && inQueue(actionsFor) && hasDilatation && (
+                        {isOfficer && (inQueue(actionsFor) || inside(actionsFor)) && hasDilatation && (
                             <SheetAction icon={Droplets} hint="يغادر الطابور ويعود بأولوية بعد التمدد" onClick={() => { toDilatation(actionsFor); setActionsFor(null); }}>
                                 إرسال إلى قاعة التمدد
                             </SheetAction>
                         )}
-                        {isOfficer && inQueue(actionsFor) && (
+                        {isOfficer && (inQueue(actionsFor) || inside(actionsFor)) && (
                             <SheetAction icon={Send} hint="لتخصص لم يحجزه، يدخل طابوره في المرتبة الثالثة" onClick={() => { openReferral(actionsFor); setActionsFor(null); }}>
                                 إرسال إلى تخصص آخر
                             </SheetAction>
@@ -438,7 +616,8 @@ export default function CheckPatient() {
                                 {actionsFor.comment ? 'تعديل الملاحظة' : 'إضافة ملاحظة'}
                             </SheetAction>
                         )}
-                        <SheetAction icon={Info} onClick={() => { openDetails(actionsFor); setActionsFor(null); }}>تفاصيل المريض ومواعيده</SheetAction>
+                        <SheetAction icon={Info} onClick={() => { openDetails(actionsFor); setActionsFor(null); }}>تفاصيل الزائر ومواعيده</SheetAction>
+                        <SheetAction icon={History} hint="كل تغييرات حالته: من قام بها ومتى" onClick={() => { setHistoryFor(actionsFor); setActionsFor(null); }}>سجل الزائر</SheetAction>
                         <SheetAction icon={QrCode} onClick={() => { setQrFor(actionsFor); setActionsFor(null); }}>عرض رمز QR</SheetAction>
                     </div>
                 )}
@@ -448,7 +627,7 @@ export default function CheckPatient() {
             <Sheet
                 open={!!pushFor}
                 onClose={() => setPushFor(null)}
-                title={pushFor?.length > 1 ? `إنزال ${pushFor.length} مرضى` : 'إنزال المريض'}
+                title={pushFor?.length > 1 ? `إنزال ${pushFor.length} زوار` : 'إنزال الزائر'}
                 footer={<Button variant="warning" block size="lg" icon={ChevronsDown} loading={busy} onClick={confirmPushDown}>إنزال {pushPlaces} مراتب</Button>}
             >
                 <p className="text-sm text-muted mb-3">اسحب المؤشر للأسفل لزيادة عدد المراتب.</p>
@@ -470,6 +649,8 @@ export default function CheckPatient() {
                     </div>
                 </div>
             </Sheet>
+
+            <PatientHistorySheet patient={historyFor} eventId={eventId} token={token} onClose={closeHistory} />
 
             {/* Details */}
             <Sheet open={!!detailsFor} onClose={() => setDetailsFor(null)} title={detailsFor ? `#${detailsFor.patient_id} ${detailsFor.full_name}` : ''}>
@@ -503,7 +684,7 @@ export default function CheckPatient() {
             <Sheet
                 open={!!commentFor}
                 onClose={() => setCommentFor(null)}
-                title="ملاحظة على المريض"
+                title="ملاحظة على الزائر"
                 footer={<Button block size="lg" loading={busy} onClick={saveComment}>حفظ الملاحظة</Button>}
             >
                 <textarea
@@ -524,7 +705,7 @@ export default function CheckPatient() {
                             يغادر #{referralFor.patient_id} هذا الطابور الآن ويدخل طابور التخصص المختار في المرتبة الثالثة، ثم يعود إلى {data?.speciality}.
                         </p>
                         {referralOptions === null ? <LoadingState /> : referralOptions.length === 0 ? (
-                            <EmptyState title="لا يوجد تخصص متاح">كل التخصصات العاملة اليوم إما مغلقة أو محجوزة لهذا المريض.</EmptyState>
+                            <EmptyState title="لا يوجد تخصص متاح">كل التخصصات العاملة اليوم إما مغلقة أو محجوزة لهذا الزائر.</EmptyState>
                         ) : (
                             <div className="divide-y divide-line">
                                 {referralOptions.map((o) => (
@@ -547,8 +728,37 @@ export default function CheckPatient() {
                 )}
             </Sheet>
 
+            {/* «دخل»: who goes in to the chosen doctor */}
+            <EnterSheet
+                open={!!enterMembers}
+                doctorName={selectedDoctor?.full_name}
+                members={enterMembers || []}
+                loading={enterLoading}
+                picked={picked}
+                onToggle={(id) => setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
+                candidates={appointments.filter((a) => inQueue(a) && !enterMembers?.some((m) => m.id === a.id))}
+                onAdd={addMember}
+                onScan={() => setScanAction('relative')}
+                onConfirm={confirmEnter}
+                onClose={() => setEnterMembers(null)}
+                busy={busy}
+            />
+
+            <Sheet
+                open={!!cancelFor}
+                onClose={() => setCancelFor(null)}
+                title="إلغاء الدخول"
+                footer={<Button variant="danger" block size="lg" icon={Undo2} loading={busy} onClick={() => cancelEnter(cancelFor)}>إلغاء الدخول</Button>}
+            >
+                {cancelFor && (
+                    <p className="text-sm text-ink">
+                        {cancelFor.patients.map((a) => a.full_name).join('، ')} {cancelFor.patients.length > 1 ? 'يعودون' : 'يعود'} إلى أول الطابور، ولا يُحسب وقت هذه الزيارة. استعمله عند الضغط على «دخل» بالخطأ.
+                    </p>
+                )}
+            </Sheet>
+
             {/* QR of a patient */}
-            <Sheet open={!!qrFor} onClose={() => setQrFor(null)} title="رمز QR للمريض">
+            <Sheet open={!!qrFor} onClose={() => setQrFor(null)} title="رمز QR للزائر">
                 {qrFor && <PatientQRSection appointment={qrFor} />}
             </Sheet>
 
@@ -557,19 +767,15 @@ export default function CheckPatient() {
                     onScanSuccess={handleScan}
                     onClose={() => setScanAction(null)}
                     eventId={eventId}
-                    actionTitle={
-                        scanAction === 'complete' ? 'امسح رمز المريض لتسجيل الإجتياز'
-                            : scanAction === 'pushdown' ? 'امسح رمز المريض لإنزاله'
-                                : 'امسح رمز المريض لعرض إجراءاته'
-                    }
+                    actionTitle={{
+                        enter: 'امسح رمز الزائر لإدخاله عند الطبيب',
+                        relative: 'امسح رموز أفراد العائلة واحداً بعد الآخر',
+                        complete: 'امسح رمز الزائر لتسجيل الإجتياز',
+                        pushdown: 'امسح رمز الزائر لإنزاله',
+                    }[scanAction] || 'امسح رمز الزائر لعرض إجراءاته'}
                 />
             )}
 
-            {data?.is_open === false && (
-                <p className="mt-6 text-center text-xs text-muted">
-                    هذا التخصص مغلق اليوم، لن يُرسل إليه مرضى جدد.{isSuperAdmin && ' افتحه بزر «افتح الطابور» أعلاه عند وصول الطبيب.'}
-                </p>
-            )}
             {busy && <span className="sr-only" role="status">جاري التنفيذ</span>}
             {hasDilatation && counts.away > 0 && filter !== 'away' && (
                 <p className="mt-4 text-center text-xs text-muted">
@@ -577,5 +783,45 @@ export default function CheckPatient() {
                 </p>
             )}
         </div>
+    );
+}
+
+/** A visit in progress: doctor, patient(s) and the live timer (rose past the alarm). */
+function VisitCard({ visit, offsetMs, canAct, busy, onPass, onCancel, onOpen }) {
+    const now = useNow();
+    const elapsed = elapsedSeconds(visit.enteredAt, now, offsetMs);
+    const late = visit.alarmAfter && elapsed > visit.alarmAfter;
+    const family = visit.patients.length > 1;
+
+    return (
+        <article className={cx('rounded-2xl border bg-white p-3', late ? 'border-rose bg-rose-soft' : 'border-st-visit/30')}>
+            <div className="flex items-center gap-2 mb-2">
+                <span className="flex-1 min-w-0 text-sm text-muted truncate">
+                    عند <span className="font-semibold text-ink">{visit.doctorName}</span>{family && ` · عائلة (${visit.patients.length})`}
+                </span>
+                <span dir="ltr" className={cx('font-display text-xl tabular-nums', late ? 'text-rose' : 'text-st-visit')}>{formatElapsed(elapsed)}</span>
+            </div>
+            {late && <p className="text-xs font-semibold text-rose mb-2">تجاوزت الزيارة مرة ونصف المدة المقررة</p>}
+            <ul className="space-y-1 mb-3">
+                {visit.patients.map((a) => (
+                    <li key={a.id}>
+                        <button type="button" className="w-full text-start rounded-lg px-2 py-1.5 hover:bg-ink-faint" onClick={() => onOpen(a)}>
+                            <span className="font-semibold text-ink">{a.full_name}</span>
+                            <span className="text-xs text-muted ms-2">#{a.patient_id}</span>
+                        </button>
+                    </li>
+                ))}
+            </ul>
+            {canAct && (
+                <div className="flex gap-2">
+                    <Button variant="success" icon={Check} className="flex-1" disabled={busy} onClick={onPass}>
+                        {family ? 'إجتازوا' : 'إجتاز'}
+                    </Button>
+                    <Button variant="secondary" icon={Undo2} disabled={busy} onClick={onCancel} aria-label="إلغاء الدخول">
+                        إلغاء
+                    </Button>
+                </div>
+            )}
+        </article>
     );
 }

@@ -43,7 +43,7 @@ function TestNote({ test, unit }) {
       {test.small_expected_share > 20 && (
         <p>تنبيه: {test.small_expected_share}% من الخلايا قيمتها المتوقعة أقل من 5، فالنتيجة تقريبية.</p>
       )}
-      <p>الوحدة المعدودة: {unit === 'patients' ? 'مريض واحد لكل شخص' : 'موعد (قد يملك المريض عدة مواعيد)'}.</p>
+      <p>الوحدة المعدودة: {unit === 'patients' ? 'زائر واحد لكل شخص' : 'موعد (قد يملك الزائر عدة مواعيد)'}.</p>
     </div>
   );
 }
@@ -240,7 +240,7 @@ const DeepStatsSection = ({ eventId }) => {
 
   const exportCsv = () => {
     const out = [
-      ['القصر', 'المرضى', 'ذكور', 'إناث', 'القصّر', 'متوسط العمر', 'وسيط العمر', 'نسبة الحضور %', 'نسبة إنهاء الفحص %'],
+      ['القصر', 'الزوار', 'ذكور', 'إناث', 'القصّر', 'متوسط العمر', 'وسيط العمر', 'نسبة الحضور %', 'نسبة إنهاء الفحص %'],
       ...s.ksar_summary.map((k) => [k.ksar, k.count, k.males, k.females, k.minors, k.mean_age, k.median_age, k.attendance_rate, k.completion_rate]),
       [],
     ];
@@ -256,7 +256,7 @@ const DeepStatsSection = ({ eventId }) => {
 
   const ksarColumns = [
     { key: 'ksar', label: 'القصر', primary: true },
-    { key: 'count', label: 'المرضى', align: 'center' },
+    { key: 'count', label: 'الزوار', align: 'center' },
     { key: 'males', label: 'ذكور', align: 'center' },
     { key: 'females', label: 'إناث', align: 'center' },
     { key: 'ratio', label: 'ذكور لكل 100 أنثى', align: 'center', render: (r) => r.males_per_100_females ?? '—' },
@@ -265,7 +265,7 @@ const DeepStatsSection = ({ eventId }) => {
     { key: 'median', label: 'وسيط العمر', align: 'center', render: (r) => r.median_age ?? '—' },
     { key: 'attendance', label: 'نسبة الحضور', align: 'center', render: (r) => (r.attendance_rate == null ? '—' : `${r.attendance_rate}%`) },
     { key: 'completion', label: 'نسبة إنهاء الفحص', align: 'center', render: (r) => (r.completion_rate == null ? '—' : `${r.completion_rate}%`) },
-    { key: 'per_patient', label: 'مواعيد لكل مريض', align: 'center', render: (r) => r.per_patient ?? '—' },
+    { key: 'per_patient', label: 'مواعيد لكل زائر', align: 'center', render: (r) => r.per_patient ?? '—' },
   ];
 
   return (
@@ -276,13 +276,13 @@ const DeepStatsSection = ({ eventId }) => {
       </div>
 
       {s.totals.appointments === 0 ? (
-        <Panel><EmptyState title="لا توجد مواعيد في هذا الحدث">ستظهر الإحصائيات بعد تسجيل المرضى.</EmptyState></Panel>
+        <Panel><EmptyState title="لا توجد مواعيد في هذا الحدث">ستظهر الإحصائيات بعد تسجيل الزوار.</EmptyState></Panel>
       ) : (
         <>
           <StatStrip
             className="mb-4 lg:grid lg:grid-flow-col lg:auto-cols-fr lg:mx-0 lg:px-0"
             items={[
-              { label: 'المرضى', value: s.totals.patients },
+              { label: 'الزوار', value: s.totals.patients },
               { label: 'المواعيد', value: s.totals.appointments },
               { label: 'القصور', value: s.totals.ksars },
               { label: 'ذكور', value: `${males?.count ?? 0} (${pct(males?.count, s.totals.patients)}%)` },
@@ -336,7 +336,7 @@ const DeepStatsSection = ({ eventId }) => {
               <ResponsiveTable
                 columns={[
                   { key: 'sex', label: 'الجنس', primary: true },
-                  { key: 'count', label: 'المرضى', align: 'center' },
+                  { key: 'count', label: 'الزوار', align: 'center' },
                   { key: 'minors', label: 'القصّر', align: 'center' },
                   { key: 'mean_age', label: 'متوسط العمر', align: 'center', render: (r) => r.mean_age ?? '—' },
                   { key: 'median_age', label: 'وسيط العمر', align: 'center', render: (r) => r.median_age ?? '—' },

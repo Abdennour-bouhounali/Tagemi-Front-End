@@ -1,4 +1,4 @@
-import { CalendarDays, Users, ClipboardList, ScanLine, ListOrdered, MoreHorizontal, MessageSquareHeart, UserPlus, Stethoscope } from 'lucide-react';
+import { CalendarDays, Users, ClipboardList, ScanLine, ListOrdered, MoreHorizontal, MessageSquareHeart, UserPlus, Stethoscope, Activity } from 'lucide-react';
 
 export const ROLE_NAMES = {
   1: 'المدير العام',
@@ -9,6 +9,7 @@ export const ROLE_NAMES = {
   6: 'طبيب',
   7: 'مسؤول المحتوى',
   8: 'مسؤول القاعة الصغرى',
+  9: 'مسؤول التنظيم',
 };
 
 /** Where each role lands after login (and on the app's home tab). */
@@ -22,6 +23,7 @@ export function staffHome(user) {
     case 4:
     case 6:
     case 8: return event ? `/admin/stations/${event}` : '/admin/no-event';
+    case 9: return event ? `/admin/event-statistics/${event}` : '/admin/no-event';
     default: return '/home';
   }
 }
@@ -63,6 +65,14 @@ export function staffTabs(user) {
         { key: 'stations', label: 'التخصصات', icon: Stethoscope, to: `/admin/stations/${e}`, match: ['/admin/stations', '/admin/event-waiting-lists', '/admin/dilatation'] },
         more,
       ];
+    // Organizer: sees everything of the event (alarms first), changes nothing
+    case 9:
+      return [
+        { key: 'live', label: 'أثناء الحدث', icon: Activity, to: `/admin/event-statistics/${e}`, match: ['/admin/event-statistics'] },
+        { key: 'stations', label: 'الطوابير', icon: Stethoscope, to: `/admin/stations/${e}`, match: ['/admin/stations', '/admin/event-waiting-lists', '/admin/dilatation'] },
+        { key: 'patients', label: 'الزوار', icon: ClipboardList, to: `/admin/check-presence/${e}`, match: ['/admin/check-presence'] },
+        more,
+      ];
     default:
       return [more];
   }
@@ -70,6 +80,12 @@ export function staffTabs(user) {
 
 /** Extra destinations shown in the "more" sheet. */
 export function staffMoreLinks(user) {
+  if (user?.role_id === 9 && user.event_id) {
+    return [
+      { label: 'الأطباء والطوابير', to: `/admin/doctors-today/${user.event_id}` },
+      { label: 'شاشة القاعة', to: `/admin/big-list-waiting/${user.event_id}` },
+    ];
+  }
   if (user?.role_id !== 1) return [];
   return [
     { label: 'إضافة مواعيد', to: '/admin/add-multiple-appointments' },
@@ -78,5 +94,6 @@ export function staffMoreLinks(user) {
     { label: 'ضوابط الفحوصات', to: '/admin/rules' },
     { label: 'الرسائل', to: '/admin/contacts' },
     { label: 'المتطوعون', to: '/admin/volunteers' },
+    { label: 'سجل العمليات', to: '/admin/admin-actions' },
   ];
 }
