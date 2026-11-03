@@ -424,6 +424,25 @@ const CheckPresence = () => {
   // Direct fast check-in and silent print for barcode scanner & instant desk check-in
   const fastCheckInAndPrint = async (patientId) => {
     if (updating) return false;
+    // Registered twice (same name + phone)? The registrations can only be merged
+    // before check-in: open the visitor sheet with the merge proposal instead
+    try {
+      const dupRes = await fetch(`${apiUrl}/api/events/${eventId}/patients/${patientId}/duplicates`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
+      const dup = dupRes.ok ? await dupRes.json() : null;
+      if (dup?.patient_ids?.length) {
+        const patient = await findPatient(patientId);
+        if (patient && !hasCheckedIn(patient)) {
+          playBeep("info");
+          toast(`الزائر #${patientId} مسجل أكثر من مرة: قرّر الدمج ثم أكّد الحضور.`, "info");
+          setDetailsId(patient.patient_id);
+          return false;
+        }
+      }
+    } catch {
+      // No answer about duplicates: go on with the fast check-in
+    }
     setUpdating(true);
     try {
       const res = await fetch(`${apiUrl}/api/events/${eventId}/check-in`, {

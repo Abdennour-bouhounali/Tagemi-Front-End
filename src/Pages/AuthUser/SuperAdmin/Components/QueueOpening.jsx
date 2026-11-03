@@ -24,6 +24,9 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
   const [doctorsBySpecialty, setDoctorsBySpecialty] = useState({});
   const [busy, setBusy] = useState(null);
   const [adding, setAdding] = useState(null); // station whose doctors are being picked
+  // Day of the doctors shown: today, or the next visit day before the event (then nothing can be recorded)
+  const [visitDay, setVisitDay] = useState(null);
+  const locked = readOnly || (visitDay && !visitDay.is_today);
 
   const load = useCallback(async () => {
     const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
@@ -37,6 +40,7 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
       else toast(json.message || 'تعذر تحميل التخصصات', 'error');
       if (doctorsRes.ok) {
         const doctors = await doctorsRes.json();
+        setVisitDay(doctors.date ? { date: doctors.date, is_today: doctors.is_today !== false } : null);
         setDoctorsBySpecialty(Object.fromEntries((doctors.specialties || []).map((s) => [s.event_specialty_id, s.doctors])));
       }
     } catch {
@@ -85,6 +89,13 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
           : 'سجّل وصول كل طبيب ومغادرته. وصول أول طبيب يفتح طابور تخصصه ويُوجَّه إليه الزوار المنتظرون، ومغادرة آخر طبيب حاضر تغلقه (يُكمَل فحص من فيه). بعد مغادرة طبيب لا يستقبل التخصص أكثر من الزيارات المقررة للأطباء الباقين. لا يُفتح طابور دون طبيب حاضر، وكل التخصصات تُغلق من جديد في بداية كل يوم.'}
       </p>
 
+      {visitDay && !visitDay.is_today && (
+        <div role="status" className="mb-4 rounded-2xl border border-st-hold/30 bg-st-hold-bg px-4 py-3 text-sm text-ink">
+          <p className="font-semibold">يوم الزيارة: {visitDay.date}</p>
+          <p className="text-muted mt-0.5">هؤلاء هم الأطباء المبرمجون في ذلك اليوم. يُسجَّل وصولهم وتُفتح الطوابير يوم الزيارة نفسه.</p>
+        </div>
+      )}
+
       {!data ? (
         <LoadingState />
       ) : stations.length === 0 ? (
@@ -105,7 +116,7 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                       {s.is_full && <span className="text-rose font-semibold"> · اكتمل العدد</span>}
                     </p>
                   </div>
-                  {readOnly ? (
+                  {locked ? (
                     <span className={cx('shrink-0 text-sm font-semibold', s.is_open ? 'text-st-queue' : 'text-red-700')}>{s.is_open ? 'مفتوح' : 'مغلق'}</span>
                   ) : (
                   <button
@@ -139,7 +150,7 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                             </p>
                             <p className={cx('text-xs mt-0.5', d.present ? 'text-st-queue font-semibold' : 'text-muted')}>{status}</p>
                           </div>
-                          {readOnly ? null : d.present ? (
+                          {locked ? null : d.present ? (
                             <Button size="sm" variant="secondary" icon={LogOut} loading={busy === key('leave')} disabled={busy !== null} onClick={() => attend(s, d, 'leave')}>
                               غادر
                             </Button>
@@ -154,7 +165,7 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                   </ul>
                 )}
 
-                {!readOnly && (
+                {!locked && (
                   <button
                     type="button"
                     onClick={() => setAdding(s)}
