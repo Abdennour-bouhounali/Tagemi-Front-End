@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   MoreVertical, Users, Pencil, Trash2, UserX, UserCheck, Copy, RefreshCw, CalendarCheck, Phone, Mail,
-  FilterX, Shield, X, Loader2,
+  FilterX, Shield, ShieldCheck, PlusCircle, X, Loader2,
 } from "lucide-react";
 import { AppContext } from "../../../Context/AppContext";
 import {
@@ -591,6 +591,27 @@ function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onDelet
   };
   const unassign = () => post(`${apiUrl}/api/users/${user.id}/unassign`, null, "تم إلغاء تعيين المستخدم من الحدث", "تعذر إلغاء التعيين", "unassign");
 
+  // Reception only: may book a patient more specialties than the event allows
+  const isReception = Number(user.role_id) === 5;
+  const exceeds = !!user.can_exceed_specialty_limit;
+  const toggleLimit = async () => {
+    setLoading("limit");
+    try {
+      const res = await fetch(`${apiUrl}/api/users/${user.id}/specialty-limit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ allowed: !exceeds }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) onChanged(data.message);
+      else toast(data.message || "تعذر تغيير الصلاحية", "error");
+    } catch {
+      toast(NETWORK_ERROR, "error");
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return (
     <Sheet
       open
@@ -633,6 +654,18 @@ function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onDelet
             {user.event_id && (
               <SheetAction icon={UserX} hint="يبقى الحساب لكنه لا يرى أي حدث" disabled={!!loading} onClick={unassign}>
                 ألغِ التعيين من الحدث
+              </SheetAction>
+            )}
+            {isReception && (
+              <SheetAction
+                icon={exceeds ? ShieldCheck : PlusCircle}
+                hint={exceeds
+                  ? "مسموح له: يضيف تخصصات للزائر فوق العدد المسموح في الحدث. اضغط للإلغاء"
+                  : "يضيف تخصصات للزائر فوق العدد المسموح في الحدث، من مكتب الحضور"}
+                disabled={!!loading}
+                onClick={toggleLimit}
+              >
+                {exceeds ? "ألغِ تجاوز عدد التخصصات" : "اسمح بتجاوز عدد التخصصات"}
               </SheetAction>
             )}
             <SheetAction icon={Pencil} hint="الاسم، البريد، الهاتف، كلمة المرور" onClick={onEdit}>عدّل البيانات</SheetAction>

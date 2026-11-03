@@ -2,18 +2,21 @@ import { API_BASE_URL } from '../../../config/environment';
 import { useEffect, useMemo, useState } from "react";
 import { Check, Clock, PlusCircle, AlertTriangle } from "lucide-react";
 import { Button, EmptyState, Field, SelectInput, Sheet, useToast, cx } from "../../../Components/ui";
+import { defaultSlot } from "../../../utils/specialtyLoad";
 
 const dateOf = (day) => (day?.day_date || '').slice(0, 10);
 const timeOf = (hour) => (hour?.time || '').slice(0, 5);
 
 /**
- * Super admin: change an appointment's day/hour ("reschedule"), or book one
- * more specialty for the patient ("add"). Full hours can be chosen (the
+ * Super admin: change an appointment's day/hour ("reschedule"). Super admin
+ * and tagged reception accounts: book one more specialty for the patient
+ * ("add"), past the event's limit too; each specialty shows how many patients
+ * will still pass there today. Full hours can be chosen (the
  * super admin decides); they are marked. Both actions are logged server-side.
  *
  * request = { mode: 'reschedule', appointment } | { mode: 'add', patient }
  */
-export default function SlotSheet({ request, event, token, onClose, onDone }) {
+export default function SlotSheet({ request, event, token, load = {}, onClose, onDone }) {
   const toast = useToast();
   const mode = request?.mode;
   const appointment = request?.appointment;
@@ -29,7 +32,9 @@ export default function SlotSheet({ request, event, token, onClose, onDone }) {
     () => new Set((patient?.all_appointments || []).map((a) => a.event_specialty_id)),
     [patient],
   );
-  const addable = eventSpecialties.filter((es) => !booked.has(es.id));
+  const addable = eventSpecialties
+    .filter((es) => !booked.has(es.id))
+    .sort((a, b) => (a.specialty?.name || '').localeCompare(b.specialty?.name || '', 'ar'));
 
   useEffect(() => {
     setEsId(mode === 'reschedule' ? appointment?.event_specialty_id : null);
@@ -96,18 +101,54 @@ export default function SlotSheet({ request, event, token, onClose, onDone }) {
               <p className="text-sm text-muted">
                 #{patient.patient_id} {patient.full_name}: {booked.size} من {limit} تخصص مسموح في هذا الحدث.
               </p>
+              {booked.size >= limit && (
+                <p className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 rounded-xl p-3">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  الزائر بلغ العدد المسموح. يُضاف هذا التخصص فوق العدد ولا يمنع تسجيل حضوره.
+                </p>
+              )}
               {addable.length === 0 ? (
                 <EmptyState title="لا يوجد تخصص آخر">الزائر حاجز كل تخصصات الحدث.</EmptyState>
               ) : (
-                <Field label="التخصص">
-                  <SelectInput
-                    value={esId ?? ''}
-                    onChange={(e) => { setEsId(Number(e.target.value) || null); setDayId(null); setHourId(null); }}
-                  >
-                    <option value="">اختر التخصص</option>
-                    {addable.map((e) => <option key={e.id} value={e.id}>{e.specialty?.name || `#${e.id}`}</option>)}
-                  </SelectInput>
-                </Field>
+                <div>
+                  <p className="flex items-center justify-between text-sm font-semibold text-ink mb-2">
+                    <span>التخصص</span>
+                    <span className="text-xs font-normal text-muted">سيمرون اليوم (في الانتظار أو الطابور)</span>
+                  </p>
+                  <div role="radiogroup" aria-label="التخصص" className="rounded-xl border border-line divide-y divide-line overflow-hidden">
+                    {addable.map((e) => {
+                      const active = e.id === esId;
+                      const count = load[e.id] || 0;
+                      return (
+                        <button
+                          key={e.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          onClick={() => {
+                            // One day (or today): chosen for them, with the hour of registration
+                            const slot = defaultSlot(e);
+                            setEsId(e.id);
+                            setDayId(slot.dayId);
+                            setHourId(slot.hourId);
+                          }}
+                          className={cx(
+                            'w-full flex items-center justify-between gap-3 px-3 py-3 text-start',
+                            active ? 'bg-ink text-white' : 'bg-white hover:bg-ink-faint',
+                          )}
+                        >
+                          <span className="flex items-center gap-2 font-semibold">
+                            {active && <Check className="w-4 h-4 shrink-0" />}
+                            {e.specialty?.name || `#${e.id}`}
+                          </span>
+                          <span className={cx('shrink-0 tabular-nums text-sm', active ? 'text-white' : 'text-muted')}>
+                            <span className="font-bold">{count}</span> زائر
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </>
           )}

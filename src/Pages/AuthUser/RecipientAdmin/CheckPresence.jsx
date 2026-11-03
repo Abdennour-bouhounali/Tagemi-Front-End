@@ -12,6 +12,8 @@ import { PatientQRSection } from './PatientQRCode';
 import AppointmentDocuments from '../SuperAdmin/AppointmentDocuments';
 import SlotSheet from './SlotSheet';
 import PatientLog from './PatientLog';
+import QuickRegister from './QuickRegister';
+import { specialtyLoad } from '../../../utils/specialtyLoad';
 import {
   Check,
   ScanLine,
@@ -148,6 +150,10 @@ const CheckPresence = () => {
   // Organizer (مسؤول التنظيم): finds patients and reads their data, changes nothing
   const isViewer = role === 9;
   const canMerge = canCheckIn || canManageSpecial;
+  // «إضافة تسجيلات»: reception, special admin, super admin
+  const canQuickRegister = role === 1 || role === 3 || role === 5;
+  // Past the event's specialty limit: super admin, and reception accounts the super admin tagged
+  const mayExceed = isAdmin || (role === 5 && !!user?.can_exceed_specialty_limit);
 
   // Data
   const [event, setEvent] = useState(null);
@@ -592,6 +598,8 @@ const CheckPresence = () => {
       const activeEl = document.activeElement;
       const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
       const isCheckinInput = activeEl && activeEl.id === "checkin-patient-id";
+      // Typing in the «إضافة تسجيلات» table: phone numbers + Enter are not a scan
+      const inDataEntry = !!activeEl?.closest?.('[data-no-scan]');
 
       if (e.key === "Enter") {
         const rawBuffer = scannerBufferRef.current.trim();
@@ -600,7 +608,7 @@ const CheckPresence = () => {
         const buffer = normalizeAzertyBarcode(rawBuffer);
 
         if (buffer.length > 0) {
-          if (/patient_id:/i.test(buffer) || /^\d+$/.test(buffer)) {
+          if (/patient_id:/i.test(buffer) || (/^\d+$/.test(buffer) && !inDataEntry)) {
             let pid = buffer;
             if (/patient_id:/i.test(buffer)) {
               pid = buffer.replace(/^.*patient_id:\s*/i, "");
@@ -755,6 +763,9 @@ const CheckPresence = () => {
       .catch(() => !cancelled && setDupGroups([]));
     return () => { cancelled = true; };
   }, [eventId, token, dupSource]);
+
+  // Patients still to pass each specialty today (shown when adding a specialty)
+  const load = useMemo(() => specialtyLoad(appointments), [appointments]);
 
   const markNotSame = (patientId, otherId) =>
     setNotSame((prev) => new Set(prev).add(`${patientId}:${otherId}`));
@@ -2484,8 +2495,14 @@ ${appointmentsList}
             غيّر التخصص
           </SheetAction>
         )}
-        {isAdmin && (p.all_appointments || [p]).length < Number(event?.nbr_of_allowed_specialties || 1) && (
-          <SheetAction icon={PlusCircle} hint={`الحدث يسمح بـ ${event?.nbr_of_allowed_specialties} تخصص لكل زائر`} onClick={run(() => openSlot({ mode: 'add', patient: p }))}>
+        {mayExceed && (
+          <SheetAction
+            icon={PlusCircle}
+            hint={(p.all_appointments || [p]).length < Number(event?.nbr_of_allowed_specialties || 1)
+              ? `الحدث يسمح بـ ${event?.nbr_of_allowed_specialties} تخصص لكل زائر`
+              : `بلغ ${event?.nbr_of_allowed_specialties} تخصص المسموح بها، يُضاف فوق العدد`}
+            onClick={run(() => openSlot({ mode: 'add', patient: p }))}
+          >
             أضف تخصصاً
           </SheetAction>
         )}
@@ -2673,8 +2690,24 @@ ${appointmentsList}
         options={[
           { value: 'patients', label: 'الزوار' },
           { value: 'duplicates', label: 'التسجيلات المكررة', count: dupGroups?.length },
+          ...(canQuickRegister ? [{ value: 'add', label: 'إضافة تسجيلات' }] : []),
         ]}
       />
+      {/* Kept mounted while another view is open: typed rows are not lost */}
+      {canQuickRegister && (
+        <div hidden={view !== 'add'} data-no-scan>
+          <QuickRegister
+            event={event}
+            eventId={eventId}
+            token={token}
+            load={load}
+            mayExceed={mayExceed}
+            onSaved={() => { fetchAppointments(true); fetchEventDetails(); }}
+          />
+        </div>
+      )}
+      {view !== 'add' && (
+      <>
       {/* Filters */}
       <div className="flex gap-2 mb-3">
         <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="ابحث بالاسم أو الرقم أو الهاتف" className="flex-1 min-w-0" />
@@ -2772,6 +2805,8 @@ ${appointmentsList}
             </Button>
           )}
         </>
+      )}
+      </>
       )}
       </>
       )}
@@ -3013,7 +3048,7 @@ ${appointmentsList}
       </Sheet>
 
       {/* Super admin: change time / add a specialty */}
-      <SlotSheet request={slotRequest} event={event} token={token} onClose={closeSlot} onDone={onSlotDone} />
+      <SlotSheet request={slotRequest} event={event} token={token} load={load} onClose={closeSlot} onDone={onSlotDone} />
 
       {/* Change specialty */}
       <Sheet
