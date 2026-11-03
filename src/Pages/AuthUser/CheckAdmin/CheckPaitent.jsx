@@ -3,7 +3,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { useParams, Link } from 'react-router-dom';
 import {
     Check, ChevronsDown, MoreVertical, ScanLine, Droplets, Send, MessageSquare, Info, QrCode,
-    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, DoorOpen, Undo2, Stethoscope, History,
+    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, DoorOpen, Undo2, Stethoscope, History, UserPlus,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { csvSafe } from '../../../utils/safeHtml';
@@ -12,7 +12,7 @@ import { statusLabel } from '../../../utils/visitStatus';
 import { elapsedSeconds, formatElapsed, serverOffset, useNow } from '../../../utils/visitTimer';
 import DoctorsStrip from './DoctorsStrip';
 import EnterSheet from './EnterSheet';
-import QRScanner from '../RecipientAdmin/QRScanner';
+import QRScanner from '../RecipientAdmin/QRScannerLazy';
 import { PatientQRSection } from '../RecipientAdmin/PatientQRCode';
 import { PatientHistorySheet } from '../RecipientAdmin/PatientLog';
 import {
@@ -86,6 +86,11 @@ export default function CheckPatient() {
 
     // «دخل» sheet: the patient, proposed relatives and family added by hand
     const [enterMembers, setEnterMembers] = useState(null);
+    // Doctor of the open «دخل» sheet, and the visit a late relative joins (null = new visit)
+    const [enterDoctor, setEnterDoctor] = useState(null);
+    const [joinVisit, setJoinVisit] = useState(null);
+    // «دخل» pressed with no doctor chosen: what to do once one is picked
+    const [pickFor, setPickFor] = useState(null);
     const [enterLoading, setEnterLoading] = useState(false);
     const [picked, setPicked] = useState([]);
     const [cancelFor, setCancelFor] = useState(null);
@@ -212,37 +217,68 @@ export default function CheckPatient() {
 
     const asMember = (a) => ({ id: a.id, patient_id: a.patient_id, full_name: a.full_name, place: a.orderList, can_enter: true, reason: null });
 
-    /** «دخل» on one patient: their family in this queue is proposed, ticked. */
-    const openEnter = async (a) => {
-        if (!selectedDoctor) {
-            toast('اختر الطبيب أولاً من أعلى الصفحة', 'error');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
-        setEnterMembers([asMember(a)]);
-        setPicked([a.id]);
-        setEnterLoading(true);
+    /** Family of an appointment queued in this specialty (same phone). */
+    const fetchRelatives = async (appointmentId) => {
         try {
-            const res = await fetch(`${apiUrl}/api/waitinglist/relatives/${a.id}`, { headers: authHeaders });
+            const res = await fetch(`${apiUrl}/api/waitinglist/relatives/${appointmentId}`, { headers: authHeaders });
             const json = await res.json().catch(() => ({}));
-            const relatives = res.ok ? json.relatives || [] : [];
-            setEnterMembers([asMember(a), ...relatives]);
-            setPicked([a.id, ...relatives.filter((r) => r.can_enter).map((r) => r.id)]);
+            return res.ok ? json.relatives || [] : [];
         } catch {
             toast('تعذر جلب أفراد العائلة، يمكنك إضافتهم يدوياً', 'error');
-        } finally {
-            setEnterLoading(false);
+            return [];
         }
     };
 
-    /** «دخل (n)» from the selection bar: the ticked patients enter together. */
-    const openEnterMany = (list) => {
-        if (!selectedDoctor) {
-            toast('اختر الطبيب أولاً من أعلى الصفحة', 'error');
+    /** «دخل» on one patient: their family in this queue is proposed, ticked. No doctor chosen yet: pick one first. */
+    const openEnter = async (a, doctor = selectedDoctor) => {
+        if (!doctor) {
+            setPickFor({ kind: 'one', a });
             return;
         }
+        setEnterDoctor(doctor);
+        setJoinVisit(null);
+        setEnterMembers([asMember(a)]);
+        setPicked([a.id]);
+        setEnterLoading(true);
+        const relatives = await fetchRelatives(a.id);
+        setEnterMembers([asMember(a), ...relatives]);
+        setPicked([a.id, ...relatives.filter((r) => r.can_enter).map((r) => r.id)]);
+        setEnterLoading(false);
+    };
+
+    /** «دخل (n)» from the selection bar: the ticked patients enter together. */
+    const openEnterMany = (list, doctor = selectedDoctor) => {
+        if (!doctor) {
+            setPickFor({ kind: 'many', list });
+            return;
+        }
+        setEnterDoctor(doctor);
+        setJoinVisit(null);
         setEnterMembers(list.map(asMember));
         setPicked(list.map((a) => a.id));
+    };
+
+    /** Doctor picked in the window opened by «دخل»: remembered, then «دخل» goes on. */
+    const pickDoctor = (d) => {
+        chooseDoctor(d.doctor_id);
+        const pending = pickFor;
+        setPickFor(null);
+        if (pending?.kind === 'one') openEnter(pending.a, d);
+        else if (pending?.kind === 'many') openEnterMany(pending.list, d);
+    };
+
+    /** «أضف إليه»: a relative who came late joins this visit (same doctor, they pass together). */
+    const openJoin = async (visit) => {
+        const doctorIdOfVisit = visit.patients[0].doctor_id;
+        setEnterDoctor(doctors?.find((d) => d.doctor_id === doctorIdOfVisit) || { doctor_id: doctorIdOfVisit, full_name: visit.doctorName });
+        setJoinVisit(visit);
+        setEnterMembers([]);
+        setPicked([]);
+        setEnterLoading(true);
+        const relatives = await fetchRelatives(visit.patients[0].id);
+        setEnterMembers(relatives);
+        setPicked(relatives.filter((r) => r.can_enter).map((r) => r.id));
+        setEnterLoading(false);
     };
 
     const addMember = (a) => {
@@ -251,8 +287,8 @@ export default function CheckPatient() {
     };
 
     const confirmEnter = async () => {
-        const ok = await run('/api/waitinglist/enter', { body: { ids: picked, doctor_id: selectedDoctor?.doctor_id } });
-        if (ok) { setEnterMembers(null); setSelectedIds([]); setSelecting(false); }
+        const ok = await run('/api/waitinglist/enter', { body: { ids: picked, doctor_id: enterDoctor?.doctor_id, join: !!joinVisit } });
+        if (ok) { setEnterMembers(null); setJoinVisit(null); setSelectedIds([]); setSelecting(false); }
     };
 
     const cancelEnter = async (visit) => {
@@ -484,6 +520,7 @@ export default function CheckPatient() {
                                     canAct={isOfficer}
                                     busy={busy}
                                     onPass={() => pass(v.patients[0])}
+                                    onJoin={() => openJoin(v)}
                                     onCancel={() => setCancelFor(v)}
                                     onOpen={(a) => setActionsFor(a)}
                                 />
@@ -587,7 +624,7 @@ export default function CheckPatient() {
                 {actionsFor && (
                     <div className="divide-y divide-line">
                         {isOfficer && inQueue(actionsFor) && (
-                            <SheetAction icon={DoorOpen} hint={selectedDoctor ? `عند ${selectedDoctor.full_name}` : 'اختر الطبيب أولاً من أعلى الصفحة'} onClick={() => { openEnter(actionsFor); setActionsFor(null); }}>
+                            <SheetAction icon={DoorOpen} hint={selectedDoctor ? `عند ${selectedDoctor.full_name}` : 'تختار الطبيب بعدها'} onClick={() => { openEnter(actionsFor); setActionsFor(null); }}>
                                 دخل
                             </SheetAction>
                         )}
@@ -729,9 +766,51 @@ export default function CheckPatient() {
             </Sheet>
 
             {/* «دخل»: who goes in to the chosen doctor */}
+            {/* «دخل» with no doctor chosen yet: pick the doctor, then «دخل» goes on */}
+            <Sheet open={!!pickFor} onClose={() => setPickFor(null)} title="اختر الطبيب">
+                {pickFor && (() => {
+                    const free = (doctors || []).filter((d) => (d.present || d.left_at) && !d.busy);
+                    const busyOnes = (doctors || []).filter((d) => d.busy);
+                    return (
+                        <div className="space-y-3">
+                            <p className="text-sm text-muted">
+                                {pickFor.kind === 'one' ? `عند من يدخل ${pickFor.a.full_name}؟` : `عند من يدخل ${pickFor.list.length} زوار؟`} يبقى الطبيب مختاراً للزوار التاليين.
+                            </p>
+                            {free.length === 0 ? (
+                                <p className="rounded-xl border border-dashed border-line bg-paper px-4 py-3 text-sm text-ink">
+                                    {busyOnes.length ? 'كل الأطباء مع زوار الآن. اضغط «إجتاز» عند انتهاء زيارة، أو «أضف إليه» لإدخال قريب مع زائر عند الطبيب.' : 'لم يصل أي طبيب في هذا التخصص اليوم.'}
+                                </p>
+                            ) : (
+                                <ul className="divide-y divide-line rounded-2xl border border-line">
+                                    {free.map((d) => (
+                                        <li key={d.doctor_id}>
+                                            <button type="button" onClick={() => pickDoctor(d)}
+                                                className="w-full flex items-center gap-3 px-4 min-h-[3.5rem] text-start hover:bg-ink-faint">
+                                                <Stethoscope className="w-5 h-5 text-st-queue shrink-0" />
+                                                <span className="flex-1 min-w-0">
+                                                    <span className="block font-semibold text-ink truncate">{d.full_name}</span>
+                                                    <span className="block text-xs text-muted">
+                                                        {d.present ? 'حاضر ومتاح' : `غادر ${d.left_at} · يُكمل من في الطابور`} · عالج {d.treated}
+                                                    </span>
+                                                </span>
+                                                <DoorOpen className="w-5 h-5 text-muted" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {busyOnes.length > 0 && free.length > 0 && (
+                                <p className="text-xs text-muted">مع زائر الآن: {busyOnes.map((d) => d.full_name).join('، ')}</p>
+                            )}
+                        </div>
+                    );
+                })()}
+            </Sheet>
+
             <EnterSheet
                 open={!!enterMembers}
-                doctorName={selectedDoctor?.full_name}
+                doctorName={enterDoctor?.full_name}
+                joining={joinVisit}
                 members={enterMembers || []}
                 loading={enterLoading}
                 picked={picked}
@@ -740,7 +819,7 @@ export default function CheckPatient() {
                 onAdd={addMember}
                 onScan={() => setScanAction('relative')}
                 onConfirm={confirmEnter}
-                onClose={() => setEnterMembers(null)}
+                onClose={() => { setEnterMembers(null); setJoinVisit(null); }}
                 busy={busy}
             />
 
@@ -787,7 +866,7 @@ export default function CheckPatient() {
 }
 
 /** A visit in progress: doctor, patient(s) and the live timer (rose past the alarm). */
-function VisitCard({ visit, offsetMs, canAct, busy, onPass, onCancel, onOpen }) {
+function VisitCard({ visit, offsetMs, canAct, busy, onPass, onJoin, onCancel, onOpen }) {
     const now = useNow();
     const elapsed = elapsedSeconds(visit.enteredAt, now, offsetMs);
     const late = visit.alarmAfter && elapsed > visit.alarmAfter;
@@ -816,6 +895,10 @@ function VisitCard({ visit, offsetMs, canAct, busy, onPass, onCancel, onOpen }) 
                 <div className="flex gap-2">
                     <Button variant="success" icon={Check} className="flex-1" disabled={busy} onClick={onPass}>
                         {family ? 'إجتازوا' : 'إجتاز'}
+                    </Button>
+                    {/* A relative who came late goes in to this same visit */}
+                    <Button variant="secondary" icon={UserPlus} disabled={busy} onClick={onJoin} aria-label="أضف قريباً إلى هذه الزيارة">
+                        أضف إليه
                     </Button>
                     <Button variant="secondary" icon={Undo2} disabled={busy} onClick={onCancel} aria-label="إلغاء الدخول">
                         إلغاء

@@ -42,7 +42,7 @@ export default {
         },
       },
       backgroundImage: {
-        'banner': "url('/tagemi_consept.png')",
+        'banner': "url('/tagemi_consept.webp')",
         'footer-texture': "url('/img/footer-texture.png')",
       },
       animation: {

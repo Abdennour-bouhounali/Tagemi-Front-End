@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ChevronRight, Footprints, Timer, Undo2, Star, User, ScanLine, History } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import useLiveRefresh from '../../../utils/useLiveRefresh';
-import QRScanner from '../RecipientAdmin/QRScanner';
+import QRScanner from '../RecipientAdmin/QRScannerLazy';
 import { PatientHistorySheet } from '../RecipientAdmin/PatientLog';
 import { Button, IconButton, PageHeader, StatStrip, EmptyState, LoadingState, Ticket, useToast, cx } from '../../../Components/ui';
 

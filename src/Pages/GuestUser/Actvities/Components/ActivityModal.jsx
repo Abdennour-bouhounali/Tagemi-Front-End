@@ -32,7 +32,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
 
     // Helper function to get correct media URL
     const getMediaUrl = (url) => {
-        if (!url) return '/tagemi_consept.png';
+        if (!url) return '/tagemi_consept.webp';
         
         // If it's a blob URL (for newly uploaded files), return as is
         if (url.startsWith('blob:') || url.startsWith('data:')) {
@@ -581,7 +581,7 @@ const ActivityModal = ({ isOpen, onClose, activity, typeId, onSuccess, token }) 
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => {
                                                         console.error('Preview image failed to load:', e.target.src);
-                                                        e.target.src = '/tagemi_consept.png';
+                                                        e.target.src = '/tagemi_consept.webp';
                                                     }}
                                                 />
                                             ) : (

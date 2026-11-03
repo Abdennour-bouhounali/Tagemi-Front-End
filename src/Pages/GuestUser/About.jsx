@@ -290,7 +290,7 @@ const About = () => {
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                             alt={language === 'en' ? type.name_en : type.name_ar}
                                             onError={(e) => {
-                                                e.target.src = '/tagemi_consept.png';
+                                                e.target.src = '/tagemi_consept.webp';
                                             }}
                                         />
                                         

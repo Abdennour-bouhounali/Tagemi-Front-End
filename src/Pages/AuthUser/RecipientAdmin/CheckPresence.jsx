@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../../../config/environment';
 import { useState, useEffect, useContext, useMemo, useCallback, useRef } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
-import QRScanner from './QRScanner';
+import QRScanner from './QRScannerLazy';
 import { escapeHtml, writePrintDocument, csvSafe } from "../../../utils/safeHtml";
 import useLiveRefresh from "../../../utils/useLiveRefresh";
 import { summarizeVisits, statusLabel, STATUS_LABELS } from "../../../utils/visitStatus";

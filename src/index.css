@@ -67,7 +67,7 @@
     }
 }
 #RegisterVisit{
-    background-image: url('/tagemi_consept.png');
+    background-image: url('/tagemi_consept.webp');
     background-size: cover;
     background-position: center;
     
@@ -756,3 +756,7 @@ h1, h2, h3, h4, h5, h6 { font-family: "Cairo", "Tajawal", Tahoma, sans-serif !im
 .rich-content h3::before { content: ""; width: .35rem; height: 1.4rem; border-radius: 9999px; background: #E03A6F; flex-shrink: 0; }
 .rich-content h3:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
 .rich-content blockquote { font-weight: 500; color: #101E58; }
+
+/* Hall screen: progress bar until the next view of specialties */
+@keyframes hall-progress { from { width: 0; } to { width: 100%; } }
+.hall-progress { width: 0; animation-name: hall-progress; animation-timing-function: linear; animation-fill-mode: forwards; }
