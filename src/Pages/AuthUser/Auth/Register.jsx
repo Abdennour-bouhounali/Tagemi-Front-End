@@ -3,14 +3,29 @@ import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import { API_BASE_URL } from '../../../config/environment';
 import { cleanName, validateArabicNames } from '../../../utils/arabicName';
-import { Eye, EyeOff, User, Phone, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-
-import logo from '/tagemi_logo.png';
+import { CheckCircle2, LockKeyhole, Mail, Phone, User, UserPlus } from 'lucide-react';
+import { Button, cx } from '../../../Components/ui';
+import { AuthAlert, AuthField, AuthLayout, firstError } from './AuthLayout';
 
 const apiUrl = API_BASE_URL;
+const MIN_PASSWORD = 8; // same rule as the API
+
+/** Password strength shown under the field: length and variety, 0..3. */
+function strength(password) {
+  if (!password) return 0;
+  if (password.length < MIN_PASSWORD) return 1;
+  const kinds = [/[a-z]/i, /\d/, /[^a-z\d]/i].filter((re) => re.test(password)).length;
+  return kinds >= 2 && password.length >= 10 ? 3 : 2;
+}
+const STRENGTH = [
+  null,
+  { label: `قصيرة: ${MIN_PASSWORD} أحرف على الأقل`, bar: 'bg-red-500', text: 'text-red-700' },
+  { label: 'مقبولة', bar: 'bg-st-pushed', text: 'text-st-pushed' },
+  { label: 'قوية', bar: 'bg-st-queue', text: 'text-st-queue' },
+];
 
 export default function Register() {
-  const { token, setToken } = useContext(AppContext);
+  const { setToken } = useContext(AppContext);
   const navigate = useNavigate();
   const [FormData, setFormData] = useState({
     first_name: '',
@@ -23,30 +38,41 @@ export default function Register() {
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Checked before sending; the API checks the same
+  function clientErrors() {
+    const found = { ...validateArabicNames(FormData) };
+    if (FormData.password.length < MIN_PASSWORD) found.password = `كلمة المرور ${MIN_PASSWORD} أحرف على الأقل`;
+    if (FormData.password_confirmation !== FormData.password) found.password_confirmation = 'كلمتا المرور غير متطابقتين';
+    return found;
+  }
 
   async function handleRegister(e) {
     e.preventDefault();
-    // First and family name in Arabic (the API checks the same)
-    const nameErrors = validateArabicNames(FormData);
-    if (Object.keys(nameErrors).length) {
-      setErrors(Object.fromEntries(Object.entries(nameErrors).map(([k, v]) => [k, [v]])));
+    const found = clientErrors();
+    if (Object.keys(found).length) {
+      setErrors(Object.fromEntries(Object.entries(found).map(([k, v]) => [k, [v]])));
       return;
     }
     setIsLoading(true);
     setErrors({});
 
-    let headers = new Headers();
+    const headers = new Headers();
     headers.append('Content-Type', 'application/json');
     headers.append('Accept', 'application/json');
 
     try {
       const res = await fetch(`${apiUrl}/api/register`, {
         method: "post",
-        body: JSON.stringify({ ...FormData, first_name: cleanName(FormData.first_name), family_name: cleanName(FormData.family_name) }),
-        headers: headers
+        body: JSON.stringify({
+          ...FormData,
+          email: FormData.email.trim(),
+          phone: FormData.phone.trim(),
+          first_name: cleanName(FormData.first_name),
+          family_name: cleanName(FormData.family_name),
+        }),
+        headers
       });
 
       const data = await res.json();
@@ -54,360 +80,161 @@ export default function Register() {
       if (data.errors) {
         setErrors(data.errors);
         setIsLoading(false);
+      } else if (!res.ok || !data.token) {
+        setErrors({ general: [data.message || 'تعذّر إنشاء الحساب، حاول مرة أخرى.'] });
+        setIsLoading(false);
       } else {
         setSuccess(true);
         localStorage.setItem('token', data.token);
         setToken(data.token);
 
-        // Navigate after showing success state
         setTimeout(() => {
           navigate("/home", { state: { loggedIn: true }, replace: true });
-        }, 800);
+        }, 600);
       }
-    } catch (error) {
-      setErrors({ general: ['حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.'] });
+    } catch {
+      setErrors({ general: ['تعذّر الاتصال بالخادم. تأكد من اتصالك بالإنترنت ثم حاول مرة أخرى.'] });
       setIsLoading(false);
     }
   }
 
+  const disabled = isLoading || success;
+  // Typing in a field clears its error
+  const set = (key) => (e) => {
+    setFormData({ ...FormData, [key]: e.target.value });
+    if (errors[key]) setErrors({ ...errors, [key]: undefined });
+  };
+  const level = strength(FormData.password);
+  const mismatch = FormData.password_confirmation && FormData.password_confirmation !== FormData.password;
+
   return (
-    <div className="relative m-0 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 w-screen min-h-screen overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-      <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    <AuthLayout
+      title="إنشاء حساب جديد"
+      subtitle="انضم إلى فريق المتطوعين. بعد التسجيل يحدد لك المنظمون دورك في الحدث."
+      footer={(
+        <>
+          لديك حساب بالفعل؟{' '}
+          <Link to="/login" className="font-semibold text-ink underline-offset-4 hover:underline">ادخل</Link>
+        </>
+      )}
+    >
+      <AuthAlert>{firstError(errors, 'general')}</AuthAlert>
+      {success && <AuthAlert tone="success">تم إنشاء الحساب، جاري التحويل...</AuthAlert>}
 
-      <div className="flex items-center justify-center w-full min-h-screen p-4 py-12">
-        <div className="w-full max-w-md">
-          <div className={`bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden transition-all duration-500 ${success ? 'scale-105' : 'scale-100'
-            }`}>
+      <form className="space-y-4" onSubmit={handleRegister} noValidate>
+        <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <legend className="sr-only">الاسم الكامل بالعربية</legend>
+          <AuthField
+            label="الاسم"
+            icon={User}
+            name="first_name"
+            autoComplete="given-name"
+            enterKeyHint="next"
+            autoFocus
+            placeholder="مثال: محمد"
+            value={FormData.first_name}
+            onChange={set('first_name')}
+            disabled={disabled}
+            error={firstError(errors, 'first_name')}
+            required
+          />
+          <AuthField
+            label="اللقب"
+            icon={User}
+            name="family_name"
+            autoComplete="family-name"
+            enterKeyHint="next"
+            placeholder="مثال: بن علي"
+            value={FormData.family_name}
+            onChange={set('family_name')}
+            disabled={disabled}
+            error={firstError(errors, 'family_name')}
+            required
+          />
+          <p className="sm:col-span-2 -mt-2 text-xs text-muted">الاسم واللقب بالحروف العربية كما في بطاقة التعريف.</p>
+        </fieldset>
 
-            {/* Header Section */}
-            <div className="bg-gradient-to-br from-[#131842] to-[#2F3645] p-8 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
-              <div className="relative z-10">
-                <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full p-4 shadow-lg transform transition-transform hover:scale-110 duration-300">
-                  <img src={logo} alt="Tagemi Logo" className="w-full h-full object-contain" />
-                </div>
-                <h1 className="text-2xl md:text-3xl font-bold font-droid-arabic-kufi text-white mb-2">
-                  إنشاء حساب جديد
-                </h1>
-                <p className="text-white/80 text-sm font-droid-arabic-kufi">
-                  انضم إلينا وابدأ رحلة العطاء
-                </p>
+        <AuthField
+          label="رقم الهاتف"
+          icon={Phone}
+          ltr
+          type="tel"
+          name="phone"
+          autoComplete="tel"
+          inputMode="tel"
+          enterKeyHint="next"
+          placeholder="0555 12 34 56"
+          value={FormData.phone}
+          onChange={set('phone')}
+          disabled={disabled}
+          error={firstError(errors, 'phone')}
+          required
+        />
+
+        <AuthField
+          label="البريد الإلكتروني"
+          icon={Mail}
+          ltr
+          type="email"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
+          enterKeyHint="next"
+          placeholder="example@email.com"
+          hint="تدخل به إلى حسابك"
+          value={FormData.email}
+          onChange={set('email')}
+          disabled={disabled}
+          error={firstError(errors, 'email')}
+          required
+        />
+
+        <div>
+          <AuthField
+            label="كلمة المرور"
+            icon={LockKeyhole}
+            ltr
+            password
+            name="password"
+            autoComplete="new-password"
+            enterKeyHint="next"
+            value={FormData.password}
+            onChange={set('password')}
+            disabled={disabled}
+            error={firstError(errors, 'password')}
+            required
+          />
+          {level > 0 && !errors.password && (
+            <div className="mt-2 flex items-center gap-3" aria-live="polite">
+              <div className="flex-1 grid grid-cols-3 gap-1" aria-hidden="true">
+                {[1, 2, 3].map((i) => (
+                  <span key={i} className={cx('h-1.5 rounded-full', i <= level ? STRENGTH[level].bar : 'bg-line')} />
+                ))}
               </div>
+              <span className={cx('text-xs font-semibold shrink-0', STRENGTH[level].text)}>{STRENGTH[level].label}</span>
             </div>
-
-            {/* Form Section */}
-            <div className="p-8">
-              {/* Success Message */}
-              {success && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 animate-in slide-in-from-top">
-                  <CheckCircle2 className="text-green-600 flex-shrink-0" size={20} />
-                  <p className="text-green-700 text-sm font-droid-arabic-kufi">
-                    تم إنشاء الحساب بنجاح! جاري التحويل...
-                  </p>
-                </div>
-              )}
-
-              {/* General Error */}
-              {errors.general && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 animate-in slide-in-from-top">
-                  <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-                  <p className="text-red-700 text-sm font-droid-arabic-kufi">
-                    {errors.general[0]}
-                  </p>
-                </div>
-              )}
-
-              <form className="space-y-5" onSubmit={handleRegister}>
-                {/* الاسم (Arabic) */}
-                <div className="space-y-2">
-                  <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    الاسم
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.first_name}
-                      onChange={(e) => setFormData({ ...FormData, first_name: e.target.value })}
-                      type="text"
-                      name="first_name"
-                      id="first_name" autoComplete="given-name"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.first_name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="بالعربية، مثال: محمد"
-                      required
-                      dir="rtl"
-                    />
-                    <User className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  </div>
-                  {errors.first_name && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.first_name[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* اللقب (Arabic) */}
-                <div className="space-y-2">
-                  <label htmlFor="family_name" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    اللقب
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.family_name}
-                      onChange={(e) => setFormData({ ...FormData, family_name: e.target.value })}
-                      type="text"
-                      name="family_name"
-                      id="family_name" autoComplete="family-name"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.family_name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="بالعربية، مثال: بن علي"
-                      required
-                      dir="rtl"
-                    />
-                    <User className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  </div>
-                  {errors.family_name && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.family_name[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* Phone Input */}
-                <div className="space-y-2">
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    رقم الهاتف
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.phone}
-                      onChange={(e) => setFormData({ ...FormData, phone: e.target.value })}
-                      type="tel"
-                      name="phone"
-                      id="phone"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.phone ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="0555 123 456"
-                      required
-                      dir="rtl"
-                    />
-                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  </div>
-                  {errors.phone && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.phone[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* Email Input */}
-                <div className="space-y-2">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    البريد الإلكتروني
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.email}
-                      onChange={(e) => setFormData({ ...FormData, email: e.target.value })}
-                      type="email"
-                      name="email"
-                      id="email"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.email ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="example@email.com"
-                      required
-                      dir="rtl"
-                    />
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  </div>
-                  {errors.email && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.email[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* Password Input */}
-                <div className="space-y-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.password}
-                      onChange={(e) => setFormData({ ...FormData, password: e.target.value })}
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      id="password"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.password ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="••••••••"
-                      required
-                      dir="rtl"
-                    />
-                    {/* <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} /> */}
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      disabled={isLoading || success}
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.password[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* Confirm Password Input */}
-                <div className="space-y-2">
-                  <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    تأكيد كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={FormData.password_confirmation}
-                      onChange={(e) => setFormData({ ...FormData, password_confirmation: e.target.value })}
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="password_confirmation"
-                      id="confirm-password"
-                      disabled={isLoading || success}
-                      className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
-                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
-                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.password_confirmation ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-                      `}
-                      placeholder="••••••••"
-                      required
-                      dir="rtl"
-                    />
-                    {/* <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} /> */}
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      disabled={isLoading || success}
-                    >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                  {errors.password_confirmation && (
-                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.password_confirmation[0]}</span>
-                      <AlertCircle size={14} />
-                    </p>
-                  )}
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading || success}
-                  className="w-full bg-gradient-to-r from-[#131842] to-[#2F3645] text-white py-3 px-6 rounded-lg
-                    font-droid-arabic-kufi font-medium text-base
-                    hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]
-                    disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100
-                    transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={20} />
-                      <span>جاري إنشاء الحساب...</span>
-                    </>
-                  ) : success ? (
-                    <>
-                      <CheckCircle2 size={20} />
-                      <span>تم بنجاح!</span>
-                    </>
-                  ) : (
-                    <span>إنشاء حساب</span>
-                  )}
-                </button>
-
-                {/* Login Link */}
-                <div className="text-center pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 font-droid-arabic-kufi">
-                    لديك حساب بالفعل؟{' '}
-                    <Link
-                      to="/login"
-                      className="text-[#131842] font-bold hover:text-[#2F3645] transition-colors hover:underline"
-                    >
-                      تسجيل الدخول
-                    </Link>
-                  </p>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          {/* Footer Text */}
-          <p className="text-center mt-6 text-sm text-gray-600 font-droid-arabic-kufi">
-            © 2024 مؤسسة تاجمي. جميع الحقوق محفوظة.
-          </p>
+          )}
         </div>
-      </div>
 
-      {/* Add custom animations */}
-      <style>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          25% { transform: translate(20px, -50px) scale(1.1); }
-          50% { transform: translate(-20px, 20px) scale(0.9); }
-          75% { transform: translate(50px, 50px) scale(1.05); }
-        }
-        .animate-blob {
-          animation: blob 15s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        @keyframes slide-in-from-top {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-in {
-          animation: slide-in-from-top 0.3s ease-out;
-        }
-      `}</style>
-    </div>
+        <AuthField
+          label="تأكيد كلمة المرور"
+          icon={LockKeyhole}
+          ltr
+          password
+          name="password_confirmation"
+          autoComplete="new-password"
+          enterKeyHint="done"
+          value={FormData.password_confirmation}
+          onChange={set('password_confirmation')}
+          disabled={disabled}
+          error={firstError(errors, 'password_confirmation') || (mismatch ? 'كلمتا المرور غير متطابقتين' : undefined)}
+          required
+        />
+
+        <Button type="submit" size="lg" block icon={success ? CheckCircle2 : UserPlus} loading={isLoading} disabled={disabled} className="!mt-6">
+          {success ? 'تم إنشاء الحساب' : isLoading ? 'جاري إنشاء الحساب...' : 'أنشئ الحساب'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
