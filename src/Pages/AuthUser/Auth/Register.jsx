@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../../../Context/AppContext";
 import { API_BASE_URL } from '../../../config/environment';
+import { cleanName, validateArabicNames } from '../../../utils/arabicName';
 import { Eye, EyeOff, User, Phone, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 import logo from '/tagemi_logo.png';
@@ -12,7 +13,8 @@ export default function Register() {
   const { token, setToken } = useContext(AppContext);
   const navigate = useNavigate();
   const [FormData, setFormData] = useState({
-    name: '',
+    first_name: '',
+    family_name: '',
     phone: '',
     email: '',
     password: '',
@@ -27,6 +29,12 @@ export default function Register() {
 
   async function handleRegister(e) {
     e.preventDefault();
+    // First and family name in Arabic (the API checks the same)
+    const nameErrors = validateArabicNames(FormData);
+    if (Object.keys(nameErrors).length) {
+      setErrors(Object.fromEntries(Object.entries(nameErrors).map(([k, v]) => [k, [v]])));
+      return;
+    }
     setIsLoading(true);
     setErrors({});
 
@@ -37,7 +45,7 @@ export default function Register() {
     try {
       const res = await fetch(`${apiUrl}/api/register`, {
         method: "post",
-        body: JSON.stringify(FormData),
+        body: JSON.stringify({ ...FormData, first_name: cleanName(FormData.first_name), family_name: cleanName(FormData.family_name) }),
         headers: headers
       });
 
@@ -113,33 +121,65 @@ export default function Register() {
               )}
 
               <form className="space-y-5" onSubmit={handleRegister}>
-                {/* Name Input */}
+                {/* الاسم (Arabic) */}
                 <div className="space-y-2">
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
-                    الاسم الكامل
+                  <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
+                    الاسم
                   </label>
                   <div className="relative">
                     <input
-                      value={FormData.name}
-                      onChange={(e) => setFormData({ ...FormData, name: e.target.value })}
+                      value={FormData.first_name}
+                      onChange={(e) => setFormData({ ...FormData, first_name: e.target.value })}
                       type="text"
-                      name="name"
-                      id="name"
+                      name="first_name"
+                      id="first_name" autoComplete="given-name"
                       disabled={isLoading || success}
                       className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
                         focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
                         transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
-                        ${errors.name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
+                        ${errors.first_name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
                       `}
-                      placeholder="أدخل اسمك الكامل"
+                      placeholder="بالعربية، مثال: محمد"
                       required
                       dir="rtl"
                     />
                     <User className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                   </div>
-                  {errors.name && (
+                  {errors.first_name && (
                     <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
-                      <span>{errors.name[0]}</span>
+                      <span>{errors.first_name[0]}</span>
+                      <AlertCircle size={14} />
+                    </p>
+                  )}
+                </div>
+
+                {/* اللقب (Arabic) */}
+                <div className="space-y-2">
+                  <label htmlFor="family_name" className="block text-sm font-medium text-gray-700 font-droid-arabic-kufi text-right">
+                    اللقب
+                  </label>
+                  <div className="relative">
+                    <input
+                      value={FormData.family_name}
+                      onChange={(e) => setFormData({ ...FormData, family_name: e.target.value })}
+                      type="text"
+                      name="family_name"
+                      id="family_name" autoComplete="family-name"
+                      disabled={isLoading || success}
+                      className={`w-full px-4 py-3 pl-11 bg-gray-50 border rounded-lg font-droid-arabic-kufi text-right
+                        focus:ring-2 focus:ring-[#131842] focus:border-transparent outline-none
+                        transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed
+                        ${errors.family_name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
+                      `}
+                      placeholder="بالعربية، مثال: بن علي"
+                      required
+                      dir="rtl"
+                    />
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  </div>
+                  {errors.family_name && (
+                    <p className="text-red-600 text-xs font-droid-arabic-kufi text-right flex items-center gap-1 justify-end animate-in slide-in-from-top">
+                      <span>{errors.family_name[0]}</span>
                       <AlertCircle size={14} />
                     </p>
                   )}

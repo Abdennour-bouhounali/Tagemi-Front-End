@@ -53,6 +53,7 @@ const EvaluationsAdmin = lazy(() => import('./Pages/AuthUser/SuperAdmin/Evaluati
 const EvaluationStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics'));
 const MyTurn = lazy(() => import('./Pages/GuestUser/MyTurn'));
 const Privacy = lazy(() => import('./Pages/GuestUser/Privacy'));
+const NameRequired = lazy(() => import('./Pages/AuthUser/Auth/NameRequired'));
 const PatientJourney = lazy(() => import('./Pages/AuthUser/PatientJourney/PatientJourney'));
 
 export default function App() {
@@ -64,6 +65,16 @@ export default function App() {
   const isSpecialAdmin = user && [1, 3].includes(user.role_id);
   const guard = (roles, element) =>
     user && roles.includes(user.role_id) ? element : <NotAuthenticated />;
+
+  // Old accounts (French name, first name only) give their Arabic first and
+  // family name before anything else
+  if (user?.needs_name_update) {
+    return (
+      <Suspense fallback={<LoadingState />}>
+        <NameRequired />
+      </Suspense>
+    );
+  }
 
   return (
     <LanguageProvider>

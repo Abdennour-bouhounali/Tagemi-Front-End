@@ -9,6 +9,7 @@ import {
   Button, IconButton, PageHeader, StatStrip, SearchField, EmptyState, LoadingState,
   Sheet, SheetAction, Field, TextInput, SelectInput, useToast, cx,
 } from "../../../Components/ui";
+import { cleanName, initialNameParts, validateArabicNames } from "../../../utils/arabicName";
 
 const apiUrl = API_BASE_URL;
 
@@ -678,18 +679,23 @@ function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onDelet
 }
 
 function EditUserSheet({ user, token, toast, onClose, onSuccess }) {
-  const [form, setForm] = useState({ name: user.name || "", email: user.email || "", phone: user.phone || "", password: "" });
+  const [form, setForm] = useState({ ...initialNameParts(user), email: user.email || "", phone: user.phone || "", password: "" });
+  const [nameErrors, setNameErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) {
-      toast("الاسم والبريد الإلكتروني مطلوبان", "error");
+    // First and family name in Arabic, as on the sign-up form
+    const errors = validateArabicNames(form);
+    setNameErrors(errors);
+    if (Object.keys(errors).length) return;
+    if (!form.email.trim()) {
+      toast("البريد الإلكتروني مطلوب", "error");
       return;
     }
     setLoading(true);
     try {
-      const payload = { ...form };
+      const payload = { ...form, first_name: cleanName(form.first_name), family_name: cleanName(form.family_name) };
       if (!payload.password) delete payload.password;
       const res = await fetch(`${apiUrl}/api/users/${user.id}`, {
         method: "PUT",
@@ -714,9 +720,19 @@ function EditUserSheet({ user, token, toast, onClose, onSuccess }) {
       footer={<Button block size="lg" loading={loading} onClick={handleSubmit}>احفظ التغييرات</Button>}
     >
       <form onSubmit={handleSubmit} className="space-y-3">
-        <Field label="الاسم">
-          <TextInput value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        </Field>
+        {user.needs_name_update && (
+          <p className="rounded-xl bg-st-pushed-bg text-st-pushed text-sm px-3 py-2">
+            الاسم الحالي «{user.name}» ليس اسماً ولقباً بالعربية: سيُطلب من صاحب الحساب إكماله عند دخوله.
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="الاسم" error={nameErrors.first_name}>
+            <TextInput value={form.first_name} invalid={!!nameErrors.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} placeholder="بالعربية" required />
+          </Field>
+          <Field label="اللقب" error={nameErrors.family_name}>
+            <TextInput value={form.family_name} invalid={!!nameErrors.family_name} onChange={(e) => setForm({ ...form, family_name: e.target.value })} placeholder="بالعربية" required />
+          </Field>
+        </div>
         <Field label="البريد الإلكتروني">
           <TextInput type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
         </Field>

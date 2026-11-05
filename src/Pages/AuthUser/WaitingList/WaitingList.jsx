@@ -12,9 +12,12 @@ const DEFAULT_COLUMNS = 5;
 const COLUMN_CHOICES = [1, 2, 3, 4, 5, 6, 7];
 const ROTATION_MS = 10000;
 const REFRESH_MS = 10000;
-// The server sends the first 10 of each queue; every column keeps 10 rows so
-// names line up across columns and keep the same size
-const QUEUE_ROWS = 10;
+// Names listed per queue: one number for every specialty, which a specialty
+// may override (settings drawer, kept per screen). Every column of a view keeps
+// as many rows as the longest list so names line up and keep the same size.
+const DEFAULT_ROWS = 10;
+const ROW_CHOICES = [3, 5, 8, 10, 12, 15, 20, 25, 30];
+const validRows = (n) => (ROW_CHOICES.includes(Number(n)) ? Number(n) : null);
 // Toolbar (and the cursor in full screen) fade out after this much stillness
 const IDLE_MS = 3000;
 
@@ -65,7 +68,7 @@ function ToolButton({ label, onClick, children }) {
 /**
  * Hall screen (قائمة الانتظار الكبيرة), shown on a TV / projector so visitors
  * read their names from far away. One column per open specialty with its first
- * 10 visitors. Visitors with a doctor (دخل) show on top in violet «عند الطبيب»
+ * visitors (10 by default, set per screen). Visitors with a doctor (دخل) show on top in violet «عند الطبيب»
  * until they pass (إجتاز); the next in line, one per free doctor, shows in green
  * «تفضل بالدخول»; a visitor pushed down shows in amber. Everything but the lists can be hidden.
  */
@@ -84,7 +87,7 @@ const WaitingList = () => {
   const [calling, setCalling] = useState({});
   // Specialties that take no new visitors now (doctors left / count reached)
   const [closedIds, setClosedIds] = useState([]);
-  // Whole queue length per specialty (only the first 10 are listed)
+  // Whole queue length per specialty (only the first ones are listed)
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -105,6 +108,12 @@ const WaitingList = () => {
   });
   // Names can be hidden (privacy): the visitor number always shows
   const [showNames, setShowNames] = useState(() => loadSettings(eventId).names !== false);
+  // How many names each list shows: all specialties, and per-specialty exceptions
+  const [rowsAll, setRowsAll] = useState(() => validRows(loadSettings(eventId).rows) || DEFAULT_ROWS);
+  const [rowsBySpecialty, setRowsBySpecialty] = useState(() => {
+    const saved = loadSettings(eventId).rowsBy || {};
+    return Object.fromEntries(Object.entries(saved).filter(([, n]) => validRows(n)).map(([id, n]) => [id, Number(n)]));
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [clock, setClock] = useState(algiersClock);
   const [idle, setIdle] = useState(false);
@@ -113,11 +122,23 @@ const WaitingList = () => {
     try {
       localStorage.setItem(settingsKey(eventId), JSON.stringify({
         mode: displayMode, view: groupIndex, specialties: selectedIds, controls: showInfo, columns: maxColumns, names: showNames,
+        rows: rowsAll, rowsBy: rowsBySpecialty,
       }));
     } catch {
       // Private mode / storage blocked: settings just won't be remembered
     }
-  }, [eventId, displayMode, groupIndex, selectedIds, showInfo, maxColumns, showNames]);
+  }, [eventId, displayMode, groupIndex, selectedIds, showInfo, maxColumns, showNames, rowsAll, rowsBySpecialty]);
+
+  const rowsFor = (id) => rowsBySpecialty[id] ?? rowsAll;
+  // n = null: the specialty follows the number for all
+  const setSpecialtyRows = (id, n) => setRowsBySpecialty((prev) => ({
+    ...Object.fromEntries(Object.entries(prev).filter(([key]) => key !== String(id))),
+    ...(n ? { [id]: n } : {}),
+  }));
+  // The server sends as many names as the longest list needs (read by the 10 s refresh)
+  const fetchLimit = Math.max(rowsAll, ...Object.values(rowsBySpecialty));
+  const fetchLimitRef = useRef(fetchLimit);
+  fetchLimitRef.current = fetchLimit;
 
   // Full screen for the hall TV/laptop (the browser's own Esc also leaves it)
   const [isFullscreen, setIsFullscreen] = useState(() => !!document.fullscreenElement);
@@ -181,7 +202,7 @@ const WaitingList = () => {
   // Fetch waiting list for specific event (PUBLIC)
   async function getWaitingList() {
     try {
-      const res = await fetch(`${apiUrl}/api/public/waitinglist?event_id=${eventId}`);
+      const res = await fetch(`${apiUrl}/api/public/waitinglist?event_id=${eventId}&limit=${fetchLimitRef.current}`);
       if (!res.ok) {
         setError('فشل في تحميل قائمة الإنتظار');
         return;
@@ -238,6 +259,14 @@ const WaitingList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
+  // A longer list was asked for: fetch it now rather than at the next refresh
+  const firstLimit = useRef(true);
+  useEffect(() => {
+    if (firstLimit.current) { firstLimit.current = false; return; }
+    getWaitingList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchLimit]);
+
   const bySex = (patient) => sexFilter === 'all' || getPatientSex(patient) === sexFilter;
   const queueOf = (id) => (waitingList[id] || []).filter(bySex);
   const callingFor = (id) => (calling[id] || []).filter(bySex);
@@ -259,14 +288,15 @@ const WaitingList = () => {
     return () => clearInterval(rotation);
   }, [rotating, specialtyGroups.length]);
 
-  // Same number of rows in every column (10 + the most "with the doctor" of the view)
+  // Same number of rows in every column (longest list + the most "with the doctor" of the view)
   const callingRows = Math.max(0, ...visibleSpecialities.map((s) => callingFor(s.id).length));
-  const rows = QUEUE_ROWS + callingRows;
+  const queueRows = Math.max(1, ...visibleSpecialities.map((s) => rowsFor(s.id)));
+  const rows = queueRows + callingRows;
   // Text height follows the row height (and the column width for long names)
   // (5.4cqw keeps a long 3-word name, the place and the number on one line;
   // numbers alone are short, so they may grow wider)
   const rowFont = `min(${(showNames ? 44 : 52) / rows}cqh, ${showNames ? 5.4 : 12}cqw)`;
-  // The sex filter only applies to the listed 10: counts are then of the list
+  // The sex filter only applies to the listed names: counts are then of the list
   const countOf = (id) => (sexFilter === 'all' ? counts[id] ?? queueOf(id).length : queueOf(id).length);
   const totalWaiting = specialities.reduce((sum, s) => sum + countOf(s.id), 0);
 
@@ -342,7 +372,8 @@ const WaitingList = () => {
         ) : (
           <div className="h-full grid gap-[1.2vw]" style={{ gridTemplateColumns: `repeat(${visibleSpecialities.length}, minmax(0, 1fr))` }}>
             {visibleSpecialities.map((speciality) => {
-              const queue = queueOf(speciality.id).slice(0, QUEUE_ROWS);
+              const listed = rowsFor(speciality.id);
+              const queue = queueOf(speciality.id).slice(0, listed);
               const called = callingFor(speciality.id);
               const closed = closedIds.includes(speciality.id);
               return (
@@ -377,9 +408,13 @@ const WaitingList = () => {
                         </li>
                       );
                     })}
-                    {Array.from({ length: QUEUE_ROWS }).map((_, i) => {
+                    {Array.from({ length: queueRows }).map((_, i) => {
                       const patient = queue[i];
                       const position = i + 1;
+                      // Past this specialty's own count: blank filler so rows line up with the other columns
+                      if (position > listed) {
+                        return <li key={`q${i}`} className="flex-1 min-h-0" style={{ fontSize: rowFont }} />;
+                      }
                       const pushed = patient && isPushedDown(patient);
                       // Next in line while a doctor is free (after the previous one passed)
                       const invited = patient && !pushed && patient.invited;
@@ -494,6 +529,39 @@ const WaitingList = () => {
             </fieldset>
 
             <fieldset className="space-y-2">
+              <legend className="font-semibold mb-2">عدد الأسماء في كل قائمة</legend>
+              <div className="flex flex-wrap gap-2">
+                {ROW_CHOICES.map((n) => (
+                  <button key={n} type="button" className={`${chip(rowsAll === n)} min-w-[2.75rem]`} onClick={() => setRowsAll(n)}>{n}</button>
+                ))}
+              </div>
+              <p className="text-xs text-muted">لكل التخصصات. كلما زاد العدد صغر الخط.</p>
+              {allSpecialities.length > 0 && (
+                <details className="rounded-2xl border border-line" open={Object.keys(rowsBySpecialty).length > 0}>
+                  <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold">
+                    عدد خاص بتخصص{Object.keys(rowsBySpecialty).length > 0 ? ` (${Object.keys(rowsBySpecialty).length})` : ''}
+                  </summary>
+                  <div className="px-4 pb-3 space-y-2">
+                    {allSpecialities.map((s) => (
+                      <label key={s.id} className="flex items-center gap-3 text-sm">
+                        <span className="flex-1 min-w-0 truncate">{s.name}</span>
+                        <select
+                          className="h-10 rounded-xl border border-line bg-white px-2 text-sm"
+                          value={rowsBySpecialty[s.id] ?? ''}
+                          onChange={(e) => setSpecialtyRows(s.id, validRows(e.target.value))}
+                          aria-label={`عدد الأسماء في قائمة ${s.name}`}
+                        >
+                          <option value="">مثل الكل ({rowsAll})</option>
+                          {ROW_CHOICES.map((n) => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </fieldset>
+
+            <fieldset className="space-y-2">
               <legend className="font-semibold mb-2">أسماء الزوار</legend>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={chip(showNames)} onClick={() => setShowNames(true)}>الاسم والرقم</button>
@@ -543,7 +611,7 @@ const WaitingList = () => {
             </fieldset>
 
             <div className="rounded-2xl bg-paper p-4 text-sm text-muted space-y-1">
-              <p>يُعرض أول 10 زوار من كل تخصص، حتى {maxColumns} {maxColumns > 2 && maxColumns < 11 ? 'تخصصات' : 'تخصص'} في العرض الواحد.</p>
+              <p>يُعرض أول {rowsAll} {rowsAll > 2 && rowsAll < 11 ? 'زوار' : 'زائراً'} من كل تخصص{Object.keys(rowsBySpecialty).length > 0 ? ' (ما لم يُحدَّد عدد خاص)' : ''}، حتى {maxColumns} {maxColumns > 2 && maxColumns < 11 ? 'تخصصات' : 'تخصص'} في العرض الواحد.</p>
               <p>زر <Eye className="inline w-4 h-4" /> يخفي الشريط العلوي والسفلي ليبقى الجدول وحده.</p>
             </div>
           </aside>
