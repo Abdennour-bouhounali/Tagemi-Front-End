@@ -88,7 +88,9 @@ const bookingProblem = (p, event) => {
   const list = p.all_appointments || [p];
   const limit = Math.max(1, Number(event?.nbr_of_allowed_specialties || 1));
   const problems = [];
-  if (list.length > limit) problems.push(`للزائر ${list.length} مواعيد والحدث يسمح بـ ${limit}: احذف ${list.length - limit}.`);
+  // Appointments booked past the limit by an allowed account don't count (as on the server)
+  const counted = list.filter((a) => !isTrue(a.beyond_limit)).length;
+  if (counted > limit) problems.push(`للزائر ${counted} مواعيد والحدث يسمح بـ ${limit}: احذف ${counted - limit}.`);
   const names = list.map((a) => a.event_specialty?.specialty?.name || a.event_specialty_id);
   const twice = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
   if (twice.length) problems.push(`حاجز ${twice.join('، ')} مرتين: احذف أحد الموعدين.`);
@@ -1077,8 +1079,11 @@ ${appointmentsList}
       .filter((id) => !notSame.has(`${selectedPatient.patient_id}:${id}`))
       .map((id) => allPatients.find((p) => p.patient_id === id) || { patient_id: id, all_appointments: [] });
   const selectedProblem = selectedPatient && !hasCheckedIn(selectedPatient) ? bookingProblem(selectedPatient, event) : null;
-  // Super admin always; the special-cases admin too when extra appointments must go
-  const canDeleteFor = (p) => isAdmin || (canManageSpecial && !!bookingProblem(p, event));
+  // Super admin always; the special-cases admin too when extra appointments must go;
+  // reception before check-in, as long as the patient keeps one specialty
+  const canDeleteFor = (p) => isAdmin
+    || (canManageSpecial && !!bookingProblem(p, event))
+    || (role === 5 && !hasCheckedIn(p) && (p.all_appointments || [p]).length > 1);
 
   // Filters apply to appointments, then rows are grouped per patient
   const filteredAppointments = useMemo(() => {
@@ -2908,7 +2913,7 @@ ${appointmentsList}
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   {selectedProblem}
-                  {!canDeleteFor(selectedPatient) && ' الحذف من صلاحية المشرف العام أو مشرف الحالات الخاصة.'}
+                  {canDeleteFor(selectedPatient) ? ' احذف الزائد من قائمة المواعيد أدناه.' : ' الحذف من صلاحية المشرف العام أو مشرف الحالات الخاصة.'}
                 </span>
               </p>
             )}
@@ -2941,7 +2946,7 @@ ${appointmentsList}
                     <p className="text-xs text-muted mt-1">
                       يوم {aptDay(apt)}، الساعة {aptHour(apt)}
                     </p>
-                    {(canManageSpecial || isAdmin) && (
+                    {(canManageSpecial || isAdmin || canDeleteFor(selectedPatient)) && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {isAdmin && canReschedule(apt) && (
                           <Button variant="secondary" size="sm" icon={Clock} onClick={() => { setDetailsId(null); openSlot({ mode: 'reschedule', appointment: apt }); }}>

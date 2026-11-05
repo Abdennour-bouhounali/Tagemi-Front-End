@@ -185,6 +185,12 @@ export function EventInfoFields({ form, setForm, errors = {}, onStateChange }) {
         <SwitchRow checked={form.is_active} onChange={(v) => set('is_active', v)} label="الحدث نشط" hint="الحدث النشط يقبل الحجوزات" />
         <SwitchRow checked={form.is_tawat} onChange={(v) => set('is_tawat', v)} label="حدث TAWAT" hint="نوع الحدث" />
         <SwitchRow checked={!!form.is_simulation} onChange={(v) => set('is_simulation', v)} label="حدث تدريبي (محاكاة)" hint="للتدريب فقط، لا يُؤرشف ويظهر للجميع أنه غير حقيقي" />
+        <SwitchRow
+          checked={!!form.specialty_admins_can_exceed_limit}
+          onChange={(v) => set('specialty_admins_can_exceed_limit', v)}
+          label="مسؤولو التخصص يتجاوزون عدد التخصصات"
+          hint="كل مسؤولي التخصص في هذا الحدث يسجّلون زائراً موجوداً في تخصصهم حتى لو حجز العدد المسموح كاملاً"
+        />
       </div>
     </div>
   );

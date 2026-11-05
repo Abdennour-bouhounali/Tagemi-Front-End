@@ -17,7 +17,7 @@ import { PatientQRSection } from '../RecipientAdmin/PatientQRCode';
 import { PatientHistorySheet } from '../RecipientAdmin/PatientLog';
 import {
     Button, IconButton, Ticket, StatusBadge, PriorityBadge, PageHeader, StatStrip, SearchField,
-    ChipGroup, EmptyState, LoadingState, Sheet, SheetAction, useToast, cx,
+    ChipGroup, EmptyState, LoadingState, Sheet, SheetAction, Field, TextInput, useToast, cx,
 } from '../../../Components/ui';
 
 const apiUrl = API_BASE_URL;
@@ -44,7 +44,9 @@ export default function CheckPatient() {
     const toast = useToast();
 
     const isOfficer = user && [1, 4].includes(user.role_id);
-    const canPushDown = user && [1, 4, 8].includes(user.role_id); // patient manager: إنزال only
+    // إنزال: super admin and patient manager (removed for the specialty officer on 2026-11-05)
+    const canPushDown = user && [1, 8].includes(user.role_id);
+    const canSelect = isOfficer || canPushDown; // family entry and/or bulk إنزال
     const isSuperAdmin = user?.role_id === 1; // opens / closes the queue on visit day
     const canComment = user && [1, 4, 6].includes(user.role_id);
 
@@ -94,6 +96,12 @@ export default function CheckPatient() {
     const [enterLoading, setEnterLoading] = useState(false);
     const [picked, setPicked] = useState([]);
     const [cancelFor, setCancelFor] = useState(null);
+    // «سجّل زائراً»: an existing patient of the event registered in this specialty
+    const [registerOpen, setRegisterOpen] = useState(false);
+    const [regNumber, setRegNumber] = useState('');
+    const [regPreview, setRegPreview] = useState(null);
+    const [regError, setRegError] = useState('');
+    const [regLoading, setRegLoading] = useState(false);
 
     const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, Accept: 'application/json' }), [token]);
 
@@ -340,8 +348,39 @@ export default function CheckPatient() {
         if (ok) setCommentFor(null);
     };
 
+    const openRegister = () => { setRegNumber(''); setRegPreview(null); setRegError(''); setRegisterOpen(true); };
+    const lookupRegister = async (number) => {
+        const n = String(number || '').replace(/\D/g, '');
+        if (!n || !data?.event_specialty_id) return;
+        setRegNumber(n);
+        setRegLoading(true);
+        setRegPreview(null);
+        setRegError('');
+        try {
+            const res = await fetch(`${apiUrl}/api/event-specialties/${data.event_specialty_id}/register-patient/${n}`, { headers: authHeaders });
+            const json = await res.json().catch(() => ({}));
+            if (res.ok) setRegPreview(json);
+            else setRegError(json.message || 'تعذر جلب بيانات الزائر');
+        } catch {
+            setRegError('تعذر الاتصال بالخادم');
+        } finally {
+            setRegLoading(false);
+        }
+    };
+    const confirmRegister = async () => {
+        const ok = await run(`/api/event-specialties/${data.event_specialty_id}/register-patient`, { body: { patient_id: Number(regPreview.patient_id) } });
+        if (ok) setRegisterOpen(false);
+    };
+
     // Returns false so the scanner stays open when the patient can't take the action
     const handleScan = async (patientId) => {
+        if (scanAction === 'register') {
+            // Any patient of the event, not only this queue
+            setScanAction(null);
+            setRegisterOpen(true);
+            lookupRegister(patientId);
+            return;
+        }
         const a = all.find((x) => String(x.patient_id) === String(patientId));
         if (!a) {
             toast(`الزائر #${patientId} ليس في هذا الطابور اليوم`, 'error');
@@ -467,10 +506,13 @@ export default function CheckPatient() {
                     </Button>
                 )}
                 <IconButton icon={QrCode} label="مسح لعرض إجراءات الزائر" className="bg-white border border-line" onClick={() => setScanAction('actions')} />
-                {canPushDown && (
+                {isOfficer && (
+                    <IconButton icon={UserPlus} label="سجّل زائراً موجوداً في هذا التخصص" className="bg-white border border-line" onClick={openRegister} />
+                )}
+                {canSelect && (
                     <IconButton
                         icon={selecting ? X : ListChecks}
-                        label={selecting ? 'إلغاء التحديد' : isOfficer ? 'تحديد عدة زوار (دخول عائلة أو إنزال)' : 'تحديد عدة زوار للإنزال'}
+                        label={selecting ? 'إلغاء التحديد' : !canPushDown ? 'تحديد عدة زوار (دخول عائلة)' : isOfficer ? 'تحديد عدة زوار (دخول عائلة أو إنزال)' : 'تحديد عدة زوار للإنزال'}
                         className={cx('border border-line', selecting ? 'bg-ink text-white hover:bg-ink' : 'bg-white')}
                         onClick={() => { setSelecting(!selecting); setSelectedIds([]); }}
                     />
@@ -532,9 +574,9 @@ export default function CheckPatient() {
 
             {selecting ? (
                 <p className="text-sm text-muted mb-3">
-                    {isOfficer ? 'اختر أفراد العائلة ثم «دخل»، أو الزوار غير الموجودين عند الباب ثم «إنزال».' : 'اختر الزوار غير الموجودين عند الباب، ثم اضغط «إنزال المحددين».'}
+                    {!canPushDown ? 'اختر أفراد العائلة ثم «دخل».' : isOfficer ? 'اختر أفراد العائلة ثم «دخل»، أو الزوار غير الموجودين عند الباب ثم «إنزال».' : 'اختر الزوار غير الموجودين عند الباب، ثم اضغط «إنزال المحددين».'}
                 </p>
-            ) : canPushDown && (
+            ) : canSelect && (
                 <p className="text-sm text-muted mb-3">
                     {isOfficer ? 'اختر الطبيب ثم اضغط «دخل» على بطاقة الزائر، أو امسح رمزه.' : 'اضغط على بطاقة الزائر لإنزاله، أو امسح رمزه.'}
                 </p>
@@ -579,16 +621,18 @@ export default function CheckPatient() {
                                         )}
                                     </div>
 
-                                    {canPushDown && queued && !selecting && (
+                                    {canSelect && queued && !selecting && (
                                         <div className="mt-3 flex gap-2">
                                             {isOfficer && (
                                                 <Button icon={DoorOpen} className="flex-1" disabled={busy} onClick={() => openEnter(a)}>
                                                     دخل
                                                 </Button>
                                             )}
-                                            <Button variant="secondary" icon={ChevronsDown} className={isOfficer ? '' : 'flex-1'} disabled={busy} onClick={() => openPushDown([a])}>
-                                                إنزال
-                                            </Button>
+                                            {canPushDown && (
+                                                <Button variant="secondary" icon={ChevronsDown} className={isOfficer ? '' : 'flex-1'} disabled={busy} onClick={() => openPushDown([a])}>
+                                                    إنزال
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
 
@@ -612,9 +656,11 @@ export default function CheckPatient() {
                                 دخل ({selectedIds.length})
                             </Button>
                         )}
-                        <Button variant="warning" icon={ChevronsDown} disabled={!selectedIds.length || busy} onClick={() => openPushDown(appointments.filter((a) => selectedIds.includes(a.id)))}>
-                            {isOfficer ? 'إنزال' : 'إنزال المحددين'}
-                        </Button>
+                        {canPushDown && (
+                            <Button variant="warning" icon={ChevronsDown} disabled={!selectedIds.length || busy} onClick={() => openPushDown(appointments.filter((a) => selectedIds.includes(a.id)))}>
+                                {isOfficer ? 'إنزال' : 'إنزال المحددين'}
+                            </Button>
+                        )}
                     </div>
                 </div>
             )}
@@ -836,6 +882,57 @@ export default function CheckPatient() {
                 )}
             </Sheet>
 
+            {/* Register an existing patient in this specialty */}
+            <Sheet
+                open={registerOpen}
+                onClose={() => setRegisterOpen(false)}
+                title={`تسجيل زائر في ${data?.speciality || 'هذا التخصص'}`}
+                footer={regPreview && (
+                    <Button block size="lg" icon={UserPlus} loading={busy} disabled={!regPreview.allowed} onClick={confirmRegister}>
+                        سجّل #{regPreview.patient_id} في {regPreview.specialty}
+                    </Button>
+                )}
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">لزائر مسجّل في الحدث ولم يحجز هذا التخصص. يُسجَّل لليوم في ساعة التسجيل.</p>
+                    <form className="flex gap-2 items-end" onSubmit={(e) => { e.preventDefault(); lookupRegister(regNumber); }}>
+                        <Field label="رقم الزائر" className="flex-1">
+                            <TextInput type="text" inputMode="numeric" dir="ltr" autoFocus value={regNumber} onChange={(e) => setRegNumber(e.target.value)} placeholder="مثال: 1234" />
+                        </Field>
+                        <Button type="submit" variant="secondary" loading={regLoading} disabled={!regNumber.trim()}>ابحث</Button>
+                        <IconButton icon={QrCode} label="امسح رمز الزائر" className="bg-white border border-line" onClick={() => { setRegisterOpen(false); setScanAction('register'); }} />
+                    </form>
+                    {regError && <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{regError}</p>}
+                    {regPreview && (
+                        <section className="rounded-xl border border-line p-3 space-y-2">
+                            <p className="font-semibold text-ink">#{regPreview.patient_id} {regPreview.full_name}</p>
+                            <ul className="space-y-1 text-sm">
+                                {regPreview.specialties.map((sp, i) => (
+                                    <li key={i} className="flex items-center justify-between gap-2">
+                                        <span className="flex items-center gap-1.5 min-w-0">
+                                            <Stethoscope className="w-4 h-4 shrink-0 text-ink-soft" />
+                                            <span className="truncate">{sp.name || '-'}</span>
+                                            {sp.beyond_limit && <span className="text-xs text-muted">(فوق العدد)</span>}
+                                        </span>
+                                        <StatusBadge status={sp.status} />
+                                    </li>
+                                ))}
+                            </ul>
+                            <p className="text-xs text-muted">
+                                الحدث يسمح بـ {regPreview.limit} تخصص لكل زائر، والزائر حاجز {regPreview.counted}.
+                            </p>
+                            {regPreview.already_booked ? (
+                                <p className="text-sm text-red-700">الزائر حاجز هذا التخصص مسبقاً.</p>
+                            ) : regPreview.at_limit && !regPreview.may_exceed ? (
+                                <p className="text-sm text-red-700">بلغ العدد المسموح. التسجيل فوق العدد يفعّله المدير العام لمسؤولي التخصص.</p>
+                            ) : regPreview.at_limit ? (
+                                <p className="text-sm text-ink-soft">بلغ العدد المسموح: يُسجَّل فوق العدد (مسموح من المدير العام).</p>
+                            ) : null}
+                        </section>
+                    )}
+                </div>
+            </Sheet>
+
             {/* QR of a patient */}
             <Sheet open={!!qrFor} onClose={() => setQrFor(null)} title="رمز QR للزائر">
                 {qrFor && <PatientQRSection appointment={qrFor} />}
@@ -851,6 +948,7 @@ export default function CheckPatient() {
                         relative: 'امسح رموز أفراد العائلة واحداً بعد الآخر',
                         complete: 'امسح رمز الزائر لتسجيل الإجتياز',
                         pushdown: 'امسح رمز الزائر لإنزاله',
+                        register: 'امسح رمز الزائر لتسجيله في هذا التخصص',
                     }[scanAction] || 'امسح رمز الزائر لعرض إجراءاته'}
                 />
             )}

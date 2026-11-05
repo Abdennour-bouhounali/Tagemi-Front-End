@@ -28,6 +28,7 @@ const EMPTY_FORM = {
   is_active: true,
   is_tawat: true,
   is_simulation: false,
+  specialty_admins_can_exceed_limit: false,
 };
 
 // The form is saved as a draft this long after the last change

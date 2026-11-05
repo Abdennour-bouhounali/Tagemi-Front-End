@@ -123,20 +123,20 @@ export default function App() {
           {user && <Route path="/admin/big-list-waiting/:eventId" element={guard([1, 3, 9], <WaitingList />)} />}
           {user && (
             <Route path="/admin" element={<StaffShell />}>
-              <Route path="stations/:eventId" element={guard([1, 4, 6, 8, 9], <StationsPicker />)} />
+              <Route path="stations/:eventId" element={guard([1, 4, 6, 8], <StationsPicker />)} />
               <Route path="no-event" element={<NoEvent />} />
               {/* Guide for every signed-in user */}
               <Route path="patient-journey" element={<PatientJourney />} />
               {/* Event Management Routes */}
               <Route path="event-tracking/:eventId" element={guard([1], <EventTracking />)} />
-              <Route path="doctors-today/:eventId" element={guard([1, 9], <DoctorsToday />)} />
+              <Route path="doctors-today/:eventId" element={guard([1], <DoctorsToday />)} />
               <Route path="admin-actions" element={guard([1], <AdminActions />)} />
               <Route path="whatsapp/:eventId" element={guard([1], <WhatsAppMessages />)} />
-              <Route path="check-presence/:eventId" element={guard([1, 3, 5, 9], <CheckPresence />)} />
+              <Route path="check-presence/:eventId" element={guard([1, 3, 5], <CheckPresence />)} />
               <Route path="appointment-distribution/:eventId" element={guard([1], <EventAppointmentDistribution />)} />
               <Route path="event-statistics/:eventId" element={guard([1, 9], <VisitsStatistics />)} />
-              <Route path="event-waiting-lists/:eventId/:specialityId" element={guard([1, 4, 6, 8, 9], <CheckPaitent />)} />
-              <Route path="dilatation/:eventId/:eventSpecialtyId" element={guard([1, 4, 6, 8, 9], <DilatationRoom />)} />
+              <Route path="event-waiting-lists/:eventId/:specialityId" element={guard([1, 4, 6, 8], <CheckPaitent />)} />
+              <Route path="dilatation/:eventId/:eventSpecialtyId" element={guard([1, 4, 6, 8], <DilatationRoom />)} />
               {/* Archived Event Statistics Routes */}
               <Route path="/admin/archived/specialty-stats/:eventId" element={guard([1], <SpecialtyStats />)} />
               <Route path="/admin/archived/status-stats/:eventId" element={guard([1], <StatusStats />)} />

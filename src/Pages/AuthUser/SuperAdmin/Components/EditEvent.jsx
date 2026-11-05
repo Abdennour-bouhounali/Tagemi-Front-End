@@ -29,6 +29,7 @@ export default function EditEvent({ event, onClose, onSuccess }) {
     is_active: event.is_active ?? true,
     is_tawat: event.is_tawat ?? true,
     is_simulation: !!event.is_simulation,
+    specialty_admins_can_exceed_limit: !!event.specialty_admins_can_exceed_limit,
   });
   const [selectedRules, setSelectedRules] = useState(event.rules_ids || []);
   const [eventSpecialties, setEventSpecialties] = useState([]);
