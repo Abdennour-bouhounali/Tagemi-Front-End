@@ -65,8 +65,9 @@ function ToolButton({ label, onClick, children }) {
 /**
  * Hall screen (قائمة الانتظار الكبيرة), shown on a TV / projector so visitors
  * read their names from far away. One column per open specialty with its first
- * 10 visitors; the visitor just called in shows on top in green, a visitor
- * pushed down shows in amber. Everything but the lists can be hidden.
+ * 10 visitors. Visitors with a doctor (دخل) show on top in violet «عند الطبيب»
+ * until they pass (إجتاز); the next in line, one per free doctor, shows in green
+ * «تفضل بالدخول»; a visitor pushed down shows in amber. Everything but the lists can be hidden.
  */
 const WaitingList = () => {
   const { eventId } = useParams();
@@ -79,7 +80,7 @@ const WaitingList = () => {
   const [event, setEvent] = useState(null);
   const [allSpecialities, setAllSpecialities] = useState([]);
   const [waitingList, setWaitingList] = useState({});
-  // Visitors who just went in to the doctor (دخل): shown on top in green for ~30 s
+  // Visitors with a doctor now (دخل): shown on top «عند الطبيب» until they pass (إجتاز)
   const [calling, setCalling] = useState({});
   // Specialties that take no new visitors now (doctors left / count reached)
   const [closedIds, setClosedIds] = useState([]);
@@ -258,7 +259,7 @@ const WaitingList = () => {
     return () => clearInterval(rotation);
   }, [rotating, specialtyGroups.length]);
 
-  // Same number of rows in every column (10 + the most "called" of the view)
+  // Same number of rows in every column (10 + the most "with the doctor" of the view)
   const callingRows = Math.max(0, ...visibleSpecialities.map((s) => callingFor(s.id).length));
   const rows = QUEUE_ROWS + callingRows;
   // Text height follows the row height (and the column width for long names)
@@ -302,6 +303,7 @@ const WaitingList = () => {
 
           {/* Legend: read once, from far away */}
           <div className="hidden md:flex items-center gap-[1.5vw] text-white/90" style={{ fontSize: 'clamp(0.85rem, 1.1vw, 1.4rem)' }}>
+            <span className="flex items-center gap-2"><span className="w-[1em] h-[1em] rounded-md bg-st-visit" />عند الطبيب</span>
             <span className="flex items-center gap-2"><span className="w-[1em] h-[1em] rounded-md bg-st-queue" />تفضل بالدخول</span>
             <span className="flex items-center gap-2"><span className="w-[1em] h-[1em] rounded-md bg-st-pushed" />سيُنادى بعد قليل</span>
             <span className="flex items-center gap-2"><span className="w-[0.6em] h-[0.6em] rounded-full bg-[#2F6FD6]" />ذكر</span>
@@ -359,12 +361,12 @@ const WaitingList = () => {
                   {/* Rows share the height evenly; names size to the row and the column */}
                   <ol className="flex-1 min-h-0 flex flex-col" style={{ containerType: 'size' }}>
                     {Array.from({ length: callingRows }).map((_, i) => {
-                      // Called visitors sit at the bottom of the green block, right above the queue
+                      // Visitors with the doctor sit at the bottom of the violet block, right above the queue
                       const patient = called[i - (callingRows - called.length)];
                       return (
-                        <li key={`c${i}`} className={`flex-1 min-h-0 flex items-center gap-[3cqw] px-[4cqw] border-b border-line/70 ${patient ? 'bg-st-queue text-white animate-pulse' : ''}`} style={{ fontSize: rowFont }}>
+                        <li key={`c${i}`} className={`flex-1 min-h-0 flex items-center gap-[3cqw] px-[4cqw] border-b border-line/70 ${patient ? 'bg-st-visit-bg text-st-visit' : ''}`} style={{ fontSize: rowFont }}>
                           {patient && (<>
-                            <span className="shrink-0 rounded-lg bg-white text-st-queue font-bold px-[0.4em] py-[0.1em]" style={{ fontSize: '0.55em' }}>تفضل بالدخول</span>
+                            <span className="shrink-0 rounded-lg bg-st-visit text-white font-bold px-[0.4em] py-[0.1em]" style={{ fontSize: '0.55em' }}>عند الطبيب</span>
                             {showNames ? (<>
                               <span className="flex-1 min-w-0 font-display font-bold truncate">{patient.full_name}</span>
                               <span className="shrink-0 font-display font-bold tabular-nums" style={{ fontSize: '0.75em' }}>{patient.patient_id}</span>
@@ -379,27 +381,33 @@ const WaitingList = () => {
                       const patient = queue[i];
                       const position = i + 1;
                       const pushed = patient && isPushedDown(patient);
+                      // Next in line while a doctor is free (after the previous one passed)
+                      const invited = patient && !pushed && patient.invited;
                       return (
                         <li
                           key={`q${i}`}
-                          className={`flex-1 min-h-0 flex items-center gap-[3cqw] px-[4cqw] border-b border-line/70 last:border-b-0 ${pushed ? 'bg-st-pushed-bg' : position % 2 === 0 ? 'bg-paper/60' : ''}`}
+                          className={`flex-1 min-h-0 flex items-center gap-[3cqw] px-[4cqw] border-b border-line/70 last:border-b-0 ${invited ? 'bg-st-queue text-white animate-pulse' : pushed ? 'bg-st-pushed-bg' : position % 2 === 0 ? 'bg-paper/60' : ''}`}
                           style={{ fontSize: rowFont }}
                         >
                           <span
                             className={`shrink-0 grid place-items-center rounded-full font-display font-bold tabular-nums ${
-                              patient ? (pushed ? 'bg-st-pushed text-white' : position === 1 ? 'bg-ink text-white' : 'bg-ink-faint text-ink') : 'text-line'
+                              patient ? (invited ? 'bg-white text-st-queue' : pushed ? 'bg-st-pushed text-white' : position === 1 ? 'bg-ink text-white' : 'bg-ink-faint text-ink') : 'text-line'
                             }`}
                             style={{ width: '1.6em', height: '1.6em', fontSize: '0.75em' }}
                           >
                             {position}
                           </span>
                           {patient ? (<>
-                            <SexDot patient={patient} />
+                            {invited ? (
+                              <span className="shrink-0 rounded-lg bg-white text-st-queue font-bold px-[0.4em] py-[0.1em]" style={{ fontSize: '0.55em' }}>تفضل بالدخول</span>
+                            ) : (
+                              <SexDot patient={patient} />
+                            )}
                             {showNames ? (<>
-                              <span className={`flex-1 min-w-0 font-display font-bold truncate ${pushed ? 'text-st-pushed' : 'text-ink'}`}>{patient.full_name}</span>
-                              <span className={`shrink-0 font-display font-bold tabular-nums ${pushed ? 'text-st-pushed' : 'text-ink-soft'}`} style={{ fontSize: '0.75em' }}>{patient.patient_id}</span>
+                              <span className={`flex-1 min-w-0 font-display font-bold truncate ${invited ? 'text-white' : pushed ? 'text-st-pushed' : 'text-ink'}`}>{patient.full_name}</span>
+                              <span className={`shrink-0 font-display font-bold tabular-nums ${invited ? 'text-white' : pushed ? 'text-st-pushed' : 'text-ink-soft'}`} style={{ fontSize: '0.75em' }}>{patient.patient_id}</span>
                             </>) : (
-                              <span className={`flex-1 min-w-0 font-display font-bold tabular-nums ${pushed ? 'text-st-pushed' : 'text-ink'}`}>{patient.patient_id}</span>
+                              <span className={`flex-1 min-w-0 font-display font-bold tabular-nums ${invited ? 'text-white' : pushed ? 'text-st-pushed' : 'text-ink'}`}>{patient.patient_id}</span>
                             )}
                           </>) : (
                             <span className="flex-1" />
