@@ -4,7 +4,7 @@ import { AlarmClock, Bell, BellOff, Coffee, PaintBucket } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import { IconButton, Panel, Sheet, cx } from '../../../../Components/ui';
 import { ResponsiveTable } from '../../../../Components/ui/StatsKit';
-import { elapsedSeconds, formatElapsed, serverOffset, useNow } from '../../../../utils/visitTimer';
+import { attendanceSpans, elapsedSeconds, formatElapsed, serverOffset, useNow } from '../../../../utils/visitTimer';
 import BigStats from './BigStats';
 
 const apiUrl = API_BASE_URL;
@@ -285,6 +285,7 @@ export default function DoctorsLive({ eventId }) {
             render: (d) => (d.current
                 ? <span className={cx('tabular-nums', d.alarm ? 'text-rose' : 'text-st-visit')}>مع زائر <span dir="ltr">{formatElapsed(d.elapsed)}</span></span>
                 : d.present ? <span className={d.idle ? 'text-st-pushed' : 'text-st-queue'}>{d.idle ? `متاح منذ ${d.idle_minutes} د` : 'حاضر'}</span>
+                    : d.on_break ? <span className="text-st-pushed">في استراحة منذ {d.on_break_since}</span>
                     : <span className="text-muted">{d.left_at ? `غادر ${d.left_at}` : 'لم يصل'}</span>),
         },
         { key: 'treated', label: 'عالج', align: 'center' },
@@ -292,7 +293,7 @@ export default function DoctorsLive({ eventId }) {
         { key: 'planned_minutes', label: 'المقرر (د)', align: 'center', render: (d) => d.planned_minutes ?? '—' },
         { key: 'gap', label: 'الفرق', align: 'center', render: (d) => <Gap mean={d.mean_seconds} planned={d.planned_minutes} /> },
         { key: 'estimated_end', label: 'النهاية المتوقعة', align: 'center', render: (d) => <EndTime estimated={d.estimated_end} planned={d.planned_end} /> },
-        { key: 'arrived_at', label: 'وصل', align: 'center', render: (d) => d.arrived_at || '—' },
+        { key: 'periods', label: 'الحضور', align: 'center', render: (d) => (d.periods.length ? <span dir="ltr" className="inline-block">{attendanceSpans(d.periods)}</span> : '—') },
     ];
 
     const present = rows.filter((d) => d.present).length;

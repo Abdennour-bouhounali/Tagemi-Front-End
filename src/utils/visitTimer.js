@@ -28,3 +28,6 @@ export function formatElapsed(seconds) {
   const pad = (n) => String(n).padStart(2, '0');
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }
+
+/** A doctor's stays of the day, "08:10–12:02, 13:30–…": show it in an LTR box. */
+export const attendanceSpans = (periods) => periods.map((p) => `${p.arrived_at}–${p.left_at ?? '…'}`).join(', ');

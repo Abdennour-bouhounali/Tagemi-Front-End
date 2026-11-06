@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../../../../config/environment';
 import { useContext, useEffect, useState } from 'react';
 import { CalendarDays, Clock, LogIn, LogOut } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
-import { LoadingState, Sheet, StatStrip, cx } from '../../../../Components/ui';
+import { LoadingState, Sheet, StatStrip } from '../../../../Components/ui';
 
 const apiUrl = API_BASE_URL;
 
@@ -11,7 +11,7 @@ const formatDate = (date) => {
   return Number.isNaN(d.getTime()) ? date : d.toLocaleDateString('ar-DZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-/** Every event day a doctor was scheduled: intervals, planned visits, arrival and departure. */
+/** Every event day a doctor was scheduled: intervals, planned visits, each arrival and departure. */
 export default function DoctorHistorySheet({ doctor, onClose }) {
   const { token } = useContext(AppContext);
   const [data, setData] = useState(null);
@@ -59,14 +59,14 @@ export default function DoctorHistorySheet({ doctor, onClose }) {
                   <span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{formatDate(d.day_date)}</span>
                   <span className="inline-flex items-center gap-1"><Clock className="w-3.5 h-3.5" /><span dir="ltr">{d.intervals.join('، ')}</span></span>
                 </p>
-                <p className={cx('mt-1.5 flex flex-wrap items-center gap-x-3 text-xs', d.arrived_at ? 'text-ink' : 'text-muted')}>
-                  {d.arrived_at ? (
-                    <>
-                      <span className="inline-flex items-center gap-1"><LogIn className="w-3.5 h-3.5 text-st-queue" />وصل <span dir="ltr">{d.arrived_at}</span></span>
-                      <span className="inline-flex items-center gap-1"><LogOut className="w-3.5 h-3.5" />{d.left_at ? <>غادر <span dir="ltr">{d.left_at}</span></> : 'لم تُسجَّل المغادرة'}</span>
-                    </>
-                  ) : 'لم يُسجَّل حضوره'}
-                </p>
+                {d.periods.length === 0 ? (
+                  <p className="mt-1.5 text-xs text-muted">لم يُسجَّل حضوره</p>
+                ) : d.periods.map((p, i) => (
+                  <p key={i} className="mt-1.5 flex flex-wrap items-center gap-x-3 text-xs text-ink">
+                    <span className="inline-flex items-center gap-1"><LogIn className="w-3.5 h-3.5 text-st-queue" />وصل <span dir="ltr">{p.arrived_at}</span></span>
+                    <span className="inline-flex items-center gap-1"><LogOut className="w-3.5 h-3.5" />{p.left_at ? <>{p.break ? 'استراحة' : 'غادر'} <span dir="ltr">{p.left_at}</span></> : 'لم تُسجَّل المغادرة'}</span>
+                  </p>
+                ))}
               </li>
             ))}
           </ul>

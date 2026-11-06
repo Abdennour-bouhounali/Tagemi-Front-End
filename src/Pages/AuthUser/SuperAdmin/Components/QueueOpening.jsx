@@ -1,16 +1,18 @@
 import { API_BASE_URL } from '../../../../config/environment';
 import { useCallback, useContext, useEffect, useState } from 'react';
-import { ChevronRight, Lock, LogIn, LogOut, Unlock, UserPlus } from 'lucide-react';
+import { ChevronRight, Coffee, Lock, LogIn, LogOut, Unlock, UserPlus } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import useLiveRefresh from '../../../../utils/useLiveRefresh';
 import { Button, PageHeader, LoadingState, EmptyState, useToast, cx } from '../../../../Components/ui';
 import AddDoctorsSheet from './AddDoctorsSheet';
+import { attendanceSpans } from '../../../../utils/visitTimer';
 
 const apiUrl = API_BASE_URL;
 
 /**
- * Super admin, visit day: record each doctor's arrival and departure. The
- * first doctor of a specialty who arrives opens its queue (the waiting
+ * Super admin, visit day: record each doctor's arrival and departure, as many
+ * times as needed in a day. «استراحة» is a short absence: the doctor takes no
+ * patients until back, the queue and the capacity don't change. The first doctor of a specialty who arrives opens its queue (the waiting
  * patients are sent to it); when the last one leaves it closes (the current
  * queue is still served by the doctors, also the one who left). Once one
  * doctor left, the specialty only takes patients up to the visits planned for
@@ -86,7 +88,7 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
       <p className="text-sm text-muted mb-3">
         {readOnly
           ? 'من وصل من الأطباء ومن لم يصل بعد، وأي طوابير مفتوحة. وصول أول طبيب يفتح طابور تخصصه، ومغادرة آخر طبيب تغلقه.'
-          : 'سجّل وصول كل طبيب ومغادرته. وصول أول طبيب يفتح طابور تخصصه ويُوجَّه إليه الزوار المنتظرون، ومغادرة آخر طبيب حاضر تغلقه (يُكمَل فحص من فيه). بعد مغادرة طبيب لا يستقبل التخصص أكثر من الزيارات المقررة للأطباء الباقين. لا يُفتح طابور دون طبيب حاضر، وكل التخصصات تُغلق من جديد في بداية كل يوم.'}
+          : 'سجّل وصول كل طبيب ومغادرته، ويمكن تكرارهما في اليوم نفسه. في «استراحة» لا يدخل إلى الطبيب أحد حتى يعود، ويبقى الطابور مفتوحاً وعدد الزيارات كما هو. وصول أول طبيب يفتح طابور تخصصه ويُوجَّه إليه الزوار المنتظرون، ومغادرة آخر طبيب حاضر تغلقه (يُكمَل فحص من فيه). بعد مغادرة طبيب لا يستقبل التخصص أكثر من الزيارات المقررة للأطباء الباقين. لا يُفتح طابور دون طبيب حاضر، وكل التخصصات تُغلق من جديد في بداية كل يوم.'}
       </p>
 
       {visitDay && !visitDay.is_today && (
@@ -137,9 +139,11 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                   <ul className="border-t border-line divide-y divide-line">
                     {doctors.map((d) => {
                       const key = (action) => `${action}-${s.event_specialty_id}-${d.doctor_id}`;
-                      const status = d.present
-                        ? `وصل ${d.arrived_at}`
-                        : d.left_at ? `غادر ${d.left_at} (وصل ${d.arrived_at})` : 'لم يصل بعد';
+                      const returned = d.periods.length > 1;
+                      const status = d.on_break
+                        ? `في استراحة منذ ${d.on_break_since}`
+                        : d.present ? `${returned ? 'عاد' : 'وصل'} ${d.present_since}`
+                        : d.left_at ? `غادر ${d.left_at}${returned ? '' : ` (وصل ${d.arrived_at})`}` : 'لم يصل بعد';
                       return (
                         <li key={d.doctor_id} className="flex items-center gap-3 px-4 py-2.5">
                           <div className="flex-1 min-w-0">
@@ -148,16 +152,27 @@ export default function QueueOpening({ event, onClose, backLabel = 'الأحدا
                               {/* Own box: "09:00–12:00" must not be reordered by the Arabic line */}
                               <span dir="ltr" className="inline-block">{d.intervals.join(', ')}</span> · {d.planned_visits} زيارة
                             </p>
-                            <p className={cx('text-xs mt-0.5', d.present ? 'text-st-queue font-semibold' : 'text-muted')}>{status}</p>
+                            <p className={cx('text-xs mt-0.5', d.present ? 'text-st-queue font-semibold' : d.on_break ? 'text-st-pushed font-semibold' : 'text-muted')}>{status}</p>
+                            {returned && <p className="text-xs text-muted mt-0.5"><span dir="ltr" className="inline-block">{attendanceSpans(d.periods)}</span></p>}
                           </div>
-                          {locked ? null : d.present ? (
-                            <Button size="sm" variant="secondary" icon={LogOut} loading={busy === key('leave')} disabled={busy !== null} onClick={() => attend(s, d, 'leave')}>
-                              غادر
-                            </Button>
-                          ) : (
-                            <Button size="sm" icon={LogIn} loading={busy === key('arrive')} disabled={busy !== null} onClick={() => attend(s, d, 'arrive')}>
-                              وصل
-                            </Button>
+                          {!locked && (
+                            <div className="shrink-0 flex flex-col sm:flex-row gap-1.5">
+                              {d.present && (
+                                <Button size="sm" variant="secondary" icon={Coffee} loading={busy === key('break')} disabled={busy !== null} onClick={() => attend(s, d, 'break')}>
+                                  استراحة
+                                </Button>
+                              )}
+                              {!d.present && (
+                                <Button size="sm" icon={LogIn} loading={busy === key('arrive')} disabled={busy !== null} onClick={() => attend(s, d, 'arrive')}>
+                                  {d.on_break ? 'عاد' : 'وصل'}
+                                </Button>
+                              )}
+                              {(d.present || d.on_break) && (
+                                <Button size="sm" variant="secondary" icon={LogOut} loading={busy === key('leave')} disabled={busy !== null} onClick={() => attend(s, d, 'leave')}>
+                                  غادر
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </li>
                       );

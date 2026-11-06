@@ -1,4 +1,4 @@
-import { LogIn, LogOut, Stethoscope } from 'lucide-react';
+import { Coffee, LogIn, LogOut, Stethoscope } from 'lucide-react';
 import { Button, cx } from '../../../Components/ui';
 import { elapsedSeconds, formatElapsed, useNow } from '../../../utils/visitTimer';
 
@@ -36,7 +36,8 @@ export default function DoctorsStrip({ doctors, selectedId, onSelect, onAttend, 
                     const late = d.current?.alarm_after_seconds && elapsed > d.current.alarm_after_seconds;
                     const status = d.busy
                         ? `مع ${d.current.patients.length > 1 ? `${d.current.patients.length} زوار` : 'زائر'}`
-                        : d.present ? `حاضر منذ ${d.arrived_at}` : finishing ? `غادر ${d.left_at} · يُكمل من في الطابور` : 'لم يصل بعد';
+                        : d.on_break ? `في استراحة منذ ${d.on_break_since}`
+                        : d.present ? `حاضر منذ ${d.present_since}` : finishing ? `غادر ${d.left_at} · يُكمل من في الطابور` : 'لم يصل بعد';
 
                     return (
                         <li key={d.doctor_id} className="shrink-0 w-56 lg:w-60">
@@ -71,18 +72,26 @@ export default function DoctorsStrip({ doctors, selectedId, onSelect, onAttend, 
                                     {d.planned_minutes && <> · مقرر {d.planned_minutes} د</>}
                                 </p>
                                 {onAttend && (
-                                    <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                                        {d.present ? (
+                                    <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                        {d.present && (
+                                            <Button size="sm" variant="secondary" icon={Coffee} block
+                                                loading={busyKey === `break-${d.doctor_id}`} disabled={!!busyKey}
+                                                onClick={() => onAttend(d, 'break')}>
+                                                استراحة
+                                            </Button>
+                                        )}
+                                        {!d.present && (
+                                            <Button size="sm" icon={LogIn} block
+                                                loading={busyKey === `arrive-${d.doctor_id}`} disabled={!!busyKey}
+                                                onClick={() => onAttend(d, 'arrive')}>
+                                                {d.on_break ? 'عاد' : 'وصل'}
+                                            </Button>
+                                        )}
+                                        {(d.present || d.on_break) && (
                                             <Button size="sm" variant="secondary" icon={LogOut} block
                                                 loading={busyKey === `leave-${d.doctor_id}`} disabled={!!busyKey}
                                                 onClick={() => onAttend(d, 'leave')}>
                                                 غادر
-                                            </Button>
-                                        ) : (
-                                            <Button size="sm" icon={LogIn} block
-                                                loading={busyKey === `arrive-${d.doctor_id}`} disabled={!!busyKey}
-                                                onClick={() => onAttend(d, 'arrive')}>
-                                                وصل
                                             </Button>
                                         )}
                                     </div>
