@@ -131,7 +131,7 @@ const GuestNavBar = ({ user, types }) => {
             scrolled ? 'shadow-lg' : 'shadow-md'
         }`}>
             <nav className='max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8'>
-                <div className='flex items-center justify-between h-14 sm:h-16 md:h-18 lg:h-20 gap-4'>
+                <div className='w-full flex items-center justify-between h-14 sm:h-16 md:h-18 lg:h-20 gap-4'>
                     {/* Logo - Always on one side */}
                     <div className="flex-shrink-0">
                         <Link 
