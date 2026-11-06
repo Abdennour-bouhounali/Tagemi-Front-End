@@ -174,9 +174,9 @@ export default function CheckPatient() {
 
     const all = data?.appointments || [];
     const recentlyPassed = data?.recently_completed || [];
-    // A family member past the last rows of the list: the name of the one chosen still shows
+    // Those who passed in the same click (past the last rows of the list: the name of the one chosen still shows)
     const passedWith = (a) => {
-        const family = a.visit_group ? recentlyPassed.filter((x) => x.visit_group === a.visit_group) : [];
+        const family = a.visit_group ? recentlyPassed.filter((x) => x.visit_group === a.visit_group && x.completed_at === a.completed_at) : [];
         return family.length ? family : [a];
     };
     const appointments = all.filter((a) => !inside(a));
@@ -196,7 +196,7 @@ export default function CheckPatient() {
             key: patients[0].visit_group || patients[0].id,
             patients,
             doctorName: doctorName(patients[0].doctor_id),
-            enteredAt: patients[0].entered_at,
+            enteredAt: doctor?.current?.entered_at ?? patients[0].entered_at,
             alarmAfter: doctor?.current?.alarm_after_seconds ?? (doctor?.planned_minutes ? doctor.planned_minutes * 90 * patients.length : null),
         };
     });
@@ -219,7 +219,10 @@ export default function CheckPatient() {
 
     // ---------------------------------------------------------------- actions
 
+    // The card passes everyone in the visit; one patient's own action passes only them
     const pass = (a) => run(`/api/waitinglist/Complete/${a.id}`, { success: 'تم الفحص' });
+    const passAlone = (a) => run(`/api/waitinglist/Complete/${a.id}`, { body: { only: true }, success: 'تم الفحص' });
+    const hasCompanions = (a) => !!a.visit_group && all.some((x) => inside(x) && x.id !== a.id && x.visit_group === a.visit_group);
 
     const chooseDoctor = (id) => {
         setDoctorId(id);
@@ -438,7 +441,7 @@ export default function CheckPatient() {
         }
         setScanAction(null);
         if (scanAction === 'enter') return openEnter(a);
-        if (scanAction === 'complete') return pass(a);
+        if (scanAction === 'complete') return passAlone(a);
         if (scanAction === 'pushdown') return openPushDown([a]);
         // "actions": the same menu as tapping the patient's card
         setActionsFor(a);
@@ -736,7 +739,7 @@ export default function CheckPatient() {
                             </SheetAction>
                         )}
                         {isOfficer && inside(actionsFor) && (
-                            <SheetAction icon={Check} hint="انتهى فحصه، ينتقل إلى تخصصه التالي (مع من دخل معه)" onClick={() => { pass(actionsFor); setActionsFor(null); }}>
+                            <SheetAction icon={Check} hint={hasCompanions(actionsFor) ? 'هذا الزائر فقط: ينتقل إلى تخصصه التالي، ويبقى من دخل معه عند الطبيب' : 'انتهى فحصه، ينتقل إلى تخصصه التالي'} onClick={() => { passAlone(actionsFor); setActionsFor(null); }}>
                                 إجتاز
                             </SheetAction>
                         )}
