@@ -5,6 +5,7 @@ import { lazy, Suspense, useContext, useState } from 'react';
 import { AppContext } from './Context/AppContext';
 import './i18n';
 import { LanguageProvider } from './Context/LanguageContext';
+import StaleEventRedirect from './Components/StaleEventRedirect';
 
 // Every page is its own chunk: visitors only download the screens they open
 const StaffShell = lazy(() => import('./Pages/StaffShell'));
@@ -79,6 +80,7 @@ export default function App() {
   return (
     <LanguageProvider>
       <BrowserRouter>
+        <StaleEventRedirect />
         <Suspense fallback={<LoadingState />}>
         <Routes>
           {/* -------- Guest / Public Routes (GuestLayout) -------- */}

@@ -15,8 +15,10 @@ import {
     Phone,
     Info,
     Heart,
-    BookOpen
+    BookOpen,
+    LayoutGrid
 } from 'lucide-react';
+import { staffHome, staffTabs } from '../../utils/staffNav';
 
 const apiUrl = API_BASE_URL;
 
@@ -222,7 +224,27 @@ const GuestNavBar = ({ user, types }) => {
                         )}
                     </div>
 
-                    {/* Mobile menu button */}
+                    {/* Phones: the account's main button next to the menu button */}
+                    <div className="lg:hidden flex items-center gap-2">
+                    {(() => {
+                        const top = !user
+                            ? { to: '/login', label: language === 'en' ? 'Login' : 'دخول', icon: UserIcon, tone: 'from-[#E03A6F] to-[#c8102e]' }
+                            : user.role_id === 1
+                                ? { to: '/admin/manage-events', label: language === 'en' ? 'Manage Events' : 'إدارة الفعاليات', icon: Calendar, tone: 'from-[#101E58] to-[#1a2d78]' }
+                                : staffWorkLink(user) && { ...staffWorkLink(user), icon: LayoutGrid, tone: 'from-[#101E58] to-[#1a2d78]' };
+                        if (!top) return null;
+                        const Icon = top.icon;
+                        return (
+                            <Link
+                                to={top.to}
+                                onClick={closeNav}
+                                className={`inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-sm font-semibold text-white bg-gradient-to-r ${top.tone} font-droid-arabic-kufi whitespace-nowrap active:scale-95 transition-transform`}
+                            >
+                                <Icon className="w-4 h-4" />
+                                <span>{top.label}</span>
+                            </Link>
+                        );
+                    })()}
                     <button
                         onClick={toggleNav}
                         type="button"
@@ -237,6 +259,7 @@ const GuestNavBar = ({ user, types }) => {
                             <Menu className="h-6 w-6" strokeWidth={2.5} />
                         )}
                     </button>
+                    </div>
                 </div>
 
                 {/* Mobile Navigation Overlay */}
@@ -342,19 +365,6 @@ const GuestNavBar = ({ user, types }) => {
                                 </div>
                             </div>
 
-                                { user && (user.role_id === 3 || user.role_id === 5) && 
-                                        <MobileNavLink
-                                            to={`/admin/check-presence/${user.event_id}`}
-                                            className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r  from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
-                                        >
-                                            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
-                                            <span className="relative flex items-center gap-1.5 xl:gap-2">
-                                                <Calendar className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-                                                <span className="hidden xl:inline">{language === 'en' ? 'Appointments' : 'المواعيد'}</span>
-                                                <span className="xl:hidden">{language === 'en' ? 'Appt' : 'مواعيد'}</span>
-                                            </span>
-                                        </MobileNavLink>
-                                    }
 
                             {/* Mobile User Actions */}
                             <div className="mt-6 pt-6 border-t border-gray-200">
@@ -411,76 +421,31 @@ const MobileNavLink = ({ to, children, onClick }) => (
     </Link>
 );
 
-// Specialties of the officer's event that have a hidden dilatation room
-const dilatationStations = (user) =>
-    (user?.event?.event_specialties || []).filter((es) => es.has_dilatation);
-
-// "dil:<event specialty id>" opens a dilatation room, a plain id a specialty queue
-const specialtyRoute = (user, value) => value.startsWith('dil:')
-    ? `/admin/dilatation/${user.event_id}/${value.slice(4)}`
-    : `/admin/event-waiting-lists/${user.event_id}/${value}`;
+// Staff (every role except the super admin, who has «إدارة» in the nav, and
+// plain users) get one button to their work page: the first tab of their app
+const staffWorkLink = (user) => {
+    if (!user || [1, 2, 7].includes(user.role_id)) return null;
+    const tab = staffTabs(user)[0];
+    return { to: staffHome(user), label: tab && tab.key !== 'more' ? tab.label : 'لوحة العمل' };
+};
 
 // Desktop User Menu Component
 const UserMenu = ({ user, language, handleLogout }) => {
-    const navigate = useNavigate();
-    const specialties = user?.specialties || [];
-
-    const handleSpecialtyChange = (e) => {
-        const specialtyId = e.target.value;
-        if (specialtyId) {
-            navigate(specialtyRoute(user, specialtyId));
-        }
-    };
+    const work = staffWorkLink(user);
 
     return (
         <div className="flex items-center gap-2">
-            {/* All Appointments Button - Role 3 */}
-            { (user.role_id === 3 || user.role_id === 5) && (
+            {/* Staff work page (الطوابير, الحضور, التخصصات…) */}
+            {work && (
                 <Link
-                    to={`/admin/check-presence/${user.event_id}`}
+                    to={work.to}
                     className="group relative px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi overflow-hidden"
                 >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                     <span className="relative flex items-center gap-1.5 xl:gap-2">
-                        <Calendar className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-                        <span className="hidden xl:inline">{language === 'en' ? 'Appointments' : 'المواعيد'}</span>
-                        <span className="xl:hidden">{language === 'en' ? 'Appt' : 'مواعيد'}</span>
+                        <LayoutGrid className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+                        <span>{work.label}</span>
                     </span>
                 </Link>
-            )}
-
-            {/* Waiting List Dropdown - Role 4 */}
-            {[4, 8].includes(user.role_id) && specialties.length > 0 && (
-                <div className="relative group">
-                    <select
-                        onChange={handleSpecialtyChange}
-                        className="appearance-none px-3 xl:px-4 py-2 pr-8 xl:pr-10 text-xs xl:text-sm font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105 transform font-droid-arabic-kufi cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#E03A6F] focus:ring-offset-2 border-none"
-                        defaultValue=""
-                    >
-                        <option value="" disabled className="bg-white text-gray-900">
-                            {language === 'en' ? '📋 List' : '📋 قائمة'}
-                        </option>
-                        {specialties
-                            .filter((specialty) => specialty.id !== 6)
-                            .map((specialty) => (
-                                <option 
-                                    key={specialty.id} 
-                                    value={specialty.id}
-                                    className="bg-white text-gray-900 py-2"
-                                >
-                                    {specialty.name}
-                                </option>
-                            ))}
-                        {dilatationStations(user).map((es) => (
-                            <option key={`dil-${es.id}`} value={`dil:${es.id}`} className="bg-white text-gray-900 py-2">
-                                {`التمدد — ${es.specialty?.name || ''}`}
-                            </option>
-                        ))}
-                    </select>
-                    <div className="absolute right-2 xl:right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <ChevronDown className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-white" />
-                    </div>
-                </div>
             )}
 
             {/* Patient journey guide - every signed-in user */}
@@ -511,64 +476,20 @@ const UserMenu = ({ user, language, handleLogout }) => {
 
 // Mobile User Menu Component
 const MobileUserMenu = ({ user, language, handleLogout, onClick }) => {
-    const navigate = useNavigate();
-    const specialties = user?.specialties || [];
-
-    const handleSpecialtyChange = (e) => {
-        const specialtyId = e.target.value;
-        if (specialtyId) {
-            navigate(specialtyRoute(user, specialtyId));
-            onClick();
-        }
-    };
+    const work = staffWorkLink(user);
 
     return (
         <div className="space-y-3 px-3">
-            {/* All Appointments Button - Role 3 */}
-            {user.role_id === 3 && user.event_id && (
+            {/* Staff work page (الطوابير, الحضور, التخصصات…) */}
+            {work && (
                 <Link
-                    to={`/admin/big-list-waiting/${user.event_id}`}
-                    className="group relative flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95 transform font-droid-arabic-kufi overflow-hidden"
+                    to={work.to}
                     onClick={onClick}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95 transform font-droid-arabic-kufi"
                 >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-active:translate-x-full transition-transform duration-500"></span>
-                    <Calendar className="w-5 h-5 relative" />
-                    <span className="relative">{language === 'en' ? 'All Appointments' : 'جميع المواعيد'}</span>
+                    <LayoutGrid className="w-5 h-5" />
+                    <span>{work.label}</span>
                 </Link>
-            )}
-
-            {/* Waiting List Dropdown - Role 4 */}
-            {[4, 8].includes(user.role_id) && specialties.length > 0 && (
-                <div className="relative">
-                    <select
-                        onChange={handleSpecialtyChange}
-                        className="appearance-none w-full px-4 py-3.5 pr-10 text-base font-semibold text-white bg-gradient-to-r from-[#101E58] to-[#1a2d78] rounded-xl font-droid-arabic-kufi cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#E03A6F] focus:ring-offset-2 border-none transition-all duration-200"
-                        defaultValue=""
-                    >
-                        <option value="" disabled className="bg-white text-gray-900">
-                            {language === 'en' ? '📋 Waiting List' : '📋 قائمة الانتظار'}
-                        </option>
-                        {specialties
-                            .filter((specialty) => specialty.id !== 6)
-                            .map((specialty) => (
-                                <option 
-                                    key={specialty.id} 
-                                    value={specialty.id}
-                                    className="bg-white text-gray-900 py-2"
-                                >
-                                    {specialty.name}
-                                </option>
-                            ))}
-                        {dilatationStations(user).map((es) => (
-                            <option key={`dil-${es.id}`} value={`dil:${es.id}`} className="bg-white text-gray-900 py-2">
-                                {`التمدد — ${es.specialty?.name || ''}`}
-                            </option>
-                        ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <ChevronDown className="w-5 h-5 text-white" />
-                    </div>
-                </div>
             )}
 
             {/* Patient journey guide - every signed-in user */}
