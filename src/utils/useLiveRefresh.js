@@ -12,12 +12,13 @@ const apiUrl = API_BASE_URL;
 //   `doctors`, `open`), so a specialty queue ignores the other specialties.
 // - minGapMs: heavy screens reload at most once per gap; changes in between
 //   are collapsed into one reload at the end of the gap.
+// - every 10 s: this poll was most of the server's requests at 5 s.
 // - each device polls with a random ±20 % jitter, so 30 tablets don't hit the
 //   server in the same second.
 //
 // options: a number (poll interval, ms) or { intervalMs, minGapMs, parts }.
 export default function useLiveRefresh(eventId, token, onChange, options = {}) {
-  const { intervalMs = 5000, minGapMs = 0, parts = null } =
+  const { intervalMs = 10000, minGapMs = 0, parts = null } =
     typeof options === 'number' ? { intervalMs: options } : options;
   const partsKey = parts ? parts.filter(Boolean).join(',') : '';
 

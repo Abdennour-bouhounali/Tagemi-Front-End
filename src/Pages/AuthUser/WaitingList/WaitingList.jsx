@@ -12,6 +12,8 @@ const DEFAULT_COLUMNS = 5;
 const COLUMN_CHOICES = [1, 2, 3, 4, 5, 6, 7];
 const ROTATION_MS = 10000;
 const REFRESH_MS = 10000;
+// Specialty names and opening change rarely; a queue with patients shows from the list anyway
+const SPECIALTIES_EVERY_TICKS = 3;
 // Names listed per queue: one number for every specialty, which a specialty
 // may override (settings drawer, kept per screen). Every column of a view keeps
 // as many rows as the longest list so names line up and keep the same size.
@@ -251,11 +253,21 @@ const WaitingList = () => {
     getEventDetails();
     getEventSpecialities();
     getWaitingList();
-    const interval = setInterval(() => {
+    let ticks = 0;
+    const refresh = () => {
       getWaitingList();
-      getEventSpecialities();
+      ticks += 1;
+      if (ticks % SPECIALTIES_EVERY_TICKS === 0) getEventSpecialities();
+    };
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') refresh();
     }, REFRESH_MS);
-    return () => clearInterval(interval);
+    const onVisible = () => document.visibilityState === 'visible' && refresh();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
