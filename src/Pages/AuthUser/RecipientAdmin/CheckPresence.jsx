@@ -213,6 +213,7 @@ const CheckPresence = () => {
   const [editedData, setEditedData] = useState({});
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
   const [undoPresenceFor, setUndoPresenceFor] = useState(null); // patient of the «لم يأت بعد» confirmation
+  const [undoVisitFor, setUndoVisitFor] = useState(null); // finished appointment of its «لم يأت بعد» confirmation
   const [transferFor, setTransferFor] = useState(null);    // appointment being moved
   const [availableSpecialties, setAvailableSpecialties] = useState(null);
   const [selectedTransferSpecialty, setSelectedTransferSpecialty] = useState(null);
@@ -553,6 +554,36 @@ const CheckPresence = () => {
       setUpdating(false);
     }
     return null;
+  };
+
+  // «لم يأت بعد» on one finished specialty: reception may then delete it
+  const closeUndoVisit = () => {
+    const patientId = undoVisitFor?.patient_id;
+    setUndoVisitFor(null);
+    if (patientId != null) setDetailsId(patientId);
+  };
+  const undoVisit = async (appointmentId) => {
+    setUpdating(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/appointments/${appointmentId}/undo-visit`, {
+        method: "POST",
+        headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast(data.message);
+        await fetchAppointments(true);
+        setLogVersion((v) => v + 1);
+        closeUndoVisit();
+      } else {
+        toast(data.message || "تعذر إلغاء الفحص. أعد المحاولة.", "error");
+      }
+    } catch (err) {
+      console.error("Undo visit error:", err);
+      toast("تعذر الاتصال بالخادم. تحقق من الشبكة.", "error");
+    } finally {
+      setUpdating(false);
+    }
   };
 
   // «لم يأت بعد»: checked in by mistake, back to not arrived
@@ -1131,6 +1162,8 @@ ${appointmentsList}
   const canDeleteFor = (p) => isAdmin
     || (canManageSpecial && !!bookingProblem(p, event))
     || role === 5;
+  // Same count as the server: appointments booked past the limit don't take a place
+  const atSpecialtyLimit = (p) => (p.all_appointments || [p]).filter((a) => !a.beyond_limit).length >= Number(event?.nbr_of_allowed_specialties || 1);
   const canDeleteAppointment = (p, apt) => canDeleteFor(p) && !(role === 5 && apt.status === 'Completed');
 
   // Filters apply to appointments, then rows are grouped per patient
@@ -2564,12 +2597,17 @@ ${appointmentsList}
             غيّر التخصص
           </SheetAction>
         )}
-        {mayExceed && (
+        {(mayExceed || role === 5) && (
           <SheetAction
             icon={PlusCircle}
-            hint={(p.all_appointments || [p]).length < Number(event?.nbr_of_allowed_specialties || 1)
+            disabled={atSpecialtyLimit(p) && !mayExceed}
+            hint={!atSpecialtyLimit(p)
               ? `الحدث يسمح بـ ${event?.nbr_of_allowed_specialties} تخصص لكل زائر`
-              : `بلغ ${event?.nbr_of_allowed_specialties} تخصص المسموح بها، يُضاف فوق العدد`}
+              : mayExceed
+                ? `بلغ ${event?.nbr_of_allowed_specialties} تخصص المسموح بها، يُضاف فوق العدد`
+                : Number(event?.nbr_of_allowed_specialties || 1) > 1
+                  ? `بلغ ${event?.nbr_of_allowed_specialties} تخصص المسموح بها: احذف موعداً أولاً`
+                  : 'هذا الحدث يسمح بتخصص واحد لكل زائر'}
             onClick={run(() => openSlot({ mode: 'add', patient: p }))}
           >
             أضف تخصصاً
@@ -3021,6 +3059,11 @@ ${appointmentsList}
                             غيّر التخصص
                           </Button>
                         )}
+                        {(isAdmin || role === 5) && apt.status === 'Completed' && isTodayApt(apt) && (
+                          <Button variant="secondary" size="sm" icon={Undo2} disabled={updating} onClick={() => { setDetailsId(null); setUndoVisitFor(apt); }}>
+                            لم يأت بعد
+                          </Button>
+                        )}
                         {canDeleteAppointment(selectedPatient, apt) && (
                           <Button variant="danger" size="sm" icon={Trash2} disabled={updating} onClick={() => { setReopenDetails(selectedPatient.patient_id); setDetailsId(null); setAppointmentToDelete(apt); }}>
                             احذف
@@ -3118,6 +3161,27 @@ ${appointmentsList}
                 : 'لا يمكن التراجع عن الحذف. مواعيد الزائر الأخرى تبقى كما هي.'}
             </p>
           </>
+        )}
+      </Sheet>
+
+      {/* «لم يأت بعد» on one finished specialty */}
+      <Sheet
+        open={!!undoVisitFor}
+        onClose={closeUndoVisit}
+        title="لم يأت بعد"
+        footer={undoVisitFor && (
+          <>
+            <Button size="lg" className="flex-1" icon={Undo2} loading={updating} onClick={() => undoVisit(undoVisitFor.id)}>
+              ألغِ هذا الفحص
+            </Button>
+            <Button size="lg" variant="secondary" disabled={updating} onClick={closeUndoVisit}>إلغاء</Button>
+          </>
+        )}
+      >
+        {undoVisitFor && (
+          <p className="text-sm text-ink">
+            يُلغى فحص {undoVisitFor.event_specialty?.specialty?.name || 'هذا التخصص'} للزائر #{undoVisitFor.patient_id} ولا يُحسب في الإحصائيات، ويعود الموعد قيد الانتظار. فحوصه الأخرى تبقى كما هي. بعدها يمكنك حذف الموعد.
+          </p>
         )}
       </Sheet>
 
