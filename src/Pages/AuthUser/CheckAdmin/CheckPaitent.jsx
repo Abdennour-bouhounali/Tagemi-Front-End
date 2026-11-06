@@ -101,6 +101,7 @@ export default function CheckPatient() {
     const [enterLoading, setEnterLoading] = useState(false);
     const [picked, setPicked] = useState([]);
     const [cancelFor, setCancelFor] = useState(null);
+    const [undoPassFor, setUndoPassFor] = useState(null);
     // «سجّل زائراً»: an existing patient of the event registered in this specialty
     const [registerOpen, setRegisterOpen] = useState(false);
     const [regNumber, setRegNumber] = useState('');
@@ -172,6 +173,12 @@ export default function CheckPatient() {
     };
 
     const all = data?.appointments || [];
+    const recentlyPassed = data?.recently_completed || [];
+    // A family member past the last rows of the list: the name of the one chosen still shows
+    const passedWith = (a) => {
+        const family = a.visit_group ? recentlyPassed.filter((x) => x.visit_group === a.visit_group) : [];
+        return family.length ? family : [a];
+    };
     const appointments = all.filter((a) => !inside(a));
     const hasDilatation = !!data?.has_dilatation;
     const doctorName = (id) => doctors?.find((d) => d.doctor_id === id)?.full_name || 'الطبيب';
@@ -310,6 +317,10 @@ export default function CheckPatient() {
             // eslint-disable-next-line no-await-in-loop
             await run(`/api/waitinglist/cancel-enter/${a.id}`);
         }
+    };
+    const undoPass = async (a) => {
+        setUndoPassFor(null);
+        await run(`/api/waitinglist/undo-complete/${a.id}`);
     };
     const openPushDown = (list) => { setPushPlaces(DEFAULT_PUSH_PLACES); setPushFor(list); };
     const toDilatation = (a) => run(`/api/waitinglist/Dilatation/${a.id}`, { success: 'أُرسل إلى قاعة التمدد' });
@@ -596,6 +607,30 @@ export default function CheckPatient() {
                         ))}
                     </ul>
                 </section>
+            )}
+
+            {isOfficer && recentlyPassed.length > 0 && (
+                <details className="mb-5 rounded-xl border border-line bg-white">
+                    <summary className="flex items-center gap-1.5 min-h-[44px] px-3 font-semibold text-ink cursor-pointer">
+                        <Check className="w-4 h-4 text-st-done" /> آخر من اجتاز ({recentlyPassed.length})
+                    </summary>
+                    <ul className="divide-y divide-line border-t border-line">
+                        {recentlyPassed.map((a) => (
+                            <li key={a.id} className="flex items-center gap-2 px-3 py-2">
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-semibold text-ink truncate">{a.full_name}</p>
+                                    <p className="text-xs text-muted">
+                                        <span className="font-semibold text-ink">#{a.patient_id}</span>
+                                        {a.doctor_name && ` · ${a.doctor_name}`}
+                                    </p>
+                                </div>
+                                <Button variant="secondary" size="sm" icon={Undo2} disabled={busy} onClick={() => setUndoPassFor(a)}>
+                                    تراجع
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
+                </details>
             )}
 
             {selecting ? (
@@ -941,16 +976,34 @@ export default function CheckPatient() {
                 )}
             </Sheet>
 
+            {/* Undo «إجتاز»: a family that passed together comes back together */}
+            <Sheet
+                open={!!undoPassFor}
+                onClose={() => setUndoPassFor(null)}
+                title="التراجع عن «إجتاز»"
+                footer={<Button variant="danger" block size="lg" icon={Undo2} loading={busy} onClick={() => undoPass(undoPassFor)}>تراجع عن «إجتاز»</Button>}
+            >
+                {undoPassFor && (
+                    <p className="text-sm text-ink">
+                        {passedWith(undoPassFor).map((a) => a.full_name).join('، ')} {passedWith(undoPassFor).length > 1 ? 'يعودون' : 'يعود'} إلى الطبيب ويتواصل وقت الزيارة، أو إلى أول الطابور إن كان الطبيب مع زائر آخر. وإن انتقل إلى تخصصه التالي، يعود ذلك الموعد إلى الانتظار.
+                    </p>
+                )}
+            </Sheet>
+
             {/* Register an existing patient in this specialty */}
             <Sheet
                 open={registerOpen}
                 onClose={() => setRegisterOpen(false)}
                 title={`تسجيل زائر في ${data?.speciality || 'هذا التخصص'}`}
-                footer={regPreview && (
+                footer={regPreview && (regPreview.undo_complete ? (
+                    <Button block size="lg" icon={Undo2} disabled={busy} onClick={() => { setRegisterOpen(false); setUndoPassFor(regPreview.undo_complete); }}>
+                        تراجع عن «إجتاز»
+                    </Button>
+                ) : (
                     <Button block size="lg" icon={UserPlus} loading={busy} disabled={!regPreview.allowed} onClick={confirmRegister}>
                         سجّل #{regPreview.patient_id} في {regPreview.specialty}
                     </Button>
-                )}
+                ))}
             >
                 <div className="space-y-4">
                     <p className="text-sm text-muted">لزائر مسجّل في الحدث ولم يحجز هذا التخصص. يُسجَّل لليوم في ساعة التسجيل.</p>
@@ -980,7 +1033,9 @@ export default function CheckPatient() {
                             <p className="text-xs text-muted">
                                 الحدث يسمح بـ {regPreview.limit} تخصص لكل زائر، والزائر حاجز {regPreview.counted}.
                             </p>
-                            {regPreview.already_booked ? (
+                            {regPreview.undo_complete ? (
+                                <p className="text-sm text-ink-soft">أنهى الزائر هذا التخصص اليوم. إن ضُغط «إجتاز» بالخطأ، تراجع عنه من هنا.</p>
+                            ) : regPreview.already_booked ? (
                                 <p className="text-sm text-red-700">الزائر حاجز هذا التخصص مسبقاً.</p>
                             ) : regPreview.at_limit && !regPreview.may_exceed ? (
                                 <p className="text-sm text-red-700">بلغ العدد المسموح. التسجيل فوق العدد يفعّله المدير العام لمسؤولي التخصص.</p>

@@ -1127,10 +1127,11 @@ ${appointmentsList}
       .map((id) => allPatients.find((p) => p.patient_id === id) || { patient_id: id, all_appointments: [] });
   const selectedProblem = selectedPatient && !hasCheckedIn(selectedPatient) ? bookingProblem(selectedPatient, event) : null;
   // Super admin always; the special-cases admin too when extra appointments must go;
-  // reception before check-in, as long as the patient keeps one specialty
+  // reception always, except a specialty the patient finished (see the server)
   const canDeleteFor = (p) => isAdmin
     || (canManageSpecial && !!bookingProblem(p, event))
-    || (role === 5 && !hasCheckedIn(p) && (p.all_appointments || [p]).length > 1);
+    || role === 5;
+  const canDeleteAppointment = (p, apt) => canDeleteFor(p) && !(role === 5 && apt.status === 'Completed');
 
   // Filters apply to appointments, then rows are grouped per patient
   const filteredAppointments = useMemo(() => {
@@ -2591,7 +2592,7 @@ ${appointmentsList}
         <SheetAction icon={Download} hint="ورقة تأكيد الحجز بكل مواعيده" onClick={run(() => handleDownloadPDF(p))}>
           حمّل ورقة الموعد
         </SheetAction>
-        {isAdmin && (
+        {(isAdmin || (role === 5 && canDeleteAppointment(p, p))) && (
           <SheetAction icon={Trash2} tone="text-red-700" onClick={run(() => setAppointmentToDelete(p))}>
             احذف الموعد
           </SheetAction>
@@ -3020,7 +3021,7 @@ ${appointmentsList}
                             غيّر التخصص
                           </Button>
                         )}
-                        {canDeleteFor(selectedPatient) && (
+                        {canDeleteAppointment(selectedPatient, apt) && (
                           <Button variant="danger" size="sm" icon={Trash2} disabled={updating} onClick={() => { setReopenDetails(selectedPatient.patient_id); setDetailsId(null); setAppointmentToDelete(apt); }}>
                             احذف
                           </Button>
@@ -3111,7 +3112,11 @@ ${appointmentsList}
               <div className="flex justify-between gap-2"><dt className="text-muted">الاسم</dt><dd className="font-semibold truncate">{appointmentToDelete.full_name}</dd></div>
               <div className="flex justify-between gap-2"><dt className="text-muted">التخصص</dt><dd className="font-semibold truncate">{appointmentToDelete.event_specialty?.specialty?.name || '-'}</dd></div>
             </dl>
-            <p className="mt-3 text-sm text-red-700">لا يمكن التراجع عن الحذف. مواعيد الزائر الأخرى تبقى كما هي.</p>
+            <p className="mt-3 text-sm text-red-700">
+              {allPatients.find((p) => p.patient_id === appointmentToDelete.patient_id)?.all_appointments?.length === 1
+                ? 'هذا آخر موعد للزائر: يختفي من قائمة هذا الحدث. لا يمكن التراجع عن الحذف.'
+                : 'لا يمكن التراجع عن الحذف. مواعيد الزائر الأخرى تبقى كما هي.'}
+            </p>
           </>
         )}
       </Sheet>
