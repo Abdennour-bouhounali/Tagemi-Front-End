@@ -53,6 +53,9 @@ import {
 
 const apiUrl = API_BASE_URL;
 const PAGE_SIZE = 60;
+// Longest pause between two keys of one scan
+const SCANNER_GAP_MS = 80;
+const SLOW_SCANNER_GAP_MS = 300;
 
 // Small dot in the status colour, for the per-specialty chips
 const STATUS_DOT = {
@@ -137,14 +140,26 @@ const normalizeAzertyBarcode = (buffer) => {
     "-": "6", "è": "7", "_": "8", "ç": "9", "à": "0",
   };
 
-  let normalized = buffer;
-  // Replace French AZERTY mis-mapped letters for "patient_id"
-  normalized = normalized.replace(/pqtient[°_]?id[M:]?\s*/i, "patient_id: ");
-  
-  // Replace unshifted AZERTY number-row characters with digits
-  normalized = normalized.replace(/[&é"'(è_çà]/g, (char) => azertyToDigit[char] || char);
+  // Only the number is converted: the "_" of "patient_id" is not an 8
+  const qr = buffer.match(/^.*?(?:patient_id|pqtient[°_]?id)[M:]?\s*(.*)$/i);
+  const digits = (qr ? qr[1] : buffer).replace(/[&é"'(\-è_çà]/g, (char) => azertyToDigit[char] || char);
+  return qr ? `patient_id: ${digits}` : digits;
+};
 
-  return normalized;
+/**
+ * Patient number of a scanned "patient_id:123" from the physical keys, whatever
+ * keyboard language the browser window has (Arabic gives no latin letters).
+ * T I E N T sit on the same keys in QWERTY and AZERTY.
+ */
+const scannedIdFromCodes = (codes) => {
+  if (codes.slice(2, 7).join() !== 'KeyT,KeyI,KeyE,KeyN,KeyT') return "";
+  const number = [];
+  for (let i = codes.length - 1; i >= 0; i--) {
+    const digit = /^(?:Digit|Numpad)(\d)$/.exec(codes[i]);
+    if (!digit) break;
+    number.unshift(digit[1]);
+  }
+  return number.join("");
 };
 
 /**
@@ -447,7 +462,7 @@ const CheckPresence = () => {
     return true;
   };
 
-  // Direct fast check-in and silent print for barcode scanner & instant desk check-in
+  // Check-in and silent print, once the sheet's button confirmed the patient
   const fastCheckInAndPrint = async (patientId) => {
     if (updating) return false;
     // Registered twice (same name + phone)? The registrations can only be merged
@@ -457,7 +472,7 @@ const CheckPresence = () => {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       });
       const dup = dupRes.ok ? await dupRes.json() : null;
-      if (dup?.patient_ids?.length) {
+      if (dup?.patient_ids?.some((id) => !notSame.has(`${patientId}:${id}`))) {
         const patient = await findPatient(patientId);
         if (patient && !hasCheckedIn(patient)) {
           playBeep("info");
@@ -607,10 +622,6 @@ const CheckPresence = () => {
       printCardFor(id); // its window opens now, during the click
       return;
     }
-    if (directPrint && canCheckIn && action === 'present') {
-      fastCheckInAndPrint(id);
-      return;
-    }
     findPatient(id).then((patient) => {
       if (!patient) return;
       if (action === 'present') showForPresence(patient);
@@ -619,30 +630,33 @@ const CheckPresence = () => {
   };
 
   const scannerBufferRef = useRef("");
+  const scannerCodesRef = useRef([]);
   const lastKeyTimeRef = useRef(0);
 
-  const handleBarcodeScanned = useCallback((scannedId) => {
+  // A scan always shows the patient: the sheet's button checks in and prints.
+  // In a ref so the key listener below always runs the latest version.
+  const onBarcodeScanned = useRef(null);
+  onBarcodeScanned.current = async (scannedId) => {
     setManualPatientId(scannedId);
     playBeep("info");
-    if (directPrint && canCheckIn) {
-      fastCheckInAndPrint(scannedId);
-    } else {
-      runNumberAction(mainAction.value);
-    }
-  }, [directPrint, canCheckIn, mainAction, appointments, eventId, token]);
+    const patient = await findPatient(scannedId);
+    if (patient) showForPresence(patient);
+  };
 
   useEffect(() => {
+    const clearScan = () => {
+      scannerBufferRef.current = "";
+      scannerCodesRef.current = [];
+    };
+
     const handleKeyDown = (e) => {
       const now = performance.now();
       const timeDiff = now - lastKeyTimeRef.current;
       lastKeyTimeRef.current = now;
 
-      if (timeDiff > 80 && scannerBufferRef.current.length > 0) {
-        const lower = scannerBufferRef.current.toLowerCase();
-        if (!lower.startsWith('patient_id:') && !lower.startsWith('pqtient')) {
-          scannerBufferRef.current = "";
-        }
-      }
+      // Started on the P key: maybe a QR, and some scanners type slowly
+      const maxGap = scannerCodesRef.current[0] === 'KeyP' ? SLOW_SCANNER_GAP_MS : SCANNER_GAP_MS;
+      if (timeDiff > maxGap) clearScan();
 
       const activeEl = document.activeElement;
       const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
@@ -651,35 +665,27 @@ const CheckPresence = () => {
       const inDataEntry = !!activeEl?.closest?.('[data-no-scan]');
 
       if (e.key === "Enter") {
-        const rawBuffer = scannerBufferRef.current.trim();
-        scannerBufferRef.current = "";
+        const buffer = normalizeAzertyBarcode(scannerBufferRef.current.trim());
+        const codes = scannerCodesRef.current;
+        clearScan();
 
-        const buffer = normalizeAzertyBarcode(rawBuffer);
+        const isQr = /patient_id:/i.test(buffer);
+        const pid = isQr
+          ? buffer.replace(/^.*patient_id:\s*/i, "").replace(/\D/g, "")
+          : scannedIdFromCodes(codes) || (/^\d+$/.test(buffer) && !inDataEntry ? buffer : "");
 
-        if (buffer.length > 0) {
-          if (/patient_id:/i.test(buffer) || (/^\d+$/.test(buffer) && !inDataEntry)) {
-            let pid = buffer;
-            if (/patient_id:/i.test(buffer)) {
-              pid = buffer.replace(/^.*patient_id:\s*/i, "");
-            }
-            pid = pid.replace(/\D/g, "");
-
-            if (pid) {
-              e.preventDefault();
-              e.stopPropagation();
-              if (isInput && !isCheckinInput) {
-                activeEl.blur();
-              }
-              handleBarcodeScanned(pid);
-              return;
-            }
-          }
+        if (pid) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (isInput && !isCheckinInput) activeEl.blur();
+          onBarcodeScanned.current(pid);
         }
         return;
       }
 
       if (e.key && e.key.length === 1) {
         scannerBufferRef.current += e.key;
+        scannerCodesRef.current.push(e.code);
 
         // If the scanner starts typing patient_id: (or pqtient) inside another input, prevent pollution
         const lower = scannerBufferRef.current.toLowerCase();
@@ -693,7 +699,7 @@ const CheckPresence = () => {
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [handleBarcodeScanned]);
+  }, []);
 
   const actOnPatient = async (action, patient) => {
     if (action === 'details') {
@@ -718,12 +724,7 @@ const CheckPresence = () => {
       const patient = await findPatient(patientId);
       if (!patient) return false;
 
-      // Presence: if direct print is enabled, immediately check in & print!
       if (scanAction === 'present') {
-        if (directPrint && canCheckIn) {
-          setShowQRScanner(false);
-          return await fastCheckInAndPrint(patientId);
-        }
         showForPresence(patient);
         return true;
       }
@@ -2051,7 +2052,7 @@ ${appointmentsList}
       const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
       Promise.race([ready, timeout]).then(() => {
         try {
-          iframe.contentWindow.focus();
+          // No focus() here: the iframe would keep the keyboard and the next scan would be lost
           iframe.contentWindow.print();
         } catch (e) {
           console.error("Silent print error:", e);
@@ -2642,7 +2643,7 @@ ${appointmentsList}
                   directPrint ? "bg-emerald-500 animate-pulse" : "bg-muted"
                 )} />
                 <span className="text-xs font-bold text-ink truncate">
-                  {directPrint ? "قارئ الباركود (مسح وطباعة فورية)" : "التحضير اليدوي"}
+                  {directPrint ? "الطباعة الصامتة مفعّلة" : "الطباعة في تبويب جديد"}
                 </span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -2731,7 +2732,7 @@ ${appointmentsList}
               </Button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted text-center">مع قارئ الباركود يتم التنفيذ والطباعة فورياً. زر «مسح كاميرا» ينفّذ «{mainAction.label}».</p>
+          <p className="mt-2 text-xs text-muted text-center">مع قارئ الباركود تظهر بيانات الزائر مباشرة، ثم أكّد الحضور والطباعة. زر «مسح كاميرا» ينفّذ «{mainAction.label}».</p>
         </form>
 
       <StatStrip
@@ -3335,7 +3336,7 @@ ${appointmentsList}
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs">
               <strong className="block mb-1 font-bold text-sm">⚡ كيف تعمل الميزة؟</strong>
               قارئ الباركود (Handheld Barcode Scanner) متصل بحاسوب موظف الاستقبال ويعمل كلوحة مفاتيح سريعة.
-              بمجرد توجيه القارئ إلى رمز QR أو باركود الزائر، يقوم النظام فورياً بتسجيل حضوره وطباعة بطاقة المتابعة (A5) مباشرة دون أي نقرات إضافية أو فتح نوافذ جديدة.
+              بمجرد توجيه القارئ إلى رمز QR أو باركود الزائر تظهر بياناته، وبعد تأكيد الحضور تُطبع بطاقة المتابعة (A5) مباشرة دون فتح تبويب جديد.
             </div>
 
             <div className="border border-line rounded-xl p-3.5 space-y-2 bg-white">
