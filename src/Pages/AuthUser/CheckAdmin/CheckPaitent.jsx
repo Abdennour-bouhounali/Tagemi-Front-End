@@ -3,7 +3,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { useParams, Link } from 'react-router-dom';
 import {
     Check, ChevronsDown, MoreVertical, ScanLine, Droplets, Send, MessageSquare, Info, QrCode,
-    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, DoorOpen, Undo2, Stethoscope, History, UserPlus,
+    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, DoorOpen, Undo2, Stethoscope, History, UserPlus, ArrowLeftRight,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { csvSafe } from '../../../utils/safeHtml';
@@ -33,7 +33,8 @@ const MAX_PUSH_PLACES = 30;
  * Specialty queue (مسؤول التخصص / الطبيب). Patients are shown as tickets in
  * queue order. The officer picks one of the present doctors, marks the
  * patient «دخل» (alone or with family members) and later «إجتاز», which times
- * the visit; they also push down, send to dilatation or to another specialty.
+ * the visit; they also push down, send to dilatation or to another specialty,
+ * or switch the patient to another specialty they already booked.
  * The patient manager (مسؤول القاعة الصغرى) only pushes down; the doctor reads
  * and writes notes; the organizer (مسؤول التنظيم) does what the officer does and
  * also pushes down. Every action works
@@ -70,6 +71,9 @@ export default function CheckPatient() {
     const [comment, setComment] = useState('');
     const [referralFor, setReferralFor] = useState(null);
     const [referralOptions, setReferralOptions] = useState(null);
+    // «تبديل التخصص»: the patient's other booked specialties
+    const [switchFor, setSwitchFor] = useState(null);
+    const [switchOptions, setSwitchOptions] = useState(null);
     const [qrFor, setQrFor] = useState(null);
     const [historyFor, setHistoryFor] = useState(null);
     const closeHistory = useCallback(() => setHistoryFor(null), []);
@@ -342,6 +346,26 @@ export default function CheckPatient() {
         } catch {
             setReferralOptions([]);
         }
+    };
+
+    const openSwitch = async (a) => {
+        setSwitchFor(a);
+        setSwitchOptions(null);
+        try {
+            const res = await fetch(`${apiUrl}/api/appointments/${a.id}/switch-options`, { headers: authHeaders });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json.message);
+            setSwitchOptions(json.specialties || []);
+        } catch (e) {
+            // Not an empty list: the patient may well have other specialties
+            setSwitchFor(null);
+            toast(e.message || 'تعذر جلب تخصصات الزائر', 'error');
+        }
+    };
+
+    const confirmSwitch = async (option) => {
+        const ok = await run(`/api/appointments/${switchFor.id}/switch-specialty`, { body: { appointment_id: option.appointment_id } });
+        if (ok) setSwitchFor(null);
     };
 
     const saveComment = async () => {
@@ -692,6 +716,11 @@ export default function CheckPatient() {
                             </SheetAction>
                         )}
                         {isOfficer && (inQueue(actionsFor) || inside(actionsFor)) && (
+                            <SheetAction icon={ArrowLeftRight} hint="إلى تخصص آخر سجّل فيه، ويبقى هذا التخصص محجوزاً له" onClick={() => { openSwitch(actionsFor); setActionsFor(null); }}>
+                                تبديل التخصص
+                            </SheetAction>
+                        )}
+                        {isOfficer && (inQueue(actionsFor) || inside(actionsFor)) && (
                             <SheetAction icon={Send} hint="لتخصص لم يحجزه، يدخل طابوره في المرتبة الثالثة" onClick={() => { openReferral(actionsFor); setActionsFor(null); }}>
                                 إرسال إلى تخصص آخر
                             </SheetAction>
@@ -780,6 +809,34 @@ export default function CheckPatient() {
                     className="w-full rounded-xl border border-line p-3 text-base focus:border-ink focus:outline-none"
                     placeholder="اكتب الملاحظة الطبية..."
                 />
+            </Sheet>
+
+            {/* Switch to another specialty the patient booked */}
+            <Sheet open={!!switchFor} onClose={() => setSwitchFor(null)} title="تبديل التخصص">
+                {switchFor && (
+                    <>
+                        <p className="text-sm text-muted mb-3">
+                            يغادر #{switchFor.patient_id} {inside(switchFor) ? 'الطبيب' : 'هذا الطابور'} الآن ويدخل آخر طابور التخصص المختار، ويعود إلى {data?.speciality} لاحقاً في آخر طابوره.
+                        </p>
+                        {switchOptions === null ? <LoadingState /> : switchOptions.length === 0 ? (
+                            <EmptyState title="لا يوجد تخصص آخر">هذا الزائر مسجل في {data?.speciality} فقط.</EmptyState>
+                        ) : (
+                            <div className="divide-y divide-line">
+                                {switchOptions.map((o) => (
+                                    <SheetAction
+                                        key={o.appointment_id}
+                                        icon={ArrowLeftRight}
+                                        hint={o.can_switch ? `في الطابور الآن: ${o.queue_length}` : o.reason}
+                                        disabled={busy || !o.can_switch}
+                                        onClick={() => confirmSwitch(o)}
+                                    >
+                                        {o.name}
+                                    </SheetAction>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
             </Sheet>
 
             {/* Send to another specialty */}
