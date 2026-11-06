@@ -65,10 +65,11 @@ export function staffTabs(user) {
         { key: 'stations', label: 'التخصصات', icon: Stethoscope, to: `/admin/stations/${e}`, match: ['/admin/stations', '/admin/event-waiting-lists', '/admin/dilatation'] },
         more,
       ];
-    // Organizer: the live statistics «أثناء الحدث» and the hall screen only, changes nothing
+    // Organizer: the live statistics, the hall screen and the specialties (officer's actions + إنزال)
     case 9:
       return [
         { key: 'live', label: 'أثناء الحدث', icon: Activity, to: `/admin/event-statistics/${e}`, match: ['/admin/event-statistics'] },
+        { key: 'stations', label: 'التخصصات', icon: Stethoscope, to: `/admin/stations/${e}`, match: ['/admin/stations', '/admin/event-waiting-lists', '/admin/dilatation'] },
         more,
       ];
     default:

@@ -35,7 +35,8 @@ const MAX_PUSH_PLACES = 30;
  * patient «دخل» (alone or with family members) and later «إجتاز», which times
  * the visit; they also push down, send to dilatation or to another specialty.
  * The patient manager (مسؤول القاعة الصغرى) only pushes down; the doctor reads
- * and writes notes; the organizer (مسؤول التنظيم) only looks. Every action works
+ * and writes notes; the organizer (مسؤول التنظيم) does what the officer does and
+ * also pushes down. Every action works
  * from the buttons and from a QR scan of the patient's card.
  */
 export default function CheckPatient() {
@@ -43,12 +44,12 @@ export default function CheckPatient() {
     const { user, token } = useContext(AppContext);
     const toast = useToast();
 
-    const isOfficer = user && [1, 4].includes(user.role_id);
-    // إنزال: super admin and patient manager (removed for the specialty officer on 2026-11-05)
-    const canPushDown = user && [1, 8].includes(user.role_id);
+    const isOfficer = user && [1, 4, 9].includes(user.role_id);
+    // إنزال: super admin, patient manager and organizer (removed for the specialty officer on 2026-11-05)
+    const canPushDown = user && [1, 8, 9].includes(user.role_id);
     const canSelect = isOfficer || canPushDown; // family entry and/or bulk إنزال
     const isSuperAdmin = user?.role_id === 1; // opens / closes the queue on visit day
-    const canComment = user && [1, 4, 6].includes(user.role_id);
+    const canComment = user && [1, 4, 6, 9].includes(user.role_id);
 
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);

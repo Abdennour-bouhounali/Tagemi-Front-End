@@ -90,8 +90,8 @@ export default function DilatationRoom() {
   if (!data) return <LoadingState />;
 
   const backTo = user?.role_id === 1 ? `/admin/event-tracking/${eventId}` : `/admin/stations/${eventId}`;
-  // Organizer, doctors and the patient manager look only
-  const isViewer = [6, 8, 9].includes(user?.role_id);
+  // Doctors and the patient manager look only
+  const isViewer = [6, 8].includes(user?.role_id);
 
   const Who = ({ p }) => (
     <>
