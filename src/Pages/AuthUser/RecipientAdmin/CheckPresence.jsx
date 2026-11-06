@@ -44,6 +44,7 @@ import {
   VolumeX,
   HelpCircle,
   Zap,
+  Undo2,
 } from "lucide-react";
 import {
   Button, IconButton, StatusBadge, PageHeader, StatStrip, SearchField, ChipGroup, EmptyState,
@@ -95,6 +96,18 @@ const bookingProblem = (p, event) => {
   const twice = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
   if (twice.length) problems.push(`حاجز ${twice.join('، ')} مرتين: احذف أحد الموعدين.`);
   return problems.length ? `${problems.join(' ')} لا يُسجَّل الحضور قبل ذلك.` : null;
+};
+
+/** Checked in today: «لم يأت بعد» applies (other days' statuses don't count). */
+const presentToday = (p) => (p.all_appointments || [p]).some((a) => isTodayApt(a) && a.status !== 'Pending');
+
+/** Why «لم يأت بعد» is refused for now, or null. The server has the final word. */
+const undoPresenceBlock = (p) => {
+  const today = (p.all_appointments || [p]).filter(isTodayApt);
+  if (today.some((a) => a.status === 'Entered')) return 'الزائر عند الطبيب حالياً';
+  if (today.some((a) => a.status === 'Completed')) return 'أنهى فحصاً اليوم';
+  if (today.some((a) => a.dilatation_sent_at)) return 'مرّ بقاعة التمدد';
+  return null;
 };
 
 /** The appointment "move to front" acts on from the patient menu: the queued one, else the first of today. */
@@ -184,6 +197,7 @@ const CheckPresence = () => {
   const [editFor, setEditFor] = useState(null);            // appointment being edited
   const [editedData, setEditedData] = useState({});
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+  const [undoPresenceFor, setUndoPresenceFor] = useState(null); // patient of the «لم يأت بعد» confirmation
   const [transferFor, setTransferFor] = useState(null);    // appointment being moved
   const [availableSpecialties, setAvailableSpecialties] = useState(null);
   const [selectedTransferSpecialty, setSelectedTransferSpecialty] = useState(null);
@@ -275,6 +289,7 @@ const CheckPresence = () => {
   const closeDetails = useCallback(() => setDetailsId(null), []);
   const closeQr = useCallback(() => setQrFor(null), []);
   const closeDelete = useCallback(() => { setAppointmentToDelete(null); setReopenDetails(null); }, []);
+  const closeUndoPresence = useCallback(() => setUndoPresenceFor(null), []);
   const closeTransfer = useCallback(() => { setTransferFor(null); setSelectedTransferSpecialty(null); }, []);
   const closeFilters = useCallback(() => setShowFilters(false), []);
   const closeExports = useCallback(() => setShowExports(false), []);
@@ -523,6 +538,37 @@ const CheckPresence = () => {
       setUpdating(false);
     }
     return null;
+  };
+
+  // «لم يأت بعد»: checked in by mistake, back to not arrived
+  const undoPresence = async (patientId) => {
+    setUpdating(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/events/${eventId}/check-in/undo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ patient_id: Number(patientId) }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast(data.message);
+        setUndoPresenceFor(null);
+        setLogVersion((v) => v + 1);
+        await fetchAppointments(true);
+      } else {
+        toast(data.message || `تعذر إلغاء حضور الزائر #${patientId}. أعد المحاولة.`, "error");
+      }
+    } catch (err) {
+      console.error("Undo check-in error:", err);
+      toast("تعذر الاتصال بالخادم. تحقق من الشبكة ثم أعد المحاولة.", "error");
+    } finally {
+      setUpdating(false);
+    }
   };
 
   // The typed number, or null (with a message) when it is not a number
@@ -2470,6 +2516,16 @@ ${appointmentsList}
             </Button>
           </div>
         )}
+        {canCheckIn && presentToday(p) && (
+          <SheetAction
+            icon={Undo2}
+            hint={undoPresenceBlock(p) ? `غير ممكن: ${undoPresenceBlock(p)}` : 'سُجّل حاضراً بالخطأ: يخرج من الطابور'}
+            disabled={updating || !!undoPresenceBlock(p)}
+            onClick={run(() => setUndoPresenceFor(p))}
+          >
+            لم يأت بعد
+          </SheetAction>
+        )}
         {canManageSpecial && !special && specialTarget(p) && (
           <SheetAction icon={Star} tone="text-rose" hint={`يدخل طابور ${specialTarget(p).event_specialty?.specialty?.name || 'تخصصه'} بأولوية`} disabled={updating} onClick={run(() => markAsSpecialCase(specialTarget(p).id))}>
             سجّله حالة خاصة
@@ -3055,6 +3111,32 @@ ${appointmentsList}
               <div className="flex justify-between gap-2"><dt className="text-muted">التخصص</dt><dd className="font-semibold truncate">{appointmentToDelete.event_specialty?.specialty?.name || '-'}</dd></div>
             </dl>
             <p className="mt-3 text-sm text-red-700">لا يمكن التراجع عن الحذف. مواعيد الزائر الأخرى تبقى كما هي.</p>
+          </>
+        )}
+      </Sheet>
+
+      {/* «لم يأت بعد»: confirm, the patient loses their place */}
+      <Sheet
+        open={!!undoPresenceFor}
+        onClose={closeUndoPresence}
+        title="لم يأت بعد"
+        footer={undoPresenceFor && (
+          <>
+            <Button size="lg" className="flex-1" icon={Undo2} loading={updating} onClick={() => undoPresence(undoPresenceFor.patient_id)}>
+              ألغِ الحضور
+            </Button>
+            <Button size="lg" variant="secondary" disabled={updating} onClick={closeUndoPresence}>تراجع</Button>
+          </>
+        )}
+      >
+        {undoPresenceFor && (
+          <>
+            <p className="font-display text-xl text-ink leading-snug">
+              <span className="text-ink-soft">#{undoPresenceFor.patient_id}</span> {undoPresenceFor.full_name}
+            </p>
+            <p className="mt-3 text-base text-ink-soft">
+              يخرج من الطابور ويعود إلى «لم يحضر بعد». عند وصوله سجّل حضوره من جديد، فيدخل آخر الطابور.
+            </p>
           </>
         )}
       </Sheet>
