@@ -11,6 +11,7 @@ const ACTION_LABELS = {
   deleted: 'حذف الموعد',
   specialty_added: 'أضاف تخصصاً',
   moved_to_front: 'قدّمه إلى المركز 3',
+  marked_absent: 'سجّله غائباً',
   specialty_switched: 'بدّل التخصص',
   merged: 'دمج تسجيلاً مكرراً',
 };
@@ -20,7 +21,7 @@ const slot = (s) => s && [s.specialty, s.day, s.hour && s.hour.slice(0, 5)].filt
 function describe(log) {
   const d = log.details || {};
   if (log.action === 'rescheduled') return `من ${slot(d.from) || '-'} إلى ${slot(d.to) || '-'}${d.over_capacity ? ' (فوق السعة)' : ''}`;
-  if (log.action === 'moved_to_front') return d.specialty || '';
+  if (log.action === 'moved_to_front' || log.action === 'marked_absent') return d.specialty || '';
   if (log.action === 'specialty_switched') return `من ${d.from || '-'} إلى ${d.to || '-'}`;
   if (log.action === 'status_changed') {
     const change = d.from ? `${statusLabel(d.from)} ← ${statusLabel(d.to)}` : statusLabel(d.to);

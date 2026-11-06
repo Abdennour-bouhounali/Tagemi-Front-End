@@ -3,7 +3,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { useParams, Link } from 'react-router-dom';
 import {
     Check, ChevronsDown, MoreVertical, ScanLine, Droplets, Send, MessageSquare, Info, QrCode,
-    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, DoorOpen, Undo2, Stethoscope, History, UserPlus, ArrowLeftRight,
+    Lock, Unlock, Download, ListChecks, X, User, Star, ChevronRight, DoorOpen, Undo2, Stethoscope, History, UserPlus, UserX, ArrowLeftRight,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { csvSafe } from '../../../utils/safeHtml';
@@ -102,6 +102,7 @@ export default function CheckPatient() {
     const [picked, setPicked] = useState([]);
     const [cancelFor, setCancelFor] = useState(null);
     const [undoPassFor, setUndoPassFor] = useState(null);
+    const [absentFor, setAbsentFor] = useState(null);
     // «سجّل زائراً»: an existing patient of the event registered in this specialty
     const [registerOpen, setRegisterOpen] = useState(false);
     const [regNumber, setRegNumber] = useState('');
@@ -324,6 +325,10 @@ export default function CheckPatient() {
     const undoPass = async (a) => {
         setUndoPassFor(null);
         await run(`/api/waitinglist/undo-complete/${a.id}`);
+    };
+    const markAbsent = async (a) => {
+        setAbsentFor(null);
+        await run(`/api/waitinglist/absent/${a.id}`);
     };
     const openPushDown = (list) => { setPushPlaces(DEFAULT_PUSH_PLACES); setPushFor(list); };
     const toDilatation = (a) => run(`/api/waitinglist/Dilatation/${a.id}`, { success: 'أُرسل إلى قاعة التمدد' });
@@ -748,6 +753,11 @@ export default function CheckPatient() {
                                 إنزال
                             </SheetAction>
                         )}
+                        {isOfficer && inQueue(actionsFor) && (
+                            <SheetAction icon={UserX} hint="يخرج من الطابور، ويسجّل حضوره من جديد في الاستقبال" onClick={() => { setAbsentFor(actionsFor); setActionsFor(null); }}>
+                                غائب
+                            </SheetAction>
+                        )}
                         {isOfficer && (inQueue(actionsFor) || inside(actionsFor)) && hasDilatation && (
                             <SheetAction icon={Droplets} hint="يغادر الطابور ويعود بأولوية بعد التمدد" onClick={() => { toDilatation(actionsFor); setActionsFor(null); }}>
                                 إرسال إلى قاعة التمدد
@@ -975,6 +985,20 @@ export default function CheckPatient() {
                 {cancelFor && (
                     <p className="text-sm text-ink">
                         {cancelFor.patients.map((a) => a.full_name).join('، ')} {cancelFor.patients.length > 1 ? 'يعودون' : 'يعود'} إلى أول الطابور، ولا يُحسب وقت هذه الزيارة. استعمله عند الضغط على «دخل» بالخطأ.
+                    </p>
+                )}
+            </Sheet>
+
+            {/* «غائب»: the patient loses their place, so it is confirmed */}
+            <Sheet
+                open={!!absentFor}
+                onClose={() => setAbsentFor(null)}
+                title="تسجيل الزائر غائباً"
+                footer={<Button variant="danger" block size="lg" icon={UserX} loading={busy} onClick={() => markAbsent(absentFor)}>سجّله غائباً</Button>}
+            >
+                {absentFor && (
+                    <p className="text-sm text-ink">
+                        #{absentFor.patient_id} {absentFor.full_name} يخرج من الطابور ويفقد مكانه، وتعود مواعيده غير المنتهية إلى «لم يحضر بعد». عند رجوعه يتوجه إلى الاستقبال لتسجيل حضوره من جديد، فيدخل آخر الطابور. الفحوص التي أنهاها تبقى كما هي.
                     </p>
                 )}
             </Sheet>

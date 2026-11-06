@@ -72,7 +72,7 @@ const STATUS_DOT = {
 const isTrue = (v) => v === true || v === 1;
 const isSpecialPatient = (p) => (p.all_appointments || [p]).some((a) => isTrue(a.is_special));
 const patientDocuments = (p) => [...new Set((p.all_appointments || [p]).flatMap((a) => a.medical_document_urls || []))];
-const hasCheckedIn = (p) => (p.all_appointments || [p]).some((a) => a.status !== 'Pending');
+const hasCheckedIn = (p) => (p.all_appointments || [p]).some((a) => a.status !== 'Pending') && !backAtReception(p);
 const aptDay = (a) => a.day?.day_date || a.day?.date || "-";
 const aptHour = (a) => a.hour?.time || a.hour?.hour || "-";
 const todayInAlgiers = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Algiers' });
@@ -101,8 +101,17 @@ const bookingProblem = (p, event) => {
   return problems.length ? `${problems.join(' ')} لا يُسجَّل الحضور قبل ذلك.` : null;
 };
 
+/** Waits for check-in today, a finished exam beside it included (marked absent at a specialty). Same rule as the server. */
+const backAtReception = (p) => {
+  const today = (p.all_appointments || [p]).filter(isTodayApt);
+  return today.some((a) => a.status === 'Pending') && today.every((a) => ['Pending', 'Completed'].includes(a.status));
+};
+
+/** Marked «غائب» at a specialty: admitted once today, so the specialty limit is not checked again. */
+const cameBackToday = (p) => backAtReception(p) && (p.all_appointments || [p]).some((a) => isTodayApt(a) && a.checked_in_at);
+
 /** Checked in today: «لم يأت بعد» applies (other days' statuses don't count). */
-const presentToday = (p) => (p.all_appointments || [p]).some((a) => isTodayApt(a) && a.status !== 'Pending');
+const presentToday = (p) => !backAtReception(p) && (p.all_appointments || [p]).some((a) => isTodayApt(a) && a.status !== 'Pending');
 
 /** Why «لم يأت بعد» is refused for now, or null. The server has the final word. */
 const undoPresenceBlock = (p) => {
@@ -1156,7 +1165,7 @@ ${appointmentsList}
     : duplicates.ids
       .filter((id) => !notSame.has(`${selectedPatient.patient_id}:${id}`))
       .map((id) => allPatients.find((p) => p.patient_id === id) || { patient_id: id, all_appointments: [] });
-  const selectedProblem = selectedPatient && !hasCheckedIn(selectedPatient) ? bookingProblem(selectedPatient, event) : null;
+  const selectedProblem = selectedPatient && !hasCheckedIn(selectedPatient) && !cameBackToday(selectedPatient) ? bookingProblem(selectedPatient, event) : null;
   // Super admin always; the special-cases admin too when extra appointments must go;
   // reception always, except a specialty the patient finished (see the server)
   const canDeleteFor = (p) => isAdmin
