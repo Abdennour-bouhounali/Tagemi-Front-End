@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../../../config/environment';
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   MoreVertical, Users, Pencil, Trash2, UserX, UserCheck, Copy, RefreshCw, CalendarCheck, Phone, Mail,
-  FilterX, Shield, ShieldCheck, PlusCircle, X, Loader2,
+  FilterX, Shield, ShieldCheck, PlusCircle, X, Loader2, KeyRound, Eye, EyeOff,
 } from "lucide-react";
 import { AppContext } from "../../../Context/AppContext";
 import {
@@ -69,6 +69,7 @@ export default function AllUsers() {
 
   const [selected, setSelected] = useState(null);
   const [editFor, setEditFor] = useState(null);
+  const [passwordFor, setPasswordFor] = useState(null);
   const [deleteFor, setDeleteFor] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -431,6 +432,7 @@ export default function AllUsers() {
           toast={toast}
           onClose={() => setSelected(null)}
           onEdit={() => { setEditFor(selected); setSelected(null); }}
+          onChangePassword={() => { setPasswordFor(selected); setSelected(null); }}
           onDelete={() => { setDeleteFor(selected); setSelected(null); }}
           onChanged={(text) => { setSelected(null); afterChange(text); }}
         />
@@ -444,6 +446,17 @@ export default function AllUsers() {
           toast={toast}
           onClose={() => setEditFor(null)}
           onSuccess={() => { setEditFor(null); afterChange("تم حفظ بيانات المستخدم"); }}
+        />
+      )}
+
+      {passwordFor && (
+        <ChangePasswordSheet
+          key={passwordFor.id}
+          user={passwordFor}
+          token={token}
+          toast={toast}
+          onClose={() => setPasswordFor(null)}
+          onSuccess={() => { setPasswordFor(null); afterChange("تم تغيير كلمة المرور"); }}
         />
       )}
 
@@ -559,7 +572,7 @@ function BulkActionSheet({ action, users, roles, events, token, toast, onClose, 
 }
 
 /** Detail of one user: contact, role + event assignment, and the row actions. */
-function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onDelete, onChanged }) {
+function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onChangePassword, onDelete, onChanged }) {
   const isSuperAdmin = user.role_id === 1;
   // Pre-select the first event when the user has none
   const [form, setForm] = useState({
@@ -634,7 +647,10 @@ function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onDelet
       </div>
 
       {isSuperAdmin ? (
-        <p className="text-sm text-ink bg-paper rounded-xl p-3">حساب المدير العام لا يُعدَّل ولا يُعيَّن من هذه الصفحة.</p>
+        <>
+          <p className="text-sm text-ink bg-paper rounded-xl p-3 mb-2">بيانات حساب المدير العام وتعيينه لا يتغيران من هذه الصفحة، كلمة المرور فقط.</p>
+          <SheetAction icon={KeyRound} onClick={onChangePassword}>غيّر كلمة المرور</SheetAction>
+        </>
       ) : (
         <>
           <form onSubmit={assign} className="space-y-3 mb-4">
@@ -669,7 +685,8 @@ function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onDelet
                 {exceeds ? "ألغِ تجاوز عدد التخصصات" : "اسمح بتجاوز عدد التخصصات"}
               </SheetAction>
             )}
-            <SheetAction icon={Pencil} hint="الاسم، البريد، الهاتف، كلمة المرور" onClick={onEdit}>عدّل البيانات</SheetAction>
+            <SheetAction icon={Pencil} hint="الاسم، البريد، الهاتف" onClick={onEdit}>عدّل البيانات</SheetAction>
+            <SheetAction icon={KeyRound} onClick={onChangePassword}>غيّر كلمة المرور</SheetAction>
             <SheetAction icon={Trash2} tone="text-red-700" onClick={onDelete}>احذف المستخدم</SheetAction>
           </div>
         </>
@@ -679,7 +696,7 @@ function UserSheet({ user, roles, events, token, toast, onClose, onEdit, onDelet
 }
 
 function EditUserSheet({ user, token, toast, onClose, onSuccess }) {
-  const [form, setForm] = useState({ ...initialNameParts(user), email: user.email || "", phone: user.phone || "", password: "" });
+  const [form, setForm] = useState({ ...initialNameParts(user), email: user.email || "", phone: user.phone || "" });
   const [nameErrors, setNameErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -696,7 +713,6 @@ function EditUserSheet({ user, token, toast, onClose, onSuccess }) {
     setLoading(true);
     try {
       const payload = { ...form, first_name: cleanName(form.first_name), family_name: cleanName(form.family_name) };
-      if (!payload.password) delete payload.password;
       const res = await fetch(`${apiUrl}/api/users/${user.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -739,9 +755,69 @@ function EditUserSheet({ user, token, toast, onClose, onSuccess }) {
         <Field label="الهاتف">
           <TextInput type="tel" dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         </Field>
-        <Field label="كلمة مرور جديدة" hint="اتركها فارغة للإبقاء على كلمة المرور الحالية">
-          <TextInput type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+      </form>
+    </Sheet>
+  );
+}
+
+const MIN_PASSWORD = 8;
+
+function ChangePasswordSheet({ user, token, toast, onClose, onSuccess }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [shown, setShown] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    const found = {};
+    if (password.length < MIN_PASSWORD) found.password = `${MIN_PASSWORD} أحرف على الأقل`;
+    else if (password !== confirmation) found.confirmation = "كلمتا المرور غير متطابقتين";
+    setErrors(found);
+    if (Object.keys(found).length) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/users/${user.id}/password`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ password, password_confirmation: confirmation }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) onSuccess();
+      else toast(data.message || "تعذر تغيير كلمة المرور", "error");
+    } catch {
+      toast(NETWORK_ERROR, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const type = shown ? "text" : "password";
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="تغيير كلمة المرور"
+      footer={<Button block size="lg" icon={KeyRound} loading={loading} onClick={handleSubmit}>غيّر كلمة المرور</Button>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <p className="text-sm text-ink">
+          كلمة مرور جديدة لحساب <span className="font-semibold">{user.name}</span>. يخرج صاحب الحساب من أجهزته المفتوحة، وبلّغه بها لأنها لا تُعرض لاحقاً.
+        </p>
+        <Field label="كلمة المرور الجديدة" hint={`${MIN_PASSWORD} أحرف على الأقل`} error={errors.password}>
+          <TextInput type={type} dir="ltr" autoComplete="new-password" value={password} invalid={!!errors.password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
+        <Field label="أعد كتابتها" error={errors.confirmation}>
+          <TextInput type={type} dir="ltr" autoComplete="new-password" value={confirmation} invalid={!!errors.confirmation} onChange={(e) => setConfirmation(e.target.value)} />
+        </Field>
+        <Button variant="secondary" size="sm" icon={shown ? EyeOff : Eye} aria-pressed={shown} onClick={() => setShown((v) => !v)}>
+          {shown ? "أخفِ كلمة المرور" : "أظهر كلمة المرور"}
+        </Button>
+        {/* Enter submits the form: the kit's Button is type="button" */}
+        <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
       </form>
     </Sheet>
   );
