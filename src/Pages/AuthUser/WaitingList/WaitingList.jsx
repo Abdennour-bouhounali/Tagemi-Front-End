@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../../../config/environment';
 import { useEffect, useState, useContext, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowRight, RefreshCw, Maximize, Minimize, Eye, EyeOff, SlidersHorizontal, X, Lock, Users } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, RefreshCw, Maximize, Minimize, Eye, EyeOff, SlidersHorizontal, X, Lock, Users } from 'lucide-react';
 import { AppContext } from "../../../Context/AppContext";
 
 const apiUrl = API_BASE_URL;
@@ -281,6 +281,9 @@ const WaitingList = () => {
   const currentGroup = groupIndex % specialtyGroups.length;
   const visibleSpecialities = specialtyGroups[currentGroup] || [];
   const rotating = displayMode === 'auto' && specialtyGroups.length > 1;
+  // Manual mode: previous / next view from the toolbar, without opening the settings
+  const manualViews = displayMode === 'manual' && specialtyGroups.length > 1;
+  const stepView = (step) => setGroupIndex((currentGroup + step + specialtyGroups.length) % specialtyGroups.length);
 
   useEffect(() => {
     if (!rotating) return undefined;
@@ -479,6 +482,16 @@ const WaitingList = () => {
           idle && !settingsOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
+        {manualViews && (
+          <>
+            <ToolButton label="العرض السابق" onClick={() => stepView(-1)}><ChevronRight className="w-5 h-5" /></ToolButton>
+            <span className="px-1 text-sm font-semibold text-ink whitespace-nowrap tabular-nums">
+              العرض {currentGroup + 1} من {specialtyGroups.length}
+            </span>
+            <ToolButton label="العرض التالي" onClick={() => stepView(1)}><ChevronLeft className="w-5 h-5" /></ToolButton>
+            <span className="w-px h-6 bg-line mx-1" aria-hidden="true" />
+          </>
+        )}
         {user && (
           <ToolButton label="رجوع" onClick={goBack}><ArrowRight className="w-5 h-5" /></ToolButton>
         )}
