@@ -566,6 +566,7 @@ export default function CheckPatient() {
                                     onJoin={() => openJoin(v)}
                                     onCancel={() => setCancelFor(v)}
                                     onOpen={(a) => setActionsFor(a)}
+                                    onDilate={hasDilatation ? toDilatation : undefined}
                                 />
                             </li>
                         ))}
@@ -965,11 +966,17 @@ export default function CheckPatient() {
 }
 
 /** A visit in progress: doctor, patient(s) and the live timer (rose past the alarm). */
-function VisitCard({ visit, offsetMs, canAct, busy, onPass, onJoin, onCancel, onOpen }) {
+function VisitCard({ visit, offsetMs, canAct, busy, onPass, onJoin, onCancel, onOpen, onDilate }) {
     const now = useNow();
     const elapsed = elapsedSeconds(visit.enteredAt, now, offsetMs);
     const late = visit.alarmAfter && elapsed > visit.alarmAfter;
     const family = visit.patients.length > 1;
+    const canDilate = canAct && !!onDilate;
+    const dilateButton = (a, props) => (
+        <Button variant="secondary" icon={Droplets} disabled={busy} onClick={() => onDilate(a)} aria-label={`أرسل ${a.full_name} إلى التمدد`} {...props}>
+            أرسله إلى التمدد
+        </Button>
+    );
 
     return (
         <article className={cx('rounded-2xl border bg-white p-3', late ? 'border-rose bg-rose-soft' : 'border-st-visit/30')}>
@@ -982,14 +989,17 @@ function VisitCard({ visit, offsetMs, canAct, busy, onPass, onJoin, onCancel, on
             {late && <p className="text-xs font-semibold text-rose mb-2">تجاوزت الزيارة مرة ونصف المدة المقررة</p>}
             <ul className="space-y-1 mb-3">
                 {visit.patients.map((a) => (
-                    <li key={a.id}>
-                        <button type="button" className="w-full text-start rounded-lg px-2 py-1.5 hover:bg-ink-faint" onClick={() => onOpen(a)}>
+                    <li key={a.id} className="flex items-center gap-2">
+                        <button type="button" className="flex-1 min-w-0 text-start rounded-lg px-2 py-1.5 hover:bg-ink-faint" onClick={() => onOpen(a)}>
                             <span className="font-semibold text-ink">{a.full_name}</span>
                             <span className="text-xs text-muted ms-2">#{a.patient_id}</span>
                         </button>
+                        {/* In a family the doctor orders it for one member; the others stay in */}
+                        {canDilate && family && dilateButton(a, { size: 'sm', className: 'shrink-0 whitespace-nowrap' })}
                     </li>
                 ))}
             </ul>
+            {canDilate && !family && dilateButton(visit.patients[0], { block: true, className: 'mb-2' })}
             {canAct && (
                 <div className="flex gap-2">
                     <Button variant="success" icon={Check} className="flex-1" disabled={busy} onClick={onPass}>
