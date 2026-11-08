@@ -3,7 +3,7 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ChevronRight, ChevronLeft, ClipboardCheck, Monitor, PieChart, Activity, ListOrdered, Droplets,
-  BarChart3, Users, MapPin, FileText, FileBarChart, TrendingUp, ListChecks, Archive, Stethoscope, MessageCircle,
+  BarChart3, Users, MapPin, FileText, FileBarChart, TrendingUp, ListChecks, Archive, Stethoscope, MessageCircle, QrCode,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { PageHeader, StatStrip, LoadingState, EmptyState, useToast } from '../../../Components/ui';
@@ -126,6 +126,7 @@ const EventTracking = () => {
     { title: 'شاشة قاعة الانتظار', hint: 'أول الزوار في طابور كل تخصص', icon: Monitor, path: `/admin/big-list-waiting/${eventId}` },
     { title: 'إحصائيات الحدث', hint: 'قبل الحدث وأثناءه وبعده: توزيع المواعيد، الحضور، النتائج', icon: Activity, path: `/admin/event-statistics/${eventId}` },
     { title: 'رسائل واتساب', hint: 'تذكير أو رسالة من قالب معتمد، حسب التخصص أو لزوار محددين', icon: MessageCircle, path: `/admin/whatsapp/${eventId}` },
+    { title: 'تقييم المتطوعين', hint: 'رمز QR يمسحه المتطوعون، الأسئلة، شاشة العرض والنتائج', icon: QrCode, path: `/admin/volunteer-evaluation/${eventId}` },
   ];
 
   const canSeeQueues = user && [1, 4, 6].includes(user.role_id);
@@ -153,6 +154,7 @@ const EventTracking = () => {
     { title: 'التقرير الإحصائي', hint: 'كل الإحصائيات في صفحة واحدة للطباعة', icon: FileBarChart, path: `/admin/archived/comprehensive-report/${eventId}` },
     { title: 'تقرير الحدث الشامل', hint: 'تقرير مفصل عن الحدث', icon: FileText, path: `/admin/event-report/${eventId}` },
     { title: 'إحصائيات التقييم', hint: 'آراء الزوار في الحدث', icon: TrendingUp, path: `/admin/evaluation_stats/${eventId}` },
+    { title: 'تقييم المتطوعين', hint: 'رمز QR يمسحه المتطوعون، الأسئلة، شاشة العرض والنتائج', icon: QrCode, path: `/admin/volunteer-evaluation/${eventId}` },
     { title: 'رسائل واتساب', hint: 'رابط التقييم أو رسالة شكر من قالب معتمد', icon: MessageCircle, path: `/admin/whatsapp/${eventId}` },
   ];
 

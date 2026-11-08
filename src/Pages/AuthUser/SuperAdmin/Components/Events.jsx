@@ -3,7 +3,7 @@ import { useContext, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   MoreVertical, ChevronRight, CalendarDays, Activity, Info, Link as LinkIcon, Monitor, MessageSquareHeart,
-  Power, PencilLine, Users, PieChart, TrendingUp, Archive, RotateCcw, FileText, BarChart3, Plus, MapPin, FlaskConical, Trash2, UserCog,
+  Power, PencilLine, Users, PieChart, TrendingUp, Archive, RotateCcw, FileText, BarChart3, Plus, MapPin, FlaskConical, Trash2, UserCog, QrCode,
 } from 'lucide-react';
 import { AppContext } from '../../../../Context/AppContext';
 import {
@@ -359,6 +359,7 @@ export default function Events({ events, getEvents, loading: listLoading, onAdd,
                 </>
               )}
               <SheetAction icon={TrendingUp} onClick={() => go(`/admin/evaluation_stats/${m.id}`)}>إحصائيات التقييم</SheetAction>
+              <SheetAction icon={QrCode} hint="رمز QR، الأسئلة، شاشة العرض والنتائج" onClick={() => go(`/admin/volunteer-evaluation/${m.id}`)}>تقييم المتطوعين</SheetAction>
             </div>
 
             <div className="pt-1">

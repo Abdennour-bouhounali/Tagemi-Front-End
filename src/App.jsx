@@ -53,6 +53,9 @@ const EvaluationForm = lazy(() => import('./Pages/Common/EvaluationForm'));
 const EvaluationsAdmin = lazy(() => import('./Pages/AuthUser/SuperAdmin/EvaluationsAdmin'));
 const EvaluationStatistics = lazy(() => import('./Pages/AuthUser/SuperAdmin/Components/EvaluationStatistics'));
 const MyTurn = lazy(() => import('./Pages/GuestUser/MyTurn'));
+const VolunteerEvaluation = lazy(() => import('./Pages/VolunteerEvaluation/VolunteerEvaluation'));
+const VolunteerEvaluationAdmin = lazy(() => import('./Pages/AuthUser/SuperAdmin/VolunteerEvaluationAdmin'));
+const VolunteerEvaluationScreen = lazy(() => import('./Pages/AuthUser/SuperAdmin/VolunteerEvaluationScreen'));
 const Privacy = lazy(() => import('./Pages/GuestUser/Privacy'));
 const NameRequired = lazy(() => import('./Pages/AuthUser/Auth/NameRequired'));
 const PatientJourney = lazy(() => import('./Pages/AuthUser/PatientJourney/PatientJourney'));
@@ -83,6 +86,10 @@ export default function App() {
         <StaleEventRedirect />
         <Suspense fallback={<LoadingState />}>
         <Routes>
+          {/* Volunteer debrief opened from the event's QR code: app-like page on the
+              phone, outside the site layout, no account */}
+          <Route path="/eval/:eventId" element={<VolunteerEvaluation />} />
+
           {/* -------- Guest / Public Routes (GuestLayout) -------- */}
           <Route path="/" element={<GuestLayout />}>
             {/* Home Routes */}
@@ -123,6 +130,8 @@ export default function App() {
           {/* Hall waiting screen shown to patients on a laptop/TV: original full-screen
               design, outside the staff shell (no tabs). Keep its UI as is. */}
           {user && <Route path="/admin/big-list-waiting/:eventId" element={guard([1, 3, 9], <WaitingList />)} />}
+          {/* Volunteer evaluation on the projector: full screen, no tabs */}
+          {user && <Route path="/admin/volunteer-evaluation/:eventId/screen" element={guard([1], <VolunteerEvaluationScreen />)} />}
           {user && (
             <Route path="/admin" element={<StaffShell />}>
               <Route path="stations/:eventId" element={guard([1, 4, 6, 8, 9], <StationsPicker />)} />
@@ -160,6 +169,7 @@ export default function App() {
               <Route path="evaluations" element={isSuperAdmin ? <EvaluationsAdmin /> : <NotAuthenticated />} />
               <Route path="evaluation_stats/:eventId" element={isSuperAdmin ? <EvaluationStatistics /> : <NotAuthenticated />} />
               <Route path="/admin/event-report/:eventId" element={guard([1], <EventReport />)} />
+              <Route path="volunteer-evaluation/:eventId" element={guard([1], <VolunteerEvaluationAdmin />)} />
 
               {/* Special Admin Routes */}
               <Route path="add-multiple-appointments" element={isSpecialAdmin ? <AddMultipleAppointments /> : <NotAuthenticated />} />
