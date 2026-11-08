@@ -205,7 +205,8 @@ function Matrix({ all, byStatus }) {
   );
 }
 
-const DeepStatsSection = ({ eventId }) => {
+// presentOnly: only the appointments that happened (no «لم يحضر بعد»), the «بعد الحدث» tab
+const DeepStatsSection = ({ eventId, presentOnly = false }) => {
   const { token } = useContext(AppContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -215,7 +216,7 @@ const DeepStatsSection = ({ eventId }) => {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/deep-stats`, {
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/deep-stats${presentOnly ? '?present=1' : ''}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -228,7 +229,7 @@ const DeepStatsSection = ({ eventId }) => {
     }
   };
 
-  useEffect(() => { load(); }, [eventId]);
+  useEffect(() => { load(); }, [eventId, presentOnly]);
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={load} />;
@@ -237,6 +238,9 @@ const DeepStatsSection = ({ eventId }) => {
   const males = s.sex_summary.find((x) => x.sex === 'ذكر');
   const females = s.sex_summary.find((x) => x.sex === 'أنثى');
   const minors = s.sex_summary.reduce((a, x) => a + x.minors, 0);
+
+  // Without Pending appointments the attendance rate is always 100%
+  const withAttendance = (columns) => (presentOnly ? columns.filter((c) => c.key !== 'attendance') : columns);
 
   const exportCsv = () => {
     const out = [
@@ -271,12 +275,17 @@ const DeepStatsSection = ({ eventId }) => {
   return (
     <section className="mt-8">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h2 className="font-display text-lg text-ink">إحصائيات معمّقة ومصفوفات</h2>
+        <div>
+          <h2 className="font-display text-lg text-ink">إحصائيات معمّقة ومصفوفات</h2>
+          {presentOnly && <p className="text-xs text-muted">الزوار الذين حضروا فقط، دون مواعيد «لم يحضر بعد».</p>}
+        </div>
         <Button variant="secondary" size="sm" icon={Download} onClick={exportCsv}>CSV</Button>
       </div>
 
       {s.totals.appointments === 0 ? (
-        <Panel><EmptyState title="لا توجد مواعيد في هذا الحدث">ستظهر الإحصائيات بعد تسجيل الزوار.</EmptyState></Panel>
+        <Panel>{presentOnly
+          ? <EmptyState title="لم يحضر أي زائر">ستظهر الإحصائيات بعد حضور الزوار.</EmptyState>
+          : <EmptyState title="لا توجد مواعيد في هذا الحدث">ستظهر الإحصائيات بعد تسجيل الزوار.</EmptyState>}</Panel>
       ) : (
         <>
           <StatStrip
@@ -329,12 +338,12 @@ const DeepStatsSection = ({ eventId }) => {
             )}
 
             <Panel title="ملخص حسب القصر">
-              <ResponsiveTable columns={ksarColumns} rows={s.ksar_summary} rowKey={(r) => r.ksar} />
+              <ResponsiveTable columns={withAttendance(ksarColumns)} rows={s.ksar_summary} rowKey={(r) => r.ksar} />
             </Panel>
 
             <Panel title="ملخص حسب الجنس">
               <ResponsiveTable
-                columns={[
+                columns={withAttendance([
                   { key: 'sex', label: 'الجنس', primary: true },
                   { key: 'count', label: 'الزوار', align: 'center' },
                   { key: 'minors', label: 'القصّر', align: 'center' },
@@ -342,7 +351,7 @@ const DeepStatsSection = ({ eventId }) => {
                   { key: 'median_age', label: 'وسيط العمر', align: 'center', render: (r) => r.median_age ?? '—' },
                   { key: 'attendance', label: 'نسبة الحضور', align: 'center', render: (r) => (r.attendance_rate == null ? '—' : `${r.attendance_rate}%`) },
                   { key: 'completion', label: 'نسبة إنهاء الفحص', align: 'center', render: (r) => (r.completion_rate == null ? '—' : `${r.completion_rate}%`) },
-                ]}
+                ])}
                 rows={s.sex_summary}
                 rowKey={(r) => r.sex}
               />

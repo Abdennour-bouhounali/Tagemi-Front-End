@@ -302,6 +302,12 @@ function BeforeView({ totals, statistics, distribution, notArrivedDemo, specialt
                     { label: 'عدد الفحوصات', value: totals.total || 0, sub: `${totals.pending || 0} لم يحضر أصحابها بعد` },
                     distribution && { label: 'أماكن متاحة', value: dist.total_available, tone: 'text-st-queue', sub: `من سعة ${dist.total_capacity ?? 0}` },
                     distribution && { label: 'نسبة الامتلاء', value: `${dist.percentage_full ?? 0}%` },
+                    {
+                        label: 'تم إنزالهم',
+                        value: p.coming_soon || 0,
+                        tone: 'text-st-queue',
+                        sub: `${p.patients_coming_soon || 0} زائر، منهم ${p.patients_coming_soon_with_other || 0} لديهم فحص آخر`,
+                    },
                     { label: 'متوسط التخصصات لكل زائر', value: mean(specialtyCount, notArrivedDemo.total), sub: `${specialtyCount} تخصص لـ ${notArrivedDemo.total} زائر` },
                 ]}
             />
@@ -435,48 +441,53 @@ function DuringView({ eventId, totals, statistics, allDemo, pendingByDay }) {
     );
 }
 
-/** After: the outcome: who came, who finished, who never showed up. */
-function AfterView({ eventId, totals, statistics, allDemo, arrivedDemo }) {
-    const patients = totals.patients_total || 0;
-    const notArrived = Math.max(patients - (totals.patients_arrived || 0), 0);
+/**
+ * After: the outcome, counted on what actually happened. Pending appointments
+ * (never came) are left out, so a visitor is someone with at least one
+ * appointment past «لم يحضر بعد». Only the first tile recalls the registrations.
+ */
+function AfterView({ eventId, totals, present, arrivedDemo }) {
+    const { statistics: p = {}, by_specialty: statistics = [] } = present || {};
+    const patients = p.patients_total || 0;
+    const visits = p.total || 0;
+    const keys = GROUP_KEYS.filter((key) => key !== 'pending');
     const unfinished = (row) => (row.waiting || 0) + (row.in_queue || 0) + (row.dilatation || 0) + (row.in_visit || 0);
 
     const outcomeColumns = [
         { key: 'specialty_name', label: 'التخصص', primary: true },
-        { key: 'total', label: 'المواعيد', align: 'center', render: (row) => row.total || 0 },
+        { key: 'patients_total', label: 'الزوار', align: 'center', render: (row) => row.patients_total || 0 },
+        { key: 'total', label: 'الفحوصات', align: 'center', render: (row) => row.total || 0 },
         { key: 'completed', label: GROUP_LABELS.completed, align: 'center', render: (row) => row.completed || 0 },
         { key: 'unfinished', label: 'حضر ولم يُكمل', align: 'center', render: unfinished },
-        { key: 'pending', label: 'لم يحضر', align: 'center', render: (row) => row.pending || 0 },
+        { key: 'coming_soon', label: 'تم إنزاله', align: 'center', render: (row) => row.coming_soon || 0 },
         { key: 'completion', label: 'نسبة الإنجاز', align: 'center', render: (row) => `${pct(row.completed, row.total)}%` },
-        { key: 'absence', label: 'نسبة الغياب', align: 'center', render: (row) => `${pct(row.pending, row.total)}%` },
     ];
-
-    const attendanceRows = [
-        { key: 'males', label: 'الذكور' },
-        { key: 'females', label: 'الإناث' },
-        { key: 'children', label: 'الأطفال (أقل من 10 سنوات)' },
-        { key: 'total', label: 'المجموع' },
-    ].map((r) => ({ ...r, registered: allDemo[r.key], arrived: arrivedDemo[r.key] }));
 
     return (
         <>
+            <p className="text-sm text-muted mb-3">الأرقام تخص الزوار الذين حضروا فقط، دون مواعيد «لم يحضر بعد».</p>
             <BigStats
                 items={[
-                    { label: 'عدد الزوار', value: patients, sub: 'كل الحالات' },
-                    { label: 'نسبة الحضور', value: `${pct(totals.patients_arrived, patients)}%`, tone: 'text-st-queue', sub: `${totals.patients_arrived || 0} من ${patients} زائر` },
-                    { label: 'نسبة الغياب', value: `${pct(notArrived, patients)}%`, tone: 'text-st-pending', sub: `${notArrived} زائر لم يحضر` },
-                    { label: 'أنهوا جميع الفحوصات', value: `${pct(totals.patients_finished, patients)}%`, tone: 'text-st-done', sub: `${totals.patients_finished || 0} زائر` },
-                    { label: 'عدد الفحوصات', value: totals.total || 0, sub: `${totals.pending || 0} لم يحضر أصحابها` },
-                    { label: 'نسبة إنجاز الفحوصات', value: `${pct(totals.completed, totals.total)}%`, tone: 'text-st-done', sub: `${totals.completed || 0} من ${totals.total || 0} فحص` },
-                    { label: 'متوسط التخصصات لكل زائر', value: mean(totals.total, patients), sub: `${totals.total || 0} فحص لـ ${patients} زائر` },
+                    { label: 'الزوار الحاضرون', value: patients, sub: `من ${totals.patients_total || 0} مسجل (${pct(patients, totals.patients_total)}%)` },
+                    { label: 'أنهوا جميع الفحوصات', value: `${pct(p.patients_finished, patients)}%`, tone: 'text-st-done', sub: `${p.patients_finished || 0} من ${patients} زائر` },
+                    { label: 'عدد الفحوصات', value: visits, sub: `${p.completed || 0} أُنجزت` },
+                    { label: 'نسبة إنجاز الفحوصات', value: `${pct(p.completed, visits)}%`, tone: 'text-st-done', sub: `${p.completed || 0} من ${visits} فحص` },
+                    { label: 'حضر ولم يُكمل', value: unfinished(p), tone: 'text-st-queue', sub: `${pct(unfinished(p), visits)}% من الفحوصات` },
+                    {
+                        label: 'تم إنزالهم',
+                        value: p.coming_soon || 0,
+                        tone: 'text-st-queue',
+                        sub: `${p.patients_coming_soon || 0} زائر، منهم ${p.patients_coming_soon_with_other || 0} لديهم فحص آخر`,
+                    },
+                    { label: 'متوسط التخصصات لكل زائر', value: mean(visits, patients), sub: `${visits} فحص لـ ${patients} زائر` },
                 ]}
             />
 
             <div className="space-y-4">
-                <Panel title={`حصيلة المواعيد (${totals.total || 0})`}>
+                <Panel title={`حصيلة الفحوصات (${visits})`}>
                     <ShareBar
-                        total={totals.total || 0}
-                        parts={GROUP_KEYS.map((key) => ({ label: GROUP_LABELS[key], value: totals[key] || 0, color: GROUP_COLORS[key] }))}
+                        total={visits}
+                        parts={keys.map((key) => ({ label: GROUP_LABELS[key], value: p[key] || 0, color: GROUP_COLORS[key] }))}
                     />
                 </Panel>
 
@@ -485,29 +496,15 @@ function AfterView({ eventId, totals, statistics, allDemo, arrivedDemo }) {
                         columns={outcomeColumns}
                         rows={statistics}
                         rowKey={(row) => row.specialty_id}
-                        footer={{ ...totals, specialty_name: 'المجموع' }}
-                        empty="لا توجد مواعيد في هذا الحدث."
-                    />
-                </Panel>
-
-                <Panel title="الحضور حسب الفئة">
-                    <ResponsiveTable
-                        columns={[
-                            { key: 'label', label: 'الفئة', primary: true },
-                            { key: 'registered', label: 'المسجلون', align: 'center', render: (r) => r.registered || 0 },
-                            { key: 'arrived', label: 'حضروا', align: 'center', render: (r) => r.arrived || 0 },
-                            { key: 'absent', label: 'لم يحضروا', align: 'center', render: (r) => Math.max((r.registered || 0) - (r.arrived || 0), 0) },
-                            { key: 'rate', label: 'نسبة الحضور', align: 'center', render: (r) => `${pct(r.arrived, r.registered)}%` },
-                        ]}
-                        rows={attendanceRows}
-                        rowKey={(r) => r.key}
+                        footer={{ ...p, specialty_name: 'المجموع' }}
+                        empty="لم يحضر أي زائر."
                     />
                 </Panel>
 
                 <DemographicsPanels demo={arrivedDemo} title="الزوار الذين حضروا" empty="لم يحضر أي زائر." />
             </div>
 
-            <DeepStatsSection eventId={eventId} />
+            <DeepStatsSection eventId={eventId} presentOnly />
         </>
     );
 }
@@ -525,6 +522,7 @@ const VisitsStatistics = () => {
     const [event, setEvent] = useState(null);
     const [statistics, setStatistics] = useState([]);
     const [totals, setTotals] = useState({});
+    const [present, setPresent] = useState(null);
     const [appointments, setAppointments] = useState([]);
     const [distribution, setDistribution] = useState(null);
     const [error, setError] = useState('');
@@ -575,6 +573,8 @@ const VisitsStatistics = () => {
                 patients_arrived: stats.patients_arrived || 0,
                 patients_finished: stats.patients_finished || 0,
             });
+
+            setPresent(data.present || null);
 
             // The rest is optional: a failure leaves that part empty, not the page
             if (eventRes?.ok) {
@@ -727,13 +727,7 @@ const VisitsStatistics = () => {
                 <DuringView eventId={eventId} totals={totals} statistics={statistics} allDemo={derived.allDemo} pendingByDay={derived.pendingByDay} />
             )}
             {phase === 'after' && (
-                <AfterView
-                    eventId={eventId}
-                    totals={totals}
-                    statistics={statistics}
-                    allDemo={derived.allDemo}
-                    arrivedDemo={derived.arrivedDemo}
-                />
+                <AfterView eventId={eventId} totals={totals} present={present} arrivedDemo={derived.arrivedDemo} />
             )}
         </div>
     );
