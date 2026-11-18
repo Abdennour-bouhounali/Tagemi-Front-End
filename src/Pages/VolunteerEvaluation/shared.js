@@ -8,6 +8,20 @@ export const apiUrl = API_BASE_URL;
 export const RATING_LABELS = { 1: 'ضعيف جداً', 2: 'ضعيف', 3: 'متوسط', 4: 'جيد', 5: 'ممتاز', 0: 'لا أعرف' };
 export const RATING_ORDER = [1, 2, 3, 4, 5, 0];
 
+/** Question types, like a form. A question without a type is a rating. */
+export const QUESTION_TYPES = [
+  { value: 'rating', label: 'تقييم من 1 إلى 5' },
+  { value: 'yesno', label: 'نعم / لا' },
+  { value: 'single', label: 'اختيار واحد' },
+  { value: 'multi', label: 'اختيارات متعددة' },
+  { value: 'text', label: 'سؤال مفتوح' },
+];
+export const typeOf = (q) => (QUESTION_TYPES.some((t) => t.value === q?.type) ? q.type : 'rating');
+export const isChoice = (type) => type === 'single' || type === 'multi';
+
+/** Short reading of a non-rating question's result, for the screen and lists. */
+export const pct = (part, whole) => (whole ? Math.round((part / whole) * 100) : 0);
+
 /** Verbal reading of an average out of 5. */
 export const verbal = (avg) => {
   if (avg == null) return '—';

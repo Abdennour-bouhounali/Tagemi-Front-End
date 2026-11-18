@@ -8,7 +8,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Expand, Settings2 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import { LoadingState, cx } from '../../../Components/ui';
-import { fmtAvg, fmtClock, requestJson, verbal } from '../../VolunteerEvaluation/shared';
+import { fmtAvg, fmtClock, pct, requestJson, typeOf, verbal } from '../../VolunteerEvaluation/shared';
 
 const REFRESH_MS = 5000;
 const SLIDE_MS = 14000;
@@ -161,13 +161,19 @@ function ResultsSlide({ results, slide }) {
           <span className="text-[2.4vmin] text-muted">من 5 · {verbal(x.average)} · {x.done} إجابة</span>
         </div>
         <div className="grid gap-[1.1vmin] overflow-hidden">
-          {x.questions.map((q) => (
-            <div key={q.id} className="grid grid-cols-[minmax(0,1fr)_20vmin_6vmin] gap-[1.4vmin] items-center text-[1.9vmin] leading-snug text-ink">
-              <span className="line-clamp-2">{q.t}</span>
-              <Bar value={q.average ? q.average / 5 : 0} className="h-[1.4vmin]" />
-              <b className="font-display text-end">{fmtAvg(q.average, 1)}</b>
-            </div>
-          ))}
+          {x.questions.map((q) => {
+            const { bar, value, hint } = screenReading(q);
+            return (
+              <div key={q.id} className="grid grid-cols-[minmax(0,1fr)_20vmin_8vmin] gap-[1.4vmin] items-center text-[1.9vmin] leading-snug text-ink">
+                <span className="line-clamp-2">
+                  {q.t}
+                  {hint && <span className="block text-[1.6vmin] text-muted truncate">{hint}</span>}
+                </span>
+                {bar == null ? <span /> : <Bar value={bar} className="h-[1.4vmin]" />}
+                <b className="font-display text-end" dir="ltr">{value}</b>
+              </div>
+            );
+          })}
         </div>
         {rec && (
           <div className="mt-auto text-[2.1vmin] leading-snug px-[1.6vmin] py-[1.2vmin] rounded-[1.2vmin] bg-ink-faint text-ink">
@@ -187,6 +193,20 @@ function ResultsSlide({ results, slide }) {
       </div>
     </div>
   );
+}
+
+/** One line per question on the screen: bar (0..1), value, and a hint under the question. */
+function screenReading(q) {
+  const type = typeOf(q);
+  if (type === 'rating') return { bar: q.average ? q.average / 5 : 0, value: fmtAvg(q.average, 1) };
+  if (type === 'text') return { bar: null, value: q.count || 0, hint: 'إجابة مكتوبة' };
+  if (type === 'yesno') return { bar: q.count ? q.yes / q.count : 0, value: `${pct(q.yes, q.count)}%`, hint: `نعم ${q.yes || 0} · لا ${q.no || 0}` };
+  const top = [...(q.options || [])].sort((a, b) => b.count - a.count)[0];
+  return {
+    bar: q.count && top ? top.count / q.count : 0,
+    value: top && q.count ? `${pct(top.count, q.count)}%` : '—',
+    hint: top && top.count ? `الأكثر: ${top.label}` : 'لا إجابات بعد',
+  };
 }
 
 export default function VolunteerEvaluationScreen() {

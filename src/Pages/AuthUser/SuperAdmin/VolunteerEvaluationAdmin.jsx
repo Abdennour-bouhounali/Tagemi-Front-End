@@ -7,17 +7,19 @@ import { Link, useParams } from 'react-router-dom';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-  ArrowDown, ArrowUp, ChevronRight, ClipboardList, Copy, Lock, LockOpen, Monitor, Play, Plus,
-  Printer, RefreshCw, Save, Square, Timer, Trash2, Undo2,
+  ArrowDown, ArrowUp, ChevronRight, CircleDot, ClipboardList, Copy, Lock, LockOpen, Monitor, Play, Plus,
+  Printer, RefreshCw, Save, Square, SquareCheck, Timer, Trash2, Undo2, X,
 } from 'lucide-react';
 import { AppContext } from '../../../Context/AppContext';
 import {
-  Button, ChipGroup, EmptyState, Field, IconButton, LoadingState, PageHeader, Panel, StatStrip,
+  Button, ChipGroup, EmptyState, Field, IconButton, LoadingState, PageHeader, Panel, SelectInput, StatStrip,
   TextInput, cx, inputClass, useToast,
 } from '../../../Components/ui';
 import { ConfirmSheet, SwitchRow } from './Components/EventFormParts';
 import { escapeHtml, writePrintDocument } from '../../../utils/safeHtml';
-import { evaluationLink, fmtAvg, fmtClock, newId, requestJson, verbal } from '../../VolunteerEvaluation/shared';
+import {
+  QUESTION_TYPES, evaluationLink, fmtAvg, fmtClock, isChoice, newId, pct, requestJson, typeOf, verbal,
+} from '../../VolunteerEvaluation/shared';
 
 const REFRESH_MS = 10000;
 const TABS = [
@@ -224,6 +226,59 @@ function PeopleTab({ results, roles, onDelete }) {
 
 // ----------------------------------------------------------- questions
 
+const newOption = (n) => ({ id: newId('o'), label: `خيار ${n}` });
+
+/** Type and options of one question, edited in place like a form builder. */
+function QuestionTypeEditor({ q, onChange }) {
+  const type = typeOf(q);
+  const options = q.options || [];
+  const OptionIcon = type === 'multi' ? SquareCheck : CircleDot;
+
+  const setType = (next) => onChange((x) => {
+    x.type = next;
+    if (isChoice(next)) {
+      if (!x.options || x.options.length < 2) x.options = [newOption(1), newOption(2)];
+    } else {
+      delete x.options;
+    }
+  });
+
+  return (
+    <div className="space-y-2">
+      <SelectInput aria-label="نوع السؤال" className="h-10 text-sm" value={type} onChange={(e) => setType(e.target.value)}>
+        {QUESTION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+      </SelectInput>
+      {isChoice(type) && (
+        <div className="space-y-1.5">
+          {options.map((o, oi) => (
+            <div key={o.id} className="flex items-center gap-2">
+              <OptionIcon className="w-4 h-4 text-muted shrink-0" aria-hidden="true" />
+              <input
+                className={cx(inputClass, 'h-10 text-sm')}
+                aria-label={`الخيار ${oi + 1}`}
+                value={o.label}
+                onChange={(e) => onChange((x) => { x.options[oi].label = e.target.value; })}
+              />
+              <IconButton
+                icon={X}
+                label="احذف الخيار"
+                className="text-red-700 shrink-0 disabled:opacity-30"
+                disabled={options.length <= 2}
+                onClick={() => onChange((x) => { x.options.splice(oi, 1); })}
+              />
+            </div>
+          ))}
+          <Button variant="ghost" size="sm" icon={Plus} className="-ms-2" disabled={options.length >= 30} onClick={() => onChange((x) => { x.options.push(newOption(x.options.length + 1)); })}>
+            أضف خياراً
+          </Button>
+        </div>
+      )}
+      {type === 'yesno' && <p className="text-xs text-muted">يجيب المتطوع بـ«نعم» أو «لا».</p>}
+      {type === 'text' && <p className="text-xs text-muted">يكتب المتطوع إجابته بحرية.</p>}
+    </div>
+  );
+}
+
 function QuestionsTab({ evaluation, onSaved }) {
   const toast = useToast();
   const { token } = useContext(AppContext);
@@ -349,9 +404,18 @@ function QuestionsTab({ evaluation, onSaved }) {
                             />
                           </div>
                           <textarea rows={2} className={textareaClass} aria-label="نص السؤال" value={q.t} onChange={(e) => change((d) => { d.axes[ai].qs[qi].t = e.target.value; })} />
+                          <QuestionTypeEditor q={q} onChange={(fn) => change((d) => { fn(d.axes[ai].qs[qi]); })} />
                         </div>
                       ))}
-                      <Button variant="ghost" size="sm" icon={Plus} className="-ms-2" onClick={() => change((d) => { d.axes[ai].qs.push({ id: newId(`${a.id}q`), g: a.qs[a.qs.length - 1]?.g || '', t: 'سؤال جديد' }); })}>
+                      <Button variant="ghost" size="sm" icon={Plus} className="-ms-2" onClick={() => change((d) => { const last = a.qs[a.qs.length - 1];
+                        d.axes[ai].qs.push({
+                          id: newId(`${a.id}q`),
+                          g: last?.g || '',
+                          t: 'سؤال جديد',
+                          type: typeOf(last),
+                          ...(isChoice(typeOf(last)) ? { options: [newOption(1), newOption(2)] } : {}),
+                        });
+                      })}>
                         أضف سؤالاً
                       </Button>
                     </div>
@@ -377,7 +441,7 @@ function QuestionsTab({ evaluation, onSaved }) {
         >
           أضف محوراً
         </Button>
-        <p className="mt-3 text-xs text-muted">تعديل نص سؤال لا يمسح إجاباته. حذف سؤال أو محور يُخفي إجاباته من النتائج.</p>
+        <p className="mt-3 text-xs text-muted">تعديل نص سؤال أو خيار لا يمسح إجاباته. حذف سؤال أو محور أو خيار، أو تغيير نوع السؤال، يُخفي إجاباته السابقة من النتائج.</p>
       </section>
 
       {dirty && (
@@ -449,6 +513,51 @@ function RecommendationBox({ eventId, axisId, saved, onSaved }) {
   );
 }
 
+/** One question's result: average, yes / no split, option counts or the written answers. */
+function QuestionResult({ q }) {
+  const type = typeOf(q);
+  if (type === 'rating') {
+    return (
+      <li className="py-2 grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_8rem_3rem] gap-x-3 gap-y-1 items-center text-sm">
+        <span className="text-ink">{q.t}</span>
+        <span className="font-display text-ink text-end sm:order-last">{fmtAvg(q.average, 1)}</span>
+        <Bar value={q.average ? q.average / 5 : 0} className="col-span-2 sm:col-span-1" />
+      </li>
+    );
+  }
+
+  const rows = type === 'yesno'
+    ? [{ id: 'yes', label: 'نعم', count: q.yes || 0 }, { id: 'no', label: 'لا', count: q.no || 0 }]
+    : q.options || [];
+
+  return (
+    <li className="py-2 text-sm">
+      <p className="flex items-start justify-between gap-2">
+        <span className="text-ink">{q.t}</span>
+        <span className="shrink-0 text-xs text-muted">{q.count || 0} إجابة</span>
+      </p>
+      {type === 'text' ? (
+        q.texts?.length ? (
+          <ul className="mt-1.5 space-y-1 max-h-60 overflow-y-auto">
+            {q.texts.map((t, i) => <li key={i} className="rounded-xl bg-paper px-3 py-1.5 text-ink whitespace-pre-line">{t}</li>)}
+          </ul>
+        ) : <p className="mt-1 text-xs text-muted">لا إجابات بعد.</p>
+      ) : (
+        <div className="mt-1.5 space-y-1">
+          {rows.map((o) => (
+            <div key={o.id} className="grid grid-cols-[minmax(0,8rem)_1fr_4.5rem] gap-2 items-center text-xs">
+              <span className="text-ink truncate">{o.label}</span>
+              <Bar value={q.count ? o.count / q.count : 0} />
+              <span className="text-muted text-end" dir="ltr">{o.count} · {pct(o.count, q.count)}%</span>
+            </div>
+          ))}
+          {type === 'multi' && <p className="text-[11px] text-muted">النسبة من عدد من أجابوا؛ يمكن اختيار أكثر من خيار.</p>}
+        </div>
+      )}
+    </li>
+  );
+}
+
 function ResultsTab({ eventId, results, onRecommendations }) {
   const { stats, axes, recommendations } = results;
   return (
@@ -468,13 +577,7 @@ function ResultsTab({ eventId, results, onRecommendations }) {
         >
           <p className="text-xs text-muted mb-2">{x.done} أجابوا · {x.skipped} تخطّوا · {x.overall_count} قيّموا المحور عامةً</p>
           <ul className="divide-y divide-line">
-            {x.questions.map((q) => (
-              <li key={q.id} className="py-2 grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_8rem_3rem] gap-x-3 gap-y-1 items-center text-sm">
-                <span className="text-ink">{q.t}</span>
-                <span className="font-display text-ink text-end sm:order-last">{fmtAvg(q.average, 1)}</span>
-                <Bar value={q.average ? q.average / 5 : 0} className="col-span-2 sm:col-span-1" />
-              </li>
-            ))}
+            {x.questions.map((q) => <QuestionResult key={q.id} q={q} />)}
           </ul>
           <div className="grid gap-4 sm:grid-cols-2 mt-3">
             <NotesList title="الإيجابيات" notes={x.positives} tone="bg-st-queue" recLabel="التوصية" />

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, ChevronLeft, ClipboardList, Lock, Plus, RefreshCw, Trash2, UserRoundCog } from 'lucide-react';
 import { Button, EmptyState, LoadingState, ToastProvider, useToast, cx } from '../../Components/ui';
-import { RATING_LABELS, RATING_ORDER, isAnswered, orderFor, requestJson } from './shared';
+import { RATING_LABELS, RATING_ORDER, isAnswered, orderFor, requestJson, typeOf } from './shared';
 
 const tokenKey = (eventId) => `volunteer-eval:${eventId}`;
 const draftKey = (eventId) => `volunteer-eval-draft:${eventId}`;
@@ -22,6 +22,7 @@ const emptyNote = () => ({ text: '', reason: '', recommendation: '' });
 /** Draft of one axis from the saved answer (or empty). */
 const draftFrom = (answer) => ({
   ratings: { ...(answer?.ratings || {}) },
+  responses: { ...(answer?.responses || {}) },
   overall: answer?.overall ?? null,
   positives: answer?.positives?.length ? answer.positives.map((n) => ({ ...n })) : [emptyNote()],
   negatives: answer?.negatives?.length ? answer.negatives.map((n) => ({ ...n })) : [emptyNote()],
@@ -54,6 +55,78 @@ function Rater({ value, onChange, label }) {
         );
       })}
     </div>
+  );
+}
+
+/** Big tappable choices: yes / no, one option, or several (checkboxes). */
+function ChoiceList({ options, multi, value, onChange, label, columns }) {
+  const chosen = multi ? (Array.isArray(value) ? value : value ? [value] : []) : value;
+  const isOn = (id) => (multi ? chosen.includes(id) : chosen === id);
+  const toggle = (id) => {
+    if (multi) onChange(isOn(id) ? chosen.filter((x) => x !== id) : [...chosen, id]);
+    else onChange(isOn(id) ? null : id);
+  };
+  return (
+    <div role={multi ? 'group' : 'radiogroup'} aria-label={label} className={cx('grid gap-1.5', columns)}>
+      {options.map((o) => {
+        const on = isOn(o.id);
+        return (
+          <button
+            key={o.id}
+            type="button"
+            role={multi ? 'checkbox' : 'radio'}
+            aria-checked={on}
+            onClick={() => toggle(o.id)}
+            className={cx(
+              'flex items-center gap-2.5 min-h-[3rem] px-3 rounded-xl border text-start text-[15px] transition-colors',
+              on ? 'bg-ink border-ink text-white' : 'bg-white border-line text-ink hover:bg-ink-faint'
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={cx(
+                'shrink-0 w-5 h-5 border-2 flex items-center justify-center',
+                multi ? 'rounded-md' : 'rounded-full',
+                on ? 'border-white bg-white' : 'border-line'
+              )}
+            >
+              {on && (multi ? <CheckCircle2 className="w-4 h-4 text-ink" /> : <span className="w-2.5 h-2.5 rounded-full bg-ink" />)}
+            </span>
+            <span className="min-w-0">{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const YES_NO = [{ id: 'yes', label: 'نعم' }, { id: 'no', label: 'لا' }];
+
+/** The answer field of one question, by its type. */
+function QuestionInput({ q, draft, onRating, onResponse }) {
+  const type = typeOf(q);
+  if (type === 'rating') return <Rater label={q.t} value={draft.ratings[q.id] ?? null} onChange={onRating} />;
+  const value = draft.responses?.[q.id] ?? null;
+  if (type === 'yesno') return <ChoiceList label={q.t} options={YES_NO} value={value} onChange={onResponse} columns="grid-cols-2" />;
+  if (type === 'single') return <ChoiceList label={q.t} options={q.options || []} value={value} onChange={onResponse} />;
+  if (type === 'multi') {
+    return (
+      <>
+        <p className="text-xs text-muted mb-1.5">يمكنك اختيار أكثر من إجابة.</p>
+        <ChoiceList multi label={q.t} options={q.options || []} value={value} onChange={onResponse} />
+      </>
+    );
+  }
+  return (
+    <textarea
+      rows={3}
+      maxLength={2000}
+      className={textareaClass}
+      placeholder="اكتب إجابتك..."
+      aria-label={q.t}
+      value={typeof value === 'string' ? value : ''}
+      onChange={(e) => onResponse(e.target.value)}
+    />
   );
 }
 
@@ -216,7 +289,7 @@ function VolunteerEvaluationPage() {
       const res = await requestJson(`/public/volunteer-eval/${eventId}/me/axes/${axis.id}`, {
         method: 'PUT',
         evalToken: token,
-        body: { status, overall: d.overall, ratings: d.ratings, positives: d.positives, negatives: d.negatives },
+        body: { status, overall: d.overall, ratings: d.ratings, responses: d.responses || {}, positives: d.positives, negatives: d.negatives },
       });
       setParticipant(res.participant);
       setDrafts(({ [axis.id]: _saved, ...rest }) => rest);
@@ -399,6 +472,8 @@ function VolunteerEvaluationPage() {
   } else {
     const d = draftOf(current);
     const index = order.indexOf(current) + 1;
+    const hasRatings = current.qs.some((q) => typeOf(q) === 'rating');
+    const onlyRatings = current.qs.every((q) => typeOf(q) === 'rating');
     let lastGroup = null;
     body = (
       <>
@@ -414,8 +489,8 @@ function VolunteerEvaluationPage() {
         </header>
 
         <section className="bg-white border border-line rounded-2xl p-4">
-          <h3 className="font-semibold text-ink">قيّم كل نقطة</h3>
-          <p className="mt-1 text-xs text-muted">من 1 (ضعيف جداً) إلى 5 (ممتاز)، أو «؟» إن كنت لا تعرف.</p>
+          <h3 className="font-semibold text-ink">{onlyRatings ? 'قيّم كل نقطة' : 'أجب عن الأسئلة'}</h3>
+          {hasRatings && <p className="mt-1 text-xs text-muted">التقييم من 1 (ضعيف جداً) إلى 5 (ممتاز)، أو «؟» إن كنت لا تعرف.</p>}
           <div className="mt-2 divide-y divide-line">
             {current.qs.map((q) => {
               const groupTitle = q.g && q.g !== lastGroup ? q.g : null;
@@ -424,7 +499,12 @@ function VolunteerEvaluationPage() {
                 <div key={q.id} className="py-3">
                   {groupTitle && <p className="text-xs font-semibold text-st-hold mb-2">{groupTitle}</p>}
                   <p className="text-[15px] text-ink leading-relaxed mb-2">{q.t}</p>
-                  <Rater label={q.t} value={d.ratings[q.id] ?? null} onChange={(v) => setDraft(current, { ratings: { ...d.ratings, [q.id]: v } })} />
+                  <QuestionInput
+                    q={q}
+                    draft={d}
+                    onRating={(v) => setDraft(current, { ratings: { ...d.ratings, [q.id]: v } })}
+                    onResponse={(v) => setDraft(current, { responses: { ...(d.responses || {}), [q.id]: v } })}
+                  />
                 </div>
               );
             })}
